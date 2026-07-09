@@ -52,26 +52,44 @@ def html_body(msg):
     return ""
 
 
+# 항공사 특가와 무관한 시스템 메일 발신 도메인
+SKIP_SENDERS = ("google.com", "gmail.com")
+
+
 def main():
     addr, pw = load_env()
-    conn = db.connect()
+    conn = db.connect()          # 공개 커밋용: 메타데이터만
+    raw = db.connect_raw()       # 로컬 전용: 본문 포함 (파싱 개발용)
     imap = imaplib.IMAP4_SSL(IMAP_HOST)
     imap.login(addr, pw)
     imap.select("INBOX")
     _, data = imap.search(None, "UNSEEN")
     ids = data[0].split()
     print(f"새 메일 {len(ids)}건")
+    saved = 0
     for mid in ids:
         _, msg_data = imap.fetch(mid, "(RFC822)")
         msg = email.message_from_bytes(msg_data[0][1])
+        received, sender = msg.get("Date", ""), decode(msg.get("From"))
+        subject = decode(msg.get("Subject"))
+        if any(d in sender.lower() for d in SKIP_SENDERS):
+            print(f"  건너뜀(시스템 메일): {subject[:50]}")
+            continue
         conn.execute(
-            "INSERT INTO emails (received_at, sender, subject, body_html) VALUES (?,?,?,?)",
-            (msg.get("Date", ""), decode(msg.get("From")),
-             decode(msg.get("Subject")), html_body(msg)))
-        print(f"  저장: {decode(msg.get('Subject'))[:60]}")
+            "INSERT OR IGNORE INTO emails (received_at, sender, subject) VALUES (?,?,?)",
+            (received, sender, subject))
+        raw.execute(
+            """INSERT OR IGNORE INTO emails_raw
+               (received_at, sender, subject, body_html) VALUES (?,?,?,?)""",
+            (received, sender, subject, html_body(msg)))
+        saved += 1
+        print(f"  저장: {subject[:60]}")
     conn.commit()
+    raw.commit()
     conn.close()
+    raw.close()
     imap.logout()
+    print(f"완료: {saved}건 저장")
 
 
 if __name__ == "__main__":

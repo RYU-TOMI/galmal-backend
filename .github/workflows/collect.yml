@@ -27,6 +27,13 @@ jobs:
       - name: 특가 판정
         run: python collector/detect_deals.py | tee data/deals_latest.txt
 
+      - name: 프로모션 메일 수집
+        continue-on-error: true   # 메일 실패가 가격 수집 커밋을 막지 않도록
+        env:
+          MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+        run: python collector/mail_ingest.py
+
       - name: 데이터 커밋
         run: |
           git config user.name "github-actions[bot]"
