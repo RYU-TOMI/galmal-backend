@@ -1,0 +1,4 @@
+# 데이터(data/)는 GitHub Actions가 매일 커밋해 축적하므로 추적함
+.env
+__pycache__/
+.idea/
