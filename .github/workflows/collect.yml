@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: 의존성 설치
+        run: pip install -r requirements.txt
+
       - name: 가격 수집
         env:
           TP_TOKEN: ${{ secrets.TP_TOKEN }}
@@ -33,6 +36,12 @@ jobs:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
         run: python collector/mail_ingest.py
+
+      - name: 메일 LLM 파싱
+        continue-on-error: true   # 파싱 실패가 나머지 파이프라인을 막지 않도록
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python collector/parse_mail.py
 
       - name: 웹 피드 생성
         run: python collector/build_site.py

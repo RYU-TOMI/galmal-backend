@@ -19,9 +19,13 @@ IS_DIRECT_SQL = "(transfers=0 AND IFNULL(return_transfers,0)=0)"
 
 
 def compute_deals(conn):
-    """오늘 수집분 중 특가 목록을 dict 리스트로 반환 (할인율 내림차순)."""
-    today = date.today().isoformat()
-    since = (date.today() - timedelta(days=config.BASELINE_DAYS)).isoformat()
+    """최신 수집분 중 특가 목록을 dict 리스트로 반환 (할인율 내림차순).
+
+    실행 환경의 시간대와 무관하게 DB의 최신 fetched_date를 기준으로 판정
+    (Actions 러너는 UTC라 date.today()와 어긋날 수 있음)."""
+    latest = conn.execute("SELECT MAX(fetched_date) FROM offers").fetchone()[0]
+    today = latest or date.today().isoformat()
+    since = (date.fromisoformat(today) - timedelta(days=config.BASELINE_DAYS)).isoformat()
     deals = []
     for origin, dest in config.ROUTES:
         for is_direct in (1, 0):

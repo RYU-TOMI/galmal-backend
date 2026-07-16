@@ -57,13 +57,15 @@ SKIP_SENDERS = ("google.com", "gmail.com")
 
 
 def main():
+    # --all: 읽음 처리된 메일 포함 전체 재수집 (백필용, UNIQUE 제약으로 중복 방지)
+    fetch_all = "--all" in sys.argv
     addr, pw = load_env()
     conn = db.connect()          # 공개 커밋용: 메타데이터만
     raw = db.connect_raw()       # 로컬 전용: 본문 포함 (파싱 개발용)
     imap = imaplib.IMAP4_SSL(IMAP_HOST)
     imap.login(addr, pw)
     imap.select("INBOX")
-    _, data = imap.search(None, "UNSEEN")
+    _, data = imap.search(None, "ALL" if fetch_all else "UNSEEN")
     ids = data[0].split()
     print(f"새 메일 {len(ids)}건")
     saved = 0

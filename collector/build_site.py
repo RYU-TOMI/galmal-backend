@@ -64,6 +64,26 @@ def deal_card(d):
     </article>"""
 
 
+def mail_deal_rows(conn):
+    """LLM이 메일에서 추출한 구조화 특가 (최근 20건)."""
+    rows = conn.execute(
+        """SELECT airline, origin, destination, price_krw, promo_end, summary, url
+           FROM mail_deals ORDER BY id DESC LIMIT 20""").fetchall()
+    out = []
+    for airline, origin, dest, price, promo_end, summary, url in rows:
+        parts = [f"<span class='sender'>{html.escape(airline or '항공사')}</span>",
+                 html.escape(summary)]
+        if price:
+            parts.append(f"<strong>{price:,}원~</strong>")
+        if promo_end:
+            parts.append(f"<span class='until'>~{html.escape(promo_end)}</span>")
+        body = " ".join(parts)
+        if url:
+            body += f" <a href='{html.escape(url)}' target='_blank' rel='noopener'>공식 이벤트 →</a>"
+        out.append(f"<li>{body}</li>")
+    return "\n".join(out)
+
+
 def mail_rows(conn):
     rows = conn.execute(
         """SELECT received_at, sender, subject FROM emails
@@ -81,6 +101,7 @@ def main():
     deals = compute_deals(conn)
     cards = "\n".join(deal_card(d) for d in deals) if deals else \
         "<p class='empty'>오늘은 기준(시세 대비 35% 이상 할인)을 넘는 특가가 없습니다.</p>"
+    mail_deals = mail_deal_rows(conn)
     mails = mail_rows(conn)
     conn.close()
     updated = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
@@ -130,6 +151,8 @@ def main():
   section.mail li {{ background:var(--card); border:1px solid var(--line);
                      border-radius:10px; padding:10px 14px; font-size:.9rem; }}
   .sender {{ font-weight:700; margin-right:8px; }}
+  .until {{ color:var(--deal); font-size:.8rem; }}
+  section.mail a {{ color:var(--accent); font-weight:700; text-decoration:none; }}
   footer {{ margin-top:48px; color:var(--sub); font-size:.78rem;
             border-top:1px solid var(--line); padding-top:16px; }}
   footer p {{ margin-bottom:6px; }}
@@ -146,6 +169,13 @@ def main():
   <div class="grid">
 {cards}
   </div>
+
+  <section class="mail">
+    <h2>🎫 항공사 프로모션</h2>
+    <ul>
+{mail_deals if mail_deals else "<li class='empty'>수집된 프로모션이 아직 없습니다.</li>"}
+    </ul>
+  </section>
 
   <section class="mail">
     <h2>📬 항공사 소식</h2>

@@ -30,6 +30,20 @@ CREATE TABLE IF NOT EXISTS emails (
     subject TEXT,
     UNIQUE(received_at, sender, subject)
 );
+
+-- 프로모션 메일에서 LLM으로 추출한 구조화 특가 정보 (공개 가능: 요약+공식 링크만)
+CREATE TABLE IF NOT EXISTS mail_deals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    received_at TEXT,
+    airline TEXT,
+    origin TEXT,                     -- 출발 도시 (없으면 NULL)
+    destination TEXT,                -- 도착 도시 (없으면 NULL)
+    price_krw INTEGER,               -- 광고된 편도/최저가 (없으면 NULL)
+    promo_end TEXT,                  -- 판매 종료일 YYYY-MM-DD (없으면 NULL)
+    summary TEXT NOT NULL,           -- 한 줄 요약
+    url TEXT,                        -- 항공사 공식 프로모션 페이지 (개인화 링크 금지)
+    UNIQUE(received_at, airline, destination, summary)
+);
 """
 
 RAW_SCHEMA = """
