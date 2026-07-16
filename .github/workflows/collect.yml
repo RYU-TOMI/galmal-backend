@@ -34,12 +34,12 @@ jobs:
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
         run: python collector/mail_ingest.py
 
-      - name: 메일 LLM 파싱 (Claude Code 헤드리스, 구독 인증)
+      - name: 메일 LLM 파싱 (Claude API, Haiku)
         continue-on-error: true   # 파싱 실패가 나머지 파이프라인을 막지 않도록
         env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          npm install -g @anthropic-ai/claude-code
+          pip install -r requirements.txt
           python collector/parse_mail.py
 
       - name: 웹 피드 생성
