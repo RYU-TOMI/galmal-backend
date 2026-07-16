@@ -10,8 +10,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import config
 import db
 from detect_deals import compute_deals
+
+SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 
 OUT = Path(__file__).resolve().parent.parent / "docs" / "index.html"
 KST = timezone(timedelta(hours=9))
@@ -96,6 +99,14 @@ def mail_rows(conn):
     return "\n".join(out)
 
 
+def route_options():
+    opts = ['<option value="ALL">✈️ 전체 노선</option>']
+    for origin, dest in config.ROUTES:
+        code = f"{origin}-{dest}"
+        opts.append(f'<option value="{code}">{city(origin)} → {city(dest)} ({code})</option>')
+    return "\n".join(opts)
+
+
 def main():
     conn = db.connect()
     deals = compute_deals(conn)
@@ -156,7 +167,26 @@ def main():
   footer {{ margin-top:48px; color:var(--sub); font-size:.78rem;
             border-top:1px solid var(--line); padding-top:16px; }}
   footer p {{ margin-bottom:6px; }}
+  section.subscribe {{ margin-top:40px; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:20px; }}
+  section.subscribe h2 {{ font-size:1.2rem; margin-bottom:8px; }}
+  section.subscribe p {{ color:var(--sub); font-size:.9rem; margin-bottom:12px; }}
+  .sub-form {{ display:flex; gap:8px; flex-wrap:wrap; }}
+  .sub-form select {{ flex:1; min-width:220px; padding:10px; border-radius:10px;
+    border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:.95rem; }}
+  .sub-form button {{ background:var(--accent); color:#fff; border:none; font-weight:700;
+    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.95rem; }}
+  .hint {{ font-size:.8rem !important; margin-top:10px; }}
 </style>
+<script>
+function subscribeMail() {{
+  var code = document.getElementById('route-sel').value;
+  var label = document.getElementById('route-sel').selectedOptions[0].text;
+  var subject = encodeURIComponent('구독신청');
+  var body = encodeURIComponent('노선: ' + code + ' (' + label + ')\\n\\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
+  location.href = 'mailto:{SUBSCRIBE_ADDR}?subject=' + subject + '&body=' + body;
+}}
+</script>
 </head>
 <body>
 <main>
@@ -169,6 +199,20 @@ def main():
   <div class="grid">
 {cards}
   </div>
+
+  <section class="subscribe">
+    <h2>🔔 노선 특가 알림 받기</h2>
+    <p>원하는 노선에 특가가 뜨면 메일로 알려드립니다. 노선을 고르고 버튼을 누르면
+       메일 앱이 열립니다 — <b>내용 수정 없이 그대로 보내주시면</b> 다음 수집부터 적용됩니다.</p>
+    <div class="sub-form">
+      <select id="route-sel">
+{route_options()}
+      </select>
+      <button onclick="subscribeMail()">메일로 구독 신청</button>
+    </div>
+    <p class="hint">해지: 같은 주소로 제목 '구독취소' 메일을 보내주세요.
+       특정 노선만 해지하려면 본문에 노선 코드를 적어주세요.</p>
+  </section>
 
   <section class="mail">
     <h2>🎫 항공사 프로모션</h2>

@@ -48,14 +48,33 @@
   footer { margin-top:48px; color:var(--sub); font-size:.78rem;
             border-top:1px solid var(--line); padding-top:16px; }
   footer p { margin-bottom:6px; }
+  section.subscribe { margin-top:40px; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:20px; }
+  section.subscribe h2 { font-size:1.2rem; margin-bottom:8px; }
+  section.subscribe p { color:var(--sub); font-size:.9rem; margin-bottom:12px; }
+  .sub-form { display:flex; gap:8px; flex-wrap:wrap; }
+  .sub-form select { flex:1; min-width:220px; padding:10px; border-radius:10px;
+    border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:.95rem; }
+  .sub-form button { background:var(--accent); color:#fff; border:none; font-weight:700;
+    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.95rem; }
+  .hint { font-size:.8rem !important; margin-top:10px; }
 </style>
+<script>
+function subscribeMail() {
+  var code = document.getElementById('route-sel').value;
+  var label = document.getElementById('route-sel').selectedOptions[0].text;
+  var subject = encodeURIComponent('구독신청');
+  var body = encodeURIComponent('노선: ' + code + ' (' + label + ')\n\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
+  location.href = 'mailto:flightpromokr@gmail.com?subject=' + subject + '&body=' + body;
+}
+</script>
 </head>
 <body>
 <main>
   <header>
     <h1>✈️ 오늘의 항공권 특가</h1>
     <p>한국 출발 주요 노선의 가격을 매일 수집해, 평소 시세보다 크게 저렴한 항공권만 골라 보여드립니다.
-       마지막 갱신: 2026-07-16 19:10 (KST)</p>
+       마지막 갱신: 2026-07-16 19:24 (KST)</p>
   </header>
 
   <div class="grid">
@@ -200,6 +219,46 @@
         이 가격 확인하기</a>
     </article>
   </div>
+
+  <section class="subscribe">
+    <h2>🔔 노선 특가 알림 받기</h2>
+    <p>원하는 노선에 특가가 뜨면 메일로 알려드립니다. 노선을 고르고 버튼을 누르면
+       메일 앱이 열립니다 — <b>내용 수정 없이 그대로 보내주시면</b> 다음 수집부터 적용됩니다.</p>
+    <div class="sub-form">
+      <select id="route-sel">
+<option value="ALL">✈️ 전체 노선</option>
+<option value="ICN-NRT">인천 → 도쿄(나리타) (ICN-NRT)</option>
+<option value="ICN-KIX">인천 → 오사카 (ICN-KIX)</option>
+<option value="ICN-FUK">인천 → 후쿠오카 (ICN-FUK)</option>
+<option value="ICN-OKA">인천 → 오키나와 (ICN-OKA)</option>
+<option value="ICN-CTS">인천 → 삿포로 (ICN-CTS)</option>
+<option value="ICN-NGO">인천 → 나고야 (ICN-NGO)</option>
+<option value="ICN-TPE">인천 → 타이베이 (ICN-TPE)</option>
+<option value="ICN-HKG">인천 → 홍콩 (ICN-HKG)</option>
+<option value="ICN-BKK">인천 → 방콕 (ICN-BKK)</option>
+<option value="ICN-DAD">인천 → 다낭 (ICN-DAD)</option>
+<option value="ICN-SGN">인천 → 호치민 (ICN-SGN)</option>
+<option value="ICN-HAN">인천 → 하노이 (ICN-HAN)</option>
+<option value="ICN-MNL">인천 → 마닐라 (ICN-MNL)</option>
+<option value="ICN-CEB">인천 → 세부 (ICN-CEB)</option>
+<option value="ICN-SIN">인천 → 싱가포르 (ICN-SIN)</option>
+<option value="ICN-KUL">인천 → 쿠알라룸푸르 (ICN-KUL)</option>
+<option value="ICN-DPS">인천 → 발리 (ICN-DPS)</option>
+<option value="ICN-GUM">인천 → 괌 (ICN-GUM)</option>
+<option value="ICN-CDG">인천 → 파리 (ICN-CDG)</option>
+<option value="ICN-LHR">인천 → 런던 (ICN-LHR)</option>
+<option value="ICN-FCO">인천 → 로마 (ICN-FCO)</option>
+<option value="ICN-BCN">인천 → 바르셀로나 (ICN-BCN)</option>
+<option value="ICN-JFK">인천 → 뉴욕 (ICN-JFK)</option>
+<option value="ICN-LAX">인천 → 로스앤젤레스 (ICN-LAX)</option>
+<option value="ICN-SYD">인천 → 시드니 (ICN-SYD)</option>
+<option value="GMP-CJU">김포 → 제주 (GMP-CJU)</option>
+      </select>
+      <button onclick="subscribeMail()">메일로 구독 신청</button>
+    </div>
+    <p class="hint">해지: 같은 주소로 제목 '구독취소' 메일을 보내주세요.
+       특정 노선만 해지하려면 본문에 노선 코드를 적어주세요.</p>
+  </section>
 
   <section class="mail">
     <h2>🎫 항공사 프로모션</h2>

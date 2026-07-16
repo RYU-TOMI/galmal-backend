@@ -77,6 +77,10 @@ def main():
         if any(d in sender.lower() for d in SKIP_SENDERS):
             print(f"  건너뜀(시스템 메일): {subject[:50]}")
             continue
+        # 구독 신청/취소 메일은 subscriptions.py가 처리 — 공개 DB에 저장 금지(PII)
+        if "구독신청" in subject or "구독취소" in subject:
+            print(f"  건너뜀(구독 메일): {subject[:50]}")
+            continue
         conn.execute(
             "INSERT OR IGNORE INTO emails (received_at, sender, subject) VALUES (?,?,?)",
             (received, sender, subject))

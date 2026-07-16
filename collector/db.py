@@ -31,6 +31,19 @@ CREATE TABLE IF NOT EXISTS emails (
     UNIQUE(received_at, sender, subject)
 );
 
+-- 구독 알림 발송 로그 (이메일은 해시로만 저장 — 공개 저장소에 PII 금지)
+CREATE TABLE IF NOT EXISTS alert_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sent_date TEXT,
+    email_hash TEXT,                 -- sha256 앞 16자
+    origin TEXT,
+    destination TEXT,
+    depart_date TEXT,
+    return_date TEXT,
+    price INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_alert_log ON alert_log(email_hash, origin, destination);
+
 -- 프로모션 메일에서 LLM으로 추출한 구조화 특가 정보 (공개 가능: 요약+공식 링크만)
 CREATE TABLE IF NOT EXISTS mail_deals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

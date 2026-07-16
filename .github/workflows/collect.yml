@@ -42,6 +42,13 @@ jobs:
           pip install -r requirements.txt
           python collector/parse_mail.py
 
+      - name: 구독 알림 발송
+        continue-on-error: true   # 발송 실패가 나머지 파이프라인을 막지 않도록
+        env:
+          MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+        run: python collector/send_alerts.py
+
       - name: 웹 피드 생성
         run: python collector/build_site.py
 
