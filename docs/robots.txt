@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ryu-tomi.github.io/promo-ticket-site/sitemap.xml

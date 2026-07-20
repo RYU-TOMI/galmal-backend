@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>인천 → 오키나와 항공권 최저가 · 시세 추이 | 갈래말래</title>
+<meta name="description" content="인천 → 오키나와 왕복 항공권 최저가 313,776원. 최근 30일 가격 추이와 출발 월·요일별 최저가, 항공사별 요금을 매일 갱신합니다.">
+<link rel="canonical" href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-OKA.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="갈래말래">
+<meta property="og:title" content="인천 → 오키나와 항공권 최저가 · 시세 추이 | 갈래말래">
+<meta property="og:description" content="인천 → 오키나와 왕복 항공권 최저가 313,776원. 최근 30일 가격 추이와 출발 월·요일별 최저가, 항공사별 요금을 매일 갱신합니다.">
+<meta property="og:url" content="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-OKA.html">
+<meta property="og:locale" content="ko_KR">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root {
+    --bg:#FAF6EF; --card:#FFFFFF; --ink:#1E2B3C; --sub:#5C6878;
+    --brand:#23538F; --deal:#D9482B; --line:#E7E1D5; --chip:#F0EAE0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121820; --card:#1B2430; --ink:#E8ECF2; --sub:#97A3B2;
+            --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }
+  }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--ink);
+         font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+         line-height:1.55; padding:28px 16px 56px; }
+  main { max-width:1000px; margin:0 auto; }
+  a { color:var(--brand); }
+
+  .topbar { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+  .brand { font-size:1.6rem; font-weight:900; letter-spacing:-0.02em;
+           text-decoration:none; color:var(--ink); }
+  .brand em { font-style:normal; color:var(--brand); }
+  header .tagline { color:var(--sub); }
+  header h1 { font-size:1.9rem; font-weight:900; letter-spacing:-0.02em; margin-top:6px; }
+  .stats { display:flex; gap:14px; flex-wrap:wrap; margin:14px 0 22px;
+           color:var(--sub); font-size:.82rem; }
+  .stats span b { color:var(--ink); font-weight:700; }
+  .crumb { color:var(--sub); font-size:.85rem; margin-bottom:10px; }
+  .crumb a { text-decoration:none; }
+
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .chip { background:var(--chip); color:var(--sub); border:none; font-weight:600;
+          padding:7px 14px; border-radius:99px; cursor:pointer; font-size:.88rem;
+          font-family:inherit; }
+  .chip.active { background:var(--brand); color:#fff; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+  .card { background:var(--card); border-radius:16px; overflow:hidden;
+          box-shadow:0 1px 3px rgba(20,30,50,.07); display:flex; flex-direction:column; }
+  .card-main { padding:18px 18px 10px; }
+  .card-top { display:flex; gap:6px; margin-bottom:10px; }
+  .badge { font-size:.74rem; font-weight:800; padding:3px 9px; border-radius:99px; }
+  .discount { background:var(--deal); color:#fff; }
+  .direct { background:var(--brand); color:#fff; }
+  .transfer { background:var(--chip); color:var(--sub); }
+  .route { display:flex; align-items:baseline; gap:10px; font-size:1.45rem; font-weight:800;
+           letter-spacing:-0.01em; }
+  .route a { color:inherit; text-decoration:none; }
+  .route .plane { color:var(--brand); font-size:1rem; }
+  .dates { color:var(--sub); font-size:.85rem; margin-top:4px; }
+
+  .spark { margin-top:12px; }
+  .spark-plot { position:relative; }
+  .spark svg { width:100%; height:34px; display:block; }
+  .spark-line { fill:none; stroke:var(--brand); stroke-width:2;
+                stroke-linecap:round; stroke-linejoin:round; }
+  .spark-area { fill:var(--brand); opacity:.1; }
+  .spark-dot { position:absolute; right:calc(4.2% - 5px); width:8px; height:8px;
+               margin-top:-4px; border-radius:50%; background:var(--deal);
+               border:2px solid var(--card); }
+  .spark-label { color:var(--sub); font-size:.72rem; }
+
+  .tear { border-top:2px dashed var(--line); position:relative; margin:6px 0 0; }
+  .tear::before, .tear::after { content:""; position:absolute; top:-9px; width:18px; height:18px;
+    background:var(--bg); border-radius:50%; }
+  .tear::before { left:-9px; }
+  .tear::after { right:-9px; }
+
+  .card-stub { display:flex; align-items:center; gap:10px; padding:12px 18px 16px; }
+  .fare { display:flex; flex-direction:column; flex:1; }
+  .price { font-size:1.5rem; font-weight:900; letter-spacing:-0.02em; }
+  .price small { font-size:.9rem; font-weight:700; }
+  .median { color:var(--sub); font-size:.78rem; text-decoration:line-through; }
+  .carrier { color:var(--sub); font-size:.82rem; }
+  .cta { background:var(--deal); color:#fff; text-decoration:none; font-weight:800;
+         padding:10px 18px; border-radius:12px; font-size:.95rem; }
+  .empty { color:var(--sub); padding:28px 0; }
+
+  section { margin-top:44px; }
+  section h2 { font-size:1.15rem; margin-bottom:6px; }
+  section .lead { color:var(--sub); font-size:.88rem; margin-bottom:14px; }
+  section.mail ul { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
+  section.mail li { background:var(--card); border-radius:12px; padding:11px 15px; font-size:.9rem; }
+  .sender { font-weight:800; margin-right:8px; }
+  .until { color:var(--deal); font-size:.8rem; }
+  section.mail a { color:var(--brand); font-weight:700; text-decoration:none; }
+
+  /* 노선 페이지 */
+  .hero { background:var(--card); border-radius:16px; padding:22px; display:flex;
+          flex-wrap:wrap; gap:22px; align-items:flex-end; }
+  .hero .figure { font-size:2.6rem; font-weight:900; letter-spacing:-0.03em; line-height:1.1; }
+  .hero .figure small { font-size:1rem; font-weight:700; }
+  .hero .cap { color:var(--sub); font-size:.85rem; }
+  .hero .col { display:flex; flex-direction:column; gap:2px; }
+  .chart { background:var(--card); border-radius:16px; padding:18px; }
+  .chart svg { width:100%; height:auto; display:block; }
+  .axis { fill:var(--sub); font-size:11px; font-variant-numeric:tabular-nums; }
+  .gridline { stroke:var(--line); stroke-width:1; }
+  .plot-line { fill:none; stroke:var(--brand); stroke-width:2;
+               stroke-linecap:round; stroke-linejoin:round; }
+  .plot-area { fill:var(--brand); opacity:.1; }
+  .plot-dot { fill:var(--brand); stroke:var(--card); stroke-width:2; }
+  .plot-dot-hi { fill:var(--deal); stroke:var(--card); stroke-width:2; }
+  .plot-label { fill:var(--ink); font-size:11px; font-weight:700; }
+  .bar { fill:var(--brand); }
+  .bar-best { fill:var(--deal); }
+  .hit { fill:transparent; }
+  table.data { width:100%; border-collapse:collapse; font-size:.9rem; }
+  table.data th, table.data td { text-align:left; padding:9px 10px;
+    border-bottom:1px solid var(--line); }
+  table.data th { color:var(--sub); font-weight:600; font-size:.82rem; }
+  table.data td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .routelist { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px;
+               list-style:none; padding:0; }
+  .routelist a { display:block; background:var(--card); border-radius:10px; padding:10px 13px;
+    text-decoration:none; color:var(--ink); font-size:.9rem; font-weight:600; }
+  .routelist .rl-price { color:var(--sub); font-weight:500; font-size:.82rem; }
+
+  section.subscribe { background:var(--card); border-radius:16px; padding:22px;
+    border:2px dashed var(--line); }
+  section.subscribe p { color:var(--sub); font-size:.9rem; margin-bottom:12px; }
+  .sub-form { display:flex; gap:8px; flex-wrap:wrap; }
+  .sub-form select { flex:1; min-width:220px; padding:11px; border-radius:12px;
+    border:1px solid var(--line); background:var(--bg); color:var(--ink);
+    font-size:.95rem; font-family:inherit; }
+  .sub-form button { background:var(--brand); color:#fff; border:none; font-weight:800;
+    padding:11px 20px; border-radius:12px; cursor:pointer; font-size:.95rem; font-family:inherit; }
+  .hint { font-size:.78rem !important; margin-top:10px; margin-bottom:0 !important; }
+
+  footer { margin-top:48px; color:var(--sub); font-size:.78rem;
+           border-top:1px solid var(--line); padding-top:16px; }
+  footer p { margin-bottom:6px; }
+</style>
+
+</head>
+<body>
+<main>
+  <div class="topbar">
+    <a class="brand" href="https://ryu-tomi.github.io/promo-ticket-site/">갈래<em>말래</em> ✈️</a>
+  </div>
+  <p class="crumb"><a href="https://ryu-tomi.github.io/promo-ticket-site/">특가 피드</a> › 일본 › 인천 → 오키나와</p>
+  <header>
+    <h1>인천 → 오키나와 항공권 최저가</h1>
+    <p class="tagline">최근 30일 수집한 가격 235건으로 분석한 인천 → 오키나와 왕복 항공권 시세입니다.</p>
+  </header>
+
+  <div class="hero">
+    <div class="col">
+      <span class="cap">최근 30일 최저가</span>
+      <span class="figure">313,776<small>원</small></span>
+    </div>
+    <div class="col">
+      <span class="cap">평소 시세(중앙값)</span>
+      <span class="figure" style="font-size:1.6rem">436,381<small>원</small></span>
+    </div>
+    <div class="col" style="flex:1;min-width:220px">
+      <span class="cap">언제 가면 싼가</span>
+      <span><b>8월 출발</b>이 가장 저렴합니다 (313,776원) · 출발 요일은 <b>수요일</b>이 가장 쌉니다 (313,776원)</span>
+    </div>
+  </div>
+
+  <section>
+    <h2>📈 인천 → 오키나와 최저가 추이</h2>
+    <p class="lead">매일 아침 수집한 이 노선의 왕복 최저가입니다. 아래로 꺾일수록 지금이 살 때입니다.</p>
+    <div class="chart"><svg viewBox="0 0 680 230" role="img" aria-label="가격 추이 차트"><line class="gridline" x1="54" y1="202.0" x2="622" y2="202.0"/><text class="axis" x="46" y="206.0" text-anchor="end">31.0만</text><line class="gridline" x1="54" y1="110.9" x2="622" y2="110.9"/><text class="axis" x="46" y="114.9" text-anchor="end">32.0만</text><line class="gridline" x1="54" y1="19.7" x2="622" y2="19.7"/><text class="axis" x="46" y="23.7" text-anchor="end">33.0만</text><polygon class="plot-area" points="54,202 54.0,167.6 110.8,167.6 167.6,16.0 224.4,16.0 281.2,69.0 338.0,69.0 394.8,69.0 451.6,69.0 508.4,69.0 565.2,69.0 622.0,69.0 622,202"/><polyline class="plot-line" points="54.0,167.6 110.8,167.6 167.6,16.0 224.4,16.0 281.2,69.0 338.0,69.0 394.8,69.0 451.6,69.0 508.4,69.0 565.2,69.0 622.0,69.0"/><text class="axis" x="54" y="222">7.9(목)</text><text class="axis" x="622" y="222" text-anchor="end">7.19(일)</text><circle class="plot-dot-hi" cx="54.0" cy="167.6" r="4"/><circle class="plot-dot" cx="622.0" cy="69.0" r="4"/><text class="plot-label" x="62.0" y="158.6" text-anchor="start">최저 313,776원</text><text class="plot-label" x="630.0" y="73.0">324,596원</text><rect class="hit" x="25.6" y="16" width="56.8" height="186"><title>7.9(목) · 313,776원</title></rect><rect class="hit" x="82.4" y="16" width="56.8" height="186"><title>7.10(금) · 313,776원</title></rect><rect class="hit" x="139.2" y="16" width="56.8" height="186"><title>7.11(토) · 330,408원</title></rect><rect class="hit" x="196.0" y="16" width="56.8" height="186"><title>7.12(일) · 330,408원</title></rect><rect class="hit" x="252.8" y="16" width="56.8" height="186"><title>7.13(월) · 324,596원</title></rect><rect class="hit" x="309.6" y="16" width="56.8" height="186"><title>7.14(화) · 324,596원</title></rect><rect class="hit" x="366.4" y="16" width="56.8" height="186"><title>7.15(수) · 324,596원</title></rect><rect class="hit" x="423.2" y="16" width="56.8" height="186"><title>7.16(목) · 324,596원</title></rect><rect class="hit" x="480.0" y="16" width="56.8" height="186"><title>7.17(금) · 324,596원</title></rect><rect class="hit" x="536.8" y="16" width="56.8" height="186"><title>7.18(토) · 324,596원</title></rect><rect class="hit" x="593.6" y="16" width="56.8" height="186"><title>7.19(일) · 324,596원</title></rect></svg></div>
+  </section>
+
+  <section>
+    <h2>📅 출발 월별 최저가</h2>
+    <p class="lead">출발 시기에 따라 인천 → 오키나와 항공권 가격이 얼마나 달라지는지 비교했습니다.</p>
+    <div class="chart"><svg viewBox="0 0 680 200" role="img" aria-label="구간별 최저가 비교"><path class="bar" d="M51.3,174.0 L51.3,91.7 Q51.3,87.7 55.3,87.7 L71.3,87.7 Q75.3,87.7 75.3,91.7 L75.3,174.0 Z"><title>7월 · 340,537원</title></path><text class="plot-label" x="63.3" y="81.7" text-anchor="middle">34.1만</text><text class="axis" x="63.3" y="192" text-anchor="middle">7월</text><path class="bar-best" d="M162.0,174.0 L162.0,98.5 Q162.0,94.5 166.0,94.5 L182.0,94.5 Q186.0,94.5 186.0,98.5 L186.0,174.0 Z"><title>8월 · 313,776원</title></path><text class="plot-label" x="174.0" y="88.5" text-anchor="middle">31.4만</text><text class="axis" x="174.0" y="192" text-anchor="middle">8월</text><path class="bar" d="M272.7,174.0 L272.7,95.7 Q272.7,91.7 276.7,91.7 L292.7,91.7 Q296.7,91.7 296.7,95.7 L296.7,174.0 Z"><title>9월 · 324,596원</title></path><text class="plot-label" x="284.7" y="85.7" text-anchor="middle">32.5만</text><text class="axis" x="284.7" y="192" text-anchor="middle">9월</text><path class="bar" d="M383.3,174.0 L383.3,83.6 Q383.3,79.6 387.3,79.6 L403.3,79.6 Q407.3,79.6 407.3,83.6 L407.3,174.0 Z"><title>10월 · 372,438원</title></path><text class="plot-label" x="395.3" y="73.6" text-anchor="middle">37.2만</text><text class="axis" x="395.3" y="192" text-anchor="middle">10월</text><path class="bar" d="M494.0,174.0 L494.0,83.0 Q494.0,79.0 498.0,79.0 L514.0,79.0 Q518.0,79.0 518.0,83.0 L518.0,174.0 Z"><title>11월 · 374,633원</title></path><text class="plot-label" x="506.0" y="73.0" text-anchor="middle">37.5만</text><text class="axis" x="506.0" y="192" text-anchor="middle">11월</text><path class="bar" d="M604.7,174.0 L604.7,42.3 Q604.7,38.3 608.7,38.3 L624.7,38.3 Q628.7,38.3 628.7,42.3 L628.7,174.0 Z"><title>4월 · 535,377원</title></path><text class="plot-label" x="616.7" y="32.3" text-anchor="middle">53.5만</text><text class="axis" x="616.7" y="192" text-anchor="middle">4월</text></svg></div>
+  </section>
+
+  <section>
+    <h2>🗓 출발 요일별 최저가</h2>
+    <p class="lead">같은 노선도 무슨 요일에 떠나느냐로 가격이 달라집니다.</p>
+    <div class="chart"><svg viewBox="0 0 680 200" role="img" aria-label="구간별 최저가 비교"><path class="bar" d="M43.4,174.0 L43.4,86.2 Q43.4,82.2 47.4,82.2 L63.4,82.2 Q67.4,82.2 67.4,86.2 L67.4,174.0 Z"><title>월 · 331,914원</title></path><text class="plot-label" x="55.4" y="76.2" text-anchor="middle">33.2만</text><text class="axis" x="55.4" y="192" text-anchor="middle">월</text><path class="bar" d="M138.3,174.0 L138.3,87.3 Q138.3,83.3 142.3,83.3 L158.3,83.3 Q162.3,83.3 162.3,87.3 L162.3,174.0 Z"><title>화 · 328,032원</title></path><text class="plot-label" x="150.3" y="77.3" text-anchor="middle">32.8만</text><text class="axis" x="150.3" y="192" text-anchor="middle">화</text><path class="bar-best" d="M233.1,174.0 L233.1,91.2 Q233.1,87.2 237.1,87.2 L253.1,87.2 Q257.1,87.2 257.1,91.2 L257.1,174.0 Z"><title>수 · 313,776원</title></path><text class="plot-label" x="245.1" y="81.2" text-anchor="middle">31.4만</text><text class="axis" x="245.1" y="192" text-anchor="middle">수</text><path class="bar" d="M328.0,174.0 L328.0,42.3 Q328.0,38.3 332.0,38.3 L348.0,38.3 Q352.0,38.3 352.0,42.3 L352.0,174.0 Z"><title>목 · 490,739원</title></path><text class="plot-label" x="340.0" y="32.3" text-anchor="middle">49.1만</text><text class="axis" x="340.0" y="192" text-anchor="middle">목</text><path class="bar" d="M422.9,174.0 L422.9,88.2 Q422.9,84.2 426.9,84.2 L442.9,84.2 Q446.9,84.2 446.9,88.2 L446.9,174.0 Z"><title>금 · 324,596원</title></path><text class="plot-label" x="434.9" y="78.2" text-anchor="middle">32.5만</text><text class="axis" x="434.9" y="192" text-anchor="middle">금</text><path class="bar" d="M517.7,174.0 L517.7,77.5 Q517.7,73.5 521.7,73.5 L537.7,73.5 Q541.7,73.5 541.7,77.5 L541.7,174.0 Z"><title>토 · 363,338원</title></path><text class="plot-label" x="529.7" y="67.5" text-anchor="middle">36.3만</text><text class="axis" x="529.7" y="192" text-anchor="middle">토</text><path class="bar" d="M612.6,174.0 L612.6,70.1 Q612.6,66.1 616.6,66.1 L632.6,66.1 Q636.6,66.1 636.6,70.1 L636.6,174.0 Z"><title>일 · 389,991원</title></path><text class="plot-label" x="624.6" y="60.1" text-anchor="middle">39.0만</text><text class="axis" x="624.6" y="192" text-anchor="middle">일</text></svg></div>
+  </section>
+
+  <section>
+    <h2>✈️ 항공사별 최저가</h2>
+    <p class="lead">최근 30일간 이 노선에서 수집된 항공사별 최저 왕복 요금입니다.</p>
+    <table class="data">
+      <thead><tr><th>항공사</th><th class="num">최저가</th><th class="num">수집 건수</th></tr></thead>
+      <tbody>
+<tr><td>이스타항공</td><td class='num'>313,776원</td><td class='num'>55건</td></tr>
+<tr><td>제주항공</td><td class='num'>324,596원</td><td class='num'>116건</td></tr>
+<tr><td>티웨이항공</td><td class='num'>373,410원</td><td class='num'>10건</td></tr>
+<tr><td>진에어</td><td class='num'>384,764원</td><td class='num'>28건</td></tr>
+<tr><td>아시아나항공</td><td class='num'>402,258원</td><td class='num'>16건</td></tr>
+<tr><td>대한항공</td><td class='num'>535,377원</td><td class='num'>5건</td></tr>
+<tr><td>에어서울</td><td class='num'>600,751원</td><td class='num'>1건</td></tr>
+<tr><td>MM</td><td class='num'>607,773원</td><td class='num'>4건</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="subscribe">
+    <h2>🔔 인천 → 오키나와 특가 알림 받기</h2>
+    <p>이 노선에 특가가 뜨면 메일로 알려드립니다. 아래 버튼을 누르면 메일 앱이 열립니다 —
+       <b>내용 수정 없이 그대로 보내주시면</b> 구독이 완료됩니다.</p>
+    <div class="sub-form">
+      <a class="cta" href="mailto:flightpromokr@gmail.com?subject=%EA%B5%AC%EB%8F%85%EC%8B%A0%EC%B2%AD&body=%EB%85%B8%EC%84%A0%3A%20ICN-OKA%20%28%EC%9D%B8%EC%B2%9C%20%E2%86%92%20%EC%98%A4%ED%82%A4%EB%82%98%EC%99%80%29%0A%0A%EC%9D%B4%20%EB%A9%94%EC%9D%BC%EC%9D%84%20%EA%B7%B8%EB%8C%80%EB%A1%9C%20%EB%B3%B4%EB%82%B4%EC%A3%BC%EC%8B%9C%EB%A9%B4%20%EA%B5%AC%EB%8F%85%EC%9D%B4%20%EC%8B%A0%EC%B2%AD%EB%90%A9%EB%8B%88%EB%8B%A4.">인천 → 오키나와 알림 신청</a>
+    </div>
+    <p class="hint">해지: flightpromokr@gmail.com로 제목 '구독취소' 메일을 보내주세요.</p>
+  </section>
+
+  <section>
+    <h2>다른 노선 보기</h2>
+    <ul class="routelist">
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-NRT.html">인천 → 도쿄</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-KIX.html">인천 → 오사카</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-FUK.html">인천 → 후쿠오카</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CTS.html">인천 → 삿포로</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-NGO.html">인천 → 나고야</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-TPE.html">인천 → 타이베이</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-HKG.html">인천 → 홍콩</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-BKK.html">인천 → 방콕</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DAD.html">인천 → 다낭</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-SGN.html">인천 → 호치민</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-HAN.html">인천 → 하노이</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-MNL.html">인천 → 마닐라</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CEB.html">인천 → 세부</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-SIN.html">인천 → 싱가포르</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-KUL.html">인천 → 쿠알라룸푸르</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DPS.html">인천 → 발리</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-GUM.html">인천 → 괌</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CDG.html">인천 → 파리</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-LHR.html">인천 → 런던</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-FCO.html">인천 → 로마</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-BCN.html">인천 → 바르셀로나</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-JFK.html">인천 → 뉴욕</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-LAX.html">인천 → 로스앤젤레스</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-SYD.html">인천 → 시드니</a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/GMP-CJU.html">김포 → 제주</a></li>
+    </ul>
+  </section>
+  <footer>
+    <p>· 가격은 조회 시점 기준이며 실제 예약 가격은 예약처에서 달라질 수 있습니다.</p>
+    <p>· "예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
+    <p>· 시세는 해당 노선·유형(직항/경유)의 최근 30일 수집 가격 중앙값입니다. 데이터: Travelpayouts(Aviasales)</p>
+    <p>· 갈래말래 · 문의 flightpromokr@gmail.com</p>
+  </footer>
+</main>
+</body>
+</html>

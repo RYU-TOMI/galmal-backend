@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
-"""prices.db의 특가 판정 결과로 정적 웹 피드(docs/index.html) 생성.
+"""갈래말래 정적 사이트 생성 — 메인 피드 + 노선별 페이지 + sitemap/robots.
 
-브랜드: 갈래말래 — 보딩패스 스타일 카드 + 노선별 30일 가격 스파크라인 + 지역 필터.
-GitHub Pages(main 브랜치 /docs)로 서빙되며, Actions 크론이 매일 재생성해 커밋.
+- docs/index.html          : 오늘의 특가 피드
+- docs/routes/ICN-FUK.html : 노선별 가격 분석 (검색 유입용 색인 대상)
+- docs/sitemap.xml, robots.txt
+
 사용: python collector/build_site.py
 """
 import html
 import sys
+import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -14,73 +17,82 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 import db
 from affiliates import booking_link
+from charts import bar_chart, line_chart
 from detect_deals import IS_DIRECT_SQL, compute_deals
+from labels import (REGION_CHIPS, REGION_NAME, SQL_WEEKDAY, airline_name, city,
+                    fmt_date, fmt_month, region_of)
+from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
 
-SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
-OUT = Path(__file__).resolve().parent.parent / "docs" / "index.html"
+DOCS = Path(__file__).resolve().parent.parent / "docs"
 KST = timezone(timedelta(hours=9))
-WEEKDAY = "월화수목금토일"
-
-CITY = {
-    "ICN": "인천", "GMP": "김포", "CJU": "제주",
-    "NRT": "도쿄", "KIX": "오사카", "FUK": "후쿠오카", "OKA": "오키나와",
-    "CTS": "삿포로", "NGO": "나고야", "TPE": "타이베이", "HKG": "홍콩",
-    "BKK": "방콕", "DAD": "다낭", "SGN": "호치민", "HAN": "하노이",
-    "MNL": "마닐라", "CEB": "세부", "SIN": "싱가포르", "KUL": "쿠알라룸푸르",
-    "DPS": "발리", "GUM": "괌", "CDG": "파리", "LHR": "런던", "FCO": "로마",
-    "BCN": "바르셀로나", "JFK": "뉴욕", "LAX": "로스앤젤레스", "SYD": "시드니",
-}
-AIRLINE = {
-    "7C": "제주항공", "LJ": "진에어", "TW": "티웨이항공", "BX": "에어부산",
-    "RS": "에어서울", "ZE": "이스타항공", "YP": "에어프레미아",
-    "KE": "대한항공", "OZ": "아시아나항공", "VN": "베트남항공",
-    "VJ": "비엣젯", "5J": "세부퍼시픽", "CA": "에어차이나", "MU": "중국동방항공",
-    "CI": "중화항공", "BR": "에바항공", "CX": "캐세이퍼시픽", "TG": "타이항공",
-    "SQ": "싱가포르항공", "MH": "말레이시아항공", "PR": "필리핀항공",
-    "NH": "전일본공수", "JL": "일본항공", "ZG": "집에어",
-}
-REGION = {
-    "NRT": "jp", "KIX": "jp", "FUK": "jp", "OKA": "jp", "CTS": "jp", "NGO": "jp",
-    "TPE": "cn", "HKG": "cn",
-    "BKK": "sea", "DAD": "sea", "SGN": "sea", "HAN": "sea", "MNL": "sea",
-    "CEB": "sea", "SIN": "sea", "KUL": "sea", "DPS": "sea",
-    "CDG": "eu", "LHR": "eu", "FCO": "eu", "BCN": "eu",
-    "JFK": "am", "LAX": "am", "SYD": "am",
-    "GUM": "dom", "CJU": "dom",
-}
-REGION_CHIPS = [("all", "전체"), ("jp", "일본"), ("sea", "동남아"), ("cn", "중화권"),
-                ("eu", "유럽"), ("am", "미주·대양주"), ("dom", "국내·괌")]
 
 
-def city(code):
-    return CITY.get(code, code)
+# ---------------------------------------------------------------- 데이터 조회
+
+def daily_min(conn, origin, dest, days=30, direct_only=None):
+    since = (date.today() - timedelta(days=days)).isoformat()
+    cond = ""
+    if direct_only is True:
+        cond = f"AND {IS_DIRECT_SQL}"
+    elif direct_only is False:
+        cond = f"AND NOT {IS_DIRECT_SQL}"
+    return conn.execute(
+        f"""SELECT fetched_date, MIN(price) FROM offers
+            WHERE origin=? AND destination=? AND fetched_date>=? {cond}
+            GROUP BY fetched_date ORDER BY fetched_date""",
+        (origin, dest, since)).fetchall()
 
 
-def airline_name(code):
-    return AIRLINE.get(code, code)
+def month_min(conn, origin, dest):
+    return conn.execute(
+        """SELECT strftime('%Y-%m', depart_date) AS m, MIN(price) FROM offers
+           WHERE origin=? AND destination=? AND length(depart_date)=10
+           GROUP BY m HAVING COUNT(*)>=3 ORDER BY m LIMIT 10""",
+        (origin, dest)).fetchall()
 
 
-def fmt_date(iso):
-    """'2026-07-18' -> '7.18(토)'"""
-    try:
-        d = date.fromisoformat(iso)
-        return f"{d.month}.{d.day}({WEEKDAY[d.weekday()]})"
-    except (ValueError, TypeError):
-        return iso or ""
+def weekday_min(conn, origin, dest):
+    rows = dict(conn.execute(
+        """SELECT CAST(strftime('%w', depart_date) AS INTEGER) AS wd, MIN(price)
+           FROM offers WHERE origin=? AND destination=? AND length(depart_date)=10
+           GROUP BY wd""", (origin, dest)).fetchall())
+    # 월요일부터 표시
+    out = []
+    for wd in (1, 2, 3, 4, 5, 6, 0):
+        if wd in rows:
+            out.append((SQL_WEEKDAY[wd], rows[wd]))
+    return out
+
+
+def airline_min(conn, origin, dest):
+    return conn.execute(
+        """SELECT airline, MIN(price), COUNT(*) FROM offers
+           WHERE origin=? AND destination=? AND fetched_date>=?
+           GROUP BY airline ORDER BY MIN(price) LIMIT 8""",
+        (origin, dest, (date.today() - timedelta(days=30)).isoformat())).fetchall()
+
+
+def route_summary(conn, origin, dest):
+    """(최저가, 중앙값, 표본수) — 최근 30일 전체."""
+    since = (date.today() - timedelta(days=30)).isoformat()
+    prices = [p for (p,) in conn.execute(
+        "SELECT price FROM offers WHERE origin=? AND destination=? AND fetched_date>=? ORDER BY price",
+        (origin, dest, since))]
+    if not prices:
+        return None, None, 0
+    return prices[0], prices[len(prices) // 2], len(prices)
+
+
+# ---------------------------------------------------------------- 조각 렌더링
+
+def subscribe_link(code, label):
+    subject = urllib.parse.quote("구독신청")
+    body = urllib.parse.quote(f"노선: {code} ({label})\n\n이 메일을 그대로 보내주시면 구독이 신청됩니다.")
+    return f"mailto:{SUBSCRIBE_ADDR}?subject={subject}&body={body}"
 
 
 def sparkline(conn, d):
-    """딜과 같은 노선·유형의 최근 30일 일별 최저가 스파크라인 SVG.
-
-    dataviz 규격: 2px 라인, 10% 영역 채움, 끝점 r4 + 2px 서피스 링, 단일 시리즈.
-    """
-    cond = IS_DIRECT_SQL if d["is_direct"] else f"NOT {IS_DIRECT_SQL}"
-    since = (date.today() - timedelta(days=30)).isoformat()
-    rows = conn.execute(
-        f"""SELECT fetched_date, MIN(price) FROM offers
-            WHERE origin=? AND destination=? AND fetched_date>=? AND {cond}
-            GROUP BY fetched_date ORDER BY fetched_date""",
-        (d["origin"], d["destination"], since)).fetchall()
+    rows = daily_min(conn, d["origin"], d["destination"], 30, d["is_direct"])
     if len(rows) < 2:
         return ""
     prices = [p for _, p in rows]
@@ -95,7 +107,6 @@ def sparkline(conn, d):
     line = " ".join(f"{x},{y}" for x, y in pts)
     area = f"{pad},{h - pad} {line} {pts[-1][0]},{h - pad}"
     ey = pts[-1][1]
-    # 끝점은 SVG 밖 HTML 오버레이로 — preserveAspectRatio=none의 가로 늘어남에 왜곡되지 않게
     return f"""
       <div class="spark">
         <div class="spark-plot">
@@ -110,22 +121,23 @@ def sparkline(conn, d):
 
 
 def deal_card(conn, d):
-    kind = "직항" if d["is_direct"] else \
-        f"경유 {max(d['transfers'], d['return_transfers'])}회"
+    kind = "직항" if d["is_direct"] else f"경유 {max(d['transfers'], d['return_transfers'])}회"
     kind_cls = "direct" if d["is_direct"] else "transfer"
-    region = REGION.get(d["destination"], "etc")
     url, shop = booking_link(d)
+    code = f"{d['origin']}-{d['destination']}"
     return f"""
-    <article class="card" data-region="{region}">
+    <article class="card" data-region="{region_of(d['destination'])}">
       <div class="card-main">
         <div class="card-top">
           <span class="badge discount">-{d['discount_pct']}%</span>
           <span class="badge {kind_cls}">{kind}</span>
         </div>
         <div class="route">
-          <span class="city">{city(d['origin'])}</span>
-          <span class="plane">✈</span>
-          <span class="city">{html.escape(city(d['destination']))}</span>
+          <a href="{BASE_URL}/routes/{code}.html">
+            <span class="city">{city(d['origin'])}</span>
+            <span class="plane">✈</span>
+            <span class="city">{html.escape(city(d['destination']))}</span>
+          </a>
         </div>
         <p class="dates">{fmt_date(d['depart_date'])} 출발 · {fmt_date(d['return_date'])} 귀국 · 왕복</p>
         {sparkline(conn, d)}
@@ -148,8 +160,7 @@ def mail_deal_rows(conn):
            FROM mail_deals ORDER BY id DESC LIMIT 20""").fetchall()
     out = []
     for airline, origin, dest, price, promo_end, summary, url in rows:
-        parts = [f"<span class='sender'>{html.escape(airline or '항공사')}</span>",
-                 html.escape(summary)]
+        parts = [f"<span class='sender'>{html.escape(airline or '항공사')}</span>", html.escape(summary)]
         if price:
             parts.append(f"<strong>{price:,}원~</strong>")
         if promo_end:
@@ -163,166 +174,169 @@ def mail_deal_rows(conn):
 
 def mail_rows(conn):
     rows = conn.execute(
-        """SELECT received_at, sender, subject FROM emails
-           ORDER BY id DESC LIMIT 8""").fetchall()
-    out = []
-    for received, sender, subject in rows:
-        name = sender.split("<")[0].strip().strip('"') or sender
-        out.append(f"<li><span class='sender'>{html.escape(name)}</span> "
-                   f"{html.escape(subject)}</li>")
-    return "\n".join(out)
+        "SELECT sender, subject FROM emails ORDER BY id DESC LIMIT 8").fetchall()
+    return "\n".join(
+        f"<li><span class='sender'>{html.escape(s.split('<')[0].strip().strip(chr(34)) or s)}</span>"
+        f"{html.escape(subj)}</li>" for s, subj in rows)
 
 
-def route_options():
-    opts = ['<option value="ALL">✈️ 전체 노선</option>']
-    for origin, dest in config.ROUTES:
-        code = f"{origin}-{dest}"
-        opts.append(f'<option value="{code}">{city(origin)} → {city(dest)} ({code})</option>')
-    return "\n".join(opts)
+# ---------------------------------------------------------------- 노선 페이지
+
+def route_page(conn, origin, dest):
+    code = f"{origin}-{dest}"
+    o_name, d_name = city(origin), city(dest)
+    label = f"{o_name} → {d_name}"
+    cheapest, median, n = route_summary(conn, origin, dest)
+    if not n:
+        return None
+
+    trend = daily_min(conn, origin, dest, 30)
+    months = month_min(conn, origin, dest)
+    weekdays = weekday_min(conn, origin, dest)
+    airlines = airline_min(conn, origin, dest)
+
+    best_month = min(months, key=lambda r: r[1]) if months else None
+    best_wd = min(weekdays, key=lambda r: r[1]) if weekdays else None
+
+    tips = []
+    if best_month:
+        tips.append(f"<b>{fmt_month(best_month[0])} 출발</b>이 가장 저렴합니다 ({best_month[1]:,}원)")
+    if best_wd:
+        tips.append(f"출발 요일은 <b>{best_wd[0]}요일</b>이 가장 쌉니다 ({best_wd[1]:,}원)")
+    tip_html = " · ".join(tips) or "데이터가 쌓이면 저렴한 시기를 분석해 보여드립니다."
+
+    airline_rows = "\n".join(
+        f"<tr><td>{html.escape(airline_name(a))}</td><td class='num'>{p:,}원</td>"
+        f"<td class='num'>{c:,}건</td></tr>" for a, p, c in airlines)
+
+    others = "\n".join(
+        f'<li><a href="{BASE_URL}/routes/{o}-{dd}.html">{city(o)} → {city(dd)}</a></li>'
+        for o, dd in config.ROUTES if f"{o}-{dd}" != code)
+
+    body = f"""  <div class="topbar">
+    <a class="brand" href="{BASE_URL}/">갈래<em>말래</em> ✈️</a>
+  </div>
+  <p class="crumb"><a href="{BASE_URL}/">특가 피드</a> › {REGION_NAME[region_of(dest)]} › {label}</p>
+  <header>
+    <h1>{label} 항공권 최저가</h1>
+    <p class="tagline">최근 30일 수집한 가격 {n:,}건으로 분석한 {label} 왕복 항공권 시세입니다.</p>
+  </header>
+
+  <div class="hero">
+    <div class="col">
+      <span class="cap">최근 30일 최저가</span>
+      <span class="figure">{cheapest:,}<small>원</small></span>
+    </div>
+    <div class="col">
+      <span class="cap">평소 시세(중앙값)</span>
+      <span class="figure" style="font-size:1.6rem">{median:,}<small>원</small></span>
+    </div>
+    <div class="col" style="flex:1;min-width:220px">
+      <span class="cap">언제 가면 싼가</span>
+      <span>{tip_html}</span>
+    </div>
+  </div>
+
+  <section>
+    <h2>📈 {label} 최저가 추이</h2>
+    <p class="lead">매일 아침 수집한 이 노선의 왕복 최저가입니다. 아래로 꺾일수록 지금이 살 때입니다.</p>
+    <div class="chart">{line_chart(trend, fmt_date)}</div>
+  </section>
+
+  <section>
+    <h2>📅 출발 월별 최저가</h2>
+    <p class="lead">출발 시기에 따라 {label} 항공권 가격이 얼마나 달라지는지 비교했습니다.</p>
+    <div class="chart">{bar_chart([(fmt_month(m), p) for m, p in months])}</div>
+  </section>
+
+  <section>
+    <h2>🗓 출발 요일별 최저가</h2>
+    <p class="lead">같은 노선도 무슨 요일에 떠나느냐로 가격이 달라집니다.</p>
+    <div class="chart">{bar_chart(weekdays)}</div>
+  </section>
+
+  <section>
+    <h2>✈️ 항공사별 최저가</h2>
+    <p class="lead">최근 30일간 이 노선에서 수집된 항공사별 최저 왕복 요금입니다.</p>
+    <table class="data">
+      <thead><tr><th>항공사</th><th class="num">최저가</th><th class="num">수집 건수</th></tr></thead>
+      <tbody>
+{airline_rows}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="subscribe">
+    <h2>🔔 {label} 특가 알림 받기</h2>
+    <p>이 노선에 특가가 뜨면 메일로 알려드립니다. 아래 버튼을 누르면 메일 앱이 열립니다 —
+       <b>내용 수정 없이 그대로 보내주시면</b> 구독이 완료됩니다.</p>
+    <div class="sub-form">
+      <a class="cta" href="{subscribe_link(code, label)}">{label} 알림 신청</a>
+    </div>
+    <p class="hint">해지: {SUBSCRIBE_ADDR}로 제목 '구독취소' 메일을 보내주세요.</p>
+  </section>
+
+  <section>
+    <h2>다른 노선 보기</h2>
+    <ul class="routelist">
+{others}
+    </ul>
+  </section>"""
+
+    title = f"{label} 항공권 최저가 · 시세 추이 | {SITE_NAME}"
+    desc = (f"{label} 왕복 항공권 최저가 {cheapest:,}원. 최근 30일 가격 추이와 "
+            f"출발 월·요일별 최저가, 항공사별 요금을 매일 갱신합니다.")
+    (DOCS / "routes").mkdir(parents=True, exist_ok=True)
+    (DOCS / "routes" / f"{code}.html").write_text(
+        page(title, desc, f"/routes/{code}.html", body), encoding="utf-8")
+    return code, cheapest
 
 
-def main():
-    conn = db.connect()
+# ---------------------------------------------------------------- 메인 페이지
+
+INDEX_JS = """<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var chips = document.querySelectorAll('.chip');
+  chips.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      chips.forEach(function(c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var region = chip.dataset.region;
+      document.querySelectorAll('.card').forEach(function(card) {
+        card.style.display = (region === 'all' || card.dataset.region === region) ? '' : 'none';
+      });
+    });
+  });
+});
+function subscribeMail() {
+  var sel = document.getElementById('route-sel');
+  var subject = encodeURIComponent('구독신청');
+  var body = encodeURIComponent('노선: ' + sel.value + ' (' + sel.selectedOptions[0].text + ')\\n\\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
+  location.href = 'mailto:SUBSCRIBE_ADDR?subject=' + subject + '&body=' + body;
+}
+</script>""".replace("SUBSCRIBE_ADDR", SUBSCRIBE_ADDR)
+
+
+def build_index(conn, route_index):
     deals = compute_deals(conn)
     cards = "\n".join(deal_card(conn, d) for d in deals) if deals else \
         "<p class='empty'>오늘은 기준(시세 대비 35% 이상 할인)을 넘는 특가가 없습니다. 내일 아침 다시 스캔합니다.</p>"
     chips = "\n".join(
-        f'<button class="chip{" active" if code == "all" else ""}" data-region="{code}">{label}</button>'
-        for code, label in REGION_CHIPS)
-    mail_deals = mail_deal_rows(conn)
-    mails = mail_rows(conn)
+        f'<button class="chip{" active" if c == "all" else ""}" data-region="{c}">{lab}</button>'
+        for c, lab in REGION_CHIPS)
+    opts = "\n".join(['<option value="ALL">✈️ 전체 노선</option>'] + [
+        f'<option value="{o}-{d}">{city(o)} → {city(d)} ({o}-{d})</option>'
+        for o, d in config.ROUTES])
+    routelist = "\n".join(
+        f'<li><a href="{BASE_URL}/routes/{code}.html">{city(code[:3])} → {city(code[4:])}'
+        f'<br><span class="rl-price">최저 {price:,}원</span></a></li>'
+        for code, price in route_index)
     n_offers = conn.execute("SELECT COUNT(*) FROM offers").fetchone()[0]
     n_days = conn.execute("SELECT COUNT(DISTINCT fetched_date) FROM offers").fetchone()[0]
-    conn.close()
     updated = datetime.now(KST).strftime("%m.%d %H:%M")
 
-    page = f"""<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>갈래말래 — 오늘의 항공권 특가</title>
-<meta name="description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다.">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<style>
-  :root {{
-    --bg:#FAF6EF; --card:#FFFFFF; --ink:#1E2B3C; --sub:#5C6878;
-    --brand:#23538F; --deal:#D9482B; --line:#E7E1D5; --chip:#F0EAE0;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{ --bg:#121820; --card:#1B2430; --ink:#E8ECF2; --sub:#97A3B2;
-             --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }}
-  }}
-  * {{ box-sizing:border-box; margin:0; }}
-  body {{ background:var(--bg); color:var(--ink);
-         font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-         line-height:1.55; padding:28px 16px 56px; }}
-  main {{ max-width:1000px; margin:0 auto; }}
-
-  header .brand {{ font-size:2rem; font-weight:900; letter-spacing:-0.02em; }}
-  header .brand em {{ font-style:normal; color:var(--brand); }}
-  header .tagline {{ color:var(--sub); margin-top:2px; }}
-  .stats {{ display:flex; gap:14px; flex-wrap:wrap; margin:14px 0 22px;
-            color:var(--sub); font-size:.82rem; }}
-  .stats span b {{ color:var(--ink); font-weight:700; }}
-
-  .chips {{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }}
-  .chip {{ background:var(--chip); color:var(--sub); border:none; font-weight:600;
-           padding:7px 14px; border-radius:99px; cursor:pointer; font-size:.88rem;
-           font-family:inherit; }}
-  .chip.active {{ background:var(--brand); color:#fff; }}
-
-  .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }}
-  .card {{ background:var(--card); border-radius:16px; overflow:hidden;
-           box-shadow:0 1px 3px rgba(20,30,50,.07); display:flex; flex-direction:column; }}
-  .card-main {{ padding:18px 18px 10px; }}
-  .card-top {{ display:flex; gap:6px; margin-bottom:10px; }}
-  .badge {{ font-size:.74rem; font-weight:800; padding:3px 9px; border-radius:99px; }}
-  .discount {{ background:var(--deal); color:#fff; }}
-  .direct {{ background:var(--brand); color:#fff; }}
-  .transfer {{ background:var(--chip); color:var(--sub); }}
-  .route {{ display:flex; align-items:baseline; gap:10px; font-size:1.45rem; font-weight:800;
-            letter-spacing:-0.01em; }}
-  .route .plane {{ color:var(--brand); font-size:1rem; }}
-  .dates {{ color:var(--sub); font-size:.85rem; margin-top:4px; }}
-
-  .spark {{ margin-top:12px; }}
-  .spark-plot {{ position:relative; }}
-  .spark svg {{ width:100%; height:34px; display:block; }}
-  .spark-line {{ fill:none; stroke:var(--brand); stroke-width:2;
-                 stroke-linecap:round; stroke-linejoin:round; }}
-  .spark-area {{ fill:var(--brand); opacity:.1; }}
-  .spark-dot {{ position:absolute; right:calc(4.2% - 5px); width:8px; height:8px;
-                margin-top:-4px; border-radius:50%; background:var(--deal);
-                border:2px solid var(--card); }}
-  .spark-label {{ color:var(--sub); font-size:.72rem; }}
-
-  .tear {{ border-top:2px dashed var(--line); position:relative; margin:6px 0 0; }}
-  .tear::before, .tear::after {{ content:""; position:absolute; top:-9px; width:18px; height:18px;
-    background:var(--bg); border-radius:50%; }}
-  .tear::before {{ left:-9px; }}
-  .tear::after {{ right:-9px; }}
-
-  .card-stub {{ display:flex; align-items:center; gap:10px; padding:12px 18px 16px; }}
-  .fare {{ display:flex; flex-direction:column; flex:1; }}
-  .price {{ font-size:1.5rem; font-weight:900; letter-spacing:-0.02em; }}
-  .price small {{ font-size:.9rem; font-weight:700; }}
-  .median {{ color:var(--sub); font-size:.78rem; text-decoration:line-through; }}
-  .carrier {{ color:var(--sub); font-size:.82rem; }}
-  .cta {{ background:var(--deal); color:#fff; text-decoration:none; font-weight:800;
-          padding:10px 18px; border-radius:12px; font-size:.95rem; }}
-  .empty {{ color:var(--sub); padding:28px 0; }}
-
-  section {{ margin-top:44px; }}
-  section h2 {{ font-size:1.15rem; margin-bottom:12px; }}
-  section.mail ul {{ list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }}
-  section.mail li {{ background:var(--card); border-radius:12px; padding:11px 15px; font-size:.9rem; }}
-  .sender {{ font-weight:800; margin-right:8px; }}
-  .until {{ color:var(--deal); font-size:.8rem; }}
-  section.mail a {{ color:var(--brand); font-weight:700; text-decoration:none; }}
-
-  section.subscribe {{ background:var(--card); border-radius:16px; padding:22px;
-    border:2px dashed var(--line); }}
-  section.subscribe p {{ color:var(--sub); font-size:.9rem; margin-bottom:12px; }}
-  .sub-form {{ display:flex; gap:8px; flex-wrap:wrap; }}
-  .sub-form select {{ flex:1; min-width:220px; padding:11px; border-radius:12px;
-    border:1px solid var(--line); background:var(--bg); color:var(--ink);
-    font-size:.95rem; font-family:inherit; }}
-  .sub-form button {{ background:var(--brand); color:#fff; border:none; font-weight:800;
-    padding:11px 20px; border-radius:12px; cursor:pointer; font-size:.95rem; font-family:inherit; }}
-  .hint {{ font-size:.78rem !important; margin-top:10px; margin-bottom:0 !important; }}
-
-  footer {{ margin-top:48px; color:var(--sub); font-size:.78rem;
-            border-top:1px solid var(--line); padding-top:16px; }}
-  footer p {{ margin-bottom:6px; }}
-</style>
-<script>
-function subscribeMail() {{
-  var sel = document.getElementById('route-sel');
-  var subject = encodeURIComponent('구독신청');
-  var body = encodeURIComponent('노선: ' + sel.value + ' (' + sel.selectedOptions[0].text + ')\\n\\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
-  location.href = 'mailto:{SUBSCRIBE_ADDR}?subject=' + subject + '&body=' + body;
-}}
-document.addEventListener('DOMContentLoaded', function() {{
-  var chips = document.querySelectorAll('.chip');
-  chips.forEach(function(chip) {{
-    chip.addEventListener('click', function() {{
-      chips.forEach(function(c) {{ c.classList.remove('active'); }});
-      chip.classList.add('active');
-      var region = chip.dataset.region;
-      document.querySelectorAll('.card').forEach(function(card) {{
-        card.style.display = (region === 'all' || card.dataset.region === region) ? '' : 'none';
-      }});
-    }});
-  }});
-}});
-</script>
-</head>
-<body>
-<main>
-  <header>
-    <div class="brand">갈래<em>말래</em> ✈️</div>
+    body = f"""  <header>
+    <div class="brand" style="font-size:2rem">갈래<em>말래</em> ✈️</div>
     <p class="tagline">매일 아침 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만.</p>
     <div class="stats">
       <span><b>{len(config.ROUTES)}개</b> 노선 감시</span>
@@ -345,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {{
        메일 앱이 열립니다 — <b>내용 수정 없이 그대로 보내주시면</b> 다음 수집부터 적용됩니다.</p>
     <div class="sub-form">
       <select id="route-sel">
-{route_options()}
+{opts}
       </select>
       <button onclick="subscribeMail()">메일로 구독 신청</button>
     </div>
@@ -353,32 +367,68 @@ document.addEventListener('DOMContentLoaded', function() {{
        특정 노선만 해지하려면 본문에 노선 코드를 적어주세요.</p>
   </section>
 
+  <section>
+    <h2>📊 노선별 가격 분석</h2>
+    <p class="lead">각 노선의 최저가 추이와 언제 가면 싼지를 매일 갱신합니다.</p>
+    <ul class="routelist">
+{routelist}
+    </ul>
+  </section>
+
   <section class="mail">
     <h2>🎫 항공사 프로모션</h2>
     <ul>
-{mail_deals if mail_deals else "<li class='empty'>수집된 프로모션이 아직 없습니다.</li>"}
+{mail_deal_rows(conn) or "<li class='empty'>수집된 프로모션이 아직 없습니다.</li>"}
     </ul>
   </section>
 
   <section class="mail">
     <h2>📬 항공사 소식</h2>
     <ul>
-{mails}
+{mail_rows(conn)}
     </ul>
-  </section>
+  </section>"""
 
-  <footer>
-    <p>· 가격은 조회 시점 기준이며 실제 예약 가격은 예약처에서 달라질 수 있습니다.</p>
-    <p>· "예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
-    <p>· 시세는 해당 노선·유형(직항/경유)의 최근 30일 수집 가격 중앙값입니다. 데이터: Travelpayouts(Aviasales)</p>
-    <p>· 갈래말래 · 문의 {SUBSCRIBE_ADDR}</p>
-  </footer>
-</main>
-</body>
-</html>"""
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(page, encoding="utf-8")
-    print(f"생성 완료: {OUT} (특가 {len(deals)}건)")
+    DOCS.mkdir(parents=True, exist_ok=True)
+    (DOCS / "index.html").write_text(
+        page(f"{SITE_NAME} — 오늘의 항공권 특가",
+             "매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다. "
+             "노선별 가격 추이와 이메일 알림도 무료로 제공합니다.",
+             "/", body, INDEX_JS), encoding="utf-8")
+    return len(deals)
+
+
+# ---------------------------------------------------------------- SEO 파일
+
+def build_seo(route_index):
+    today = date.today().isoformat()
+    urls = [(f"{BASE_URL}/", "daily", "1.0")]
+    urls += [(f"{BASE_URL}/routes/{code}.html", "daily", "0.8") for code, _ in route_index]
+    entries = "\n".join(
+        f"  <url><loc>{loc}</loc><lastmod>{today}</lastmod>"
+        f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"
+        for loc, freq, pri in urls)
+    (DOCS / "sitemap.xml").write_text(
+        f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{entries}
+</urlset>
+""", encoding="utf-8")
+    (DOCS / "robots.txt").write_text(
+        f"User-agent: *\nAllow: /\n\nSitemap: {BASE_URL}/sitemap.xml\n", encoding="utf-8")
+
+
+def main():
+    conn = db.connect()
+    route_index = []
+    for origin, dest in config.ROUTES:
+        result = route_page(conn, origin, dest)
+        if result:
+            route_index.append(result)
+    n_deals = build_index(conn, route_index)
+    build_seo(route_index)
+    conn.close()
+    print(f"생성 완료: index(특가 {n_deals}건) + 노선 페이지 {len(route_index)}개 + sitemap/robots")
 
 
 if __name__ == "__main__":

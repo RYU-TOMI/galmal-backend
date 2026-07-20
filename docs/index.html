@@ -4,7 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>갈래말래 — 오늘의 항공권 특가</title>
-<meta name="description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다.">
+<meta name="description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다. 노선별 가격 추이와 이메일 알림도 무료로 제공합니다.">
+<link rel="canonical" href="https://ryu-tomi.github.io/promo-ticket-site/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="갈래말래">
+<meta property="og:title" content="갈래말래 — 오늘의 항공권 특가">
+<meta property="og:description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다. 노선별 가격 추이와 이메일 알림도 무료로 제공합니다.">
+<meta property="og:url" content="https://ryu-tomi.github.io/promo-ticket-site/">
+<meta property="og:locale" content="ko_KR">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
@@ -14,30 +21,36 @@
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#121820; --card:#1B2430; --ink:#E8ECF2; --sub:#97A3B2;
-             --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }
+            --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }
   }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--ink);
          font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
          line-height:1.55; padding:28px 16px 56px; }
   main { max-width:1000px; margin:0 auto; }
+  a { color:var(--brand); }
 
-  header .brand { font-size:2rem; font-weight:900; letter-spacing:-0.02em; }
-  header .brand em { font-style:normal; color:var(--brand); }
-  header .tagline { color:var(--sub); margin-top:2px; }
+  .topbar { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+  .brand { font-size:1.6rem; font-weight:900; letter-spacing:-0.02em;
+           text-decoration:none; color:var(--ink); }
+  .brand em { font-style:normal; color:var(--brand); }
+  header .tagline { color:var(--sub); }
+  header h1 { font-size:1.9rem; font-weight:900; letter-spacing:-0.02em; margin-top:6px; }
   .stats { display:flex; gap:14px; flex-wrap:wrap; margin:14px 0 22px;
-            color:var(--sub); font-size:.82rem; }
+           color:var(--sub); font-size:.82rem; }
   .stats span b { color:var(--ink); font-weight:700; }
+  .crumb { color:var(--sub); font-size:.85rem; margin-bottom:10px; }
+  .crumb a { text-decoration:none; }
 
   .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
   .chip { background:var(--chip); color:var(--sub); border:none; font-weight:600;
-           padding:7px 14px; border-radius:99px; cursor:pointer; font-size:.88rem;
-           font-family:inherit; }
+          padding:7px 14px; border-radius:99px; cursor:pointer; font-size:.88rem;
+          font-family:inherit; }
   .chip.active { background:var(--brand); color:#fff; }
 
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
   .card { background:var(--card); border-radius:16px; overflow:hidden;
-           box-shadow:0 1px 3px rgba(20,30,50,.07); display:flex; flex-direction:column; }
+          box-shadow:0 1px 3px rgba(20,30,50,.07); display:flex; flex-direction:column; }
   .card-main { padding:18px 18px 10px; }
   .card-top { display:flex; gap:6px; margin-bottom:10px; }
   .badge { font-size:.74rem; font-weight:800; padding:3px 9px; border-radius:99px; }
@@ -45,7 +58,8 @@
   .direct { background:var(--brand); color:#fff; }
   .transfer { background:var(--chip); color:var(--sub); }
   .route { display:flex; align-items:baseline; gap:10px; font-size:1.45rem; font-weight:800;
-            letter-spacing:-0.01em; }
+           letter-spacing:-0.01em; }
+  .route a { color:inherit; text-decoration:none; }
   .route .plane { color:var(--brand); font-size:1rem; }
   .dates { color:var(--sub); font-size:.85rem; margin-top:4px; }
 
@@ -53,11 +67,11 @@
   .spark-plot { position:relative; }
   .spark svg { width:100%; height:34px; display:block; }
   .spark-line { fill:none; stroke:var(--brand); stroke-width:2;
-                 stroke-linecap:round; stroke-linejoin:round; }
+                stroke-linecap:round; stroke-linejoin:round; }
   .spark-area { fill:var(--brand); opacity:.1; }
   .spark-dot { position:absolute; right:calc(4.2% - 5px); width:8px; height:8px;
-                margin-top:-4px; border-radius:50%; background:var(--deal);
-                border:2px solid var(--card); }
+               margin-top:-4px; border-radius:50%; background:var(--deal);
+               border:2px solid var(--card); }
   .spark-label { color:var(--sub); font-size:.72rem; }
 
   .tear { border-top:2px dashed var(--line); position:relative; margin:6px 0 0; }
@@ -73,16 +87,48 @@
   .median { color:var(--sub); font-size:.78rem; text-decoration:line-through; }
   .carrier { color:var(--sub); font-size:.82rem; }
   .cta { background:var(--deal); color:#fff; text-decoration:none; font-weight:800;
-          padding:10px 18px; border-radius:12px; font-size:.95rem; }
+         padding:10px 18px; border-radius:12px; font-size:.95rem; }
   .empty { color:var(--sub); padding:28px 0; }
 
   section { margin-top:44px; }
-  section h2 { font-size:1.15rem; margin-bottom:12px; }
+  section h2 { font-size:1.15rem; margin-bottom:6px; }
+  section .lead { color:var(--sub); font-size:.88rem; margin-bottom:14px; }
   section.mail ul { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
   section.mail li { background:var(--card); border-radius:12px; padding:11px 15px; font-size:.9rem; }
   .sender { font-weight:800; margin-right:8px; }
   .until { color:var(--deal); font-size:.8rem; }
   section.mail a { color:var(--brand); font-weight:700; text-decoration:none; }
+
+  /* 노선 페이지 */
+  .hero { background:var(--card); border-radius:16px; padding:22px; display:flex;
+          flex-wrap:wrap; gap:22px; align-items:flex-end; }
+  .hero .figure { font-size:2.6rem; font-weight:900; letter-spacing:-0.03em; line-height:1.1; }
+  .hero .figure small { font-size:1rem; font-weight:700; }
+  .hero .cap { color:var(--sub); font-size:.85rem; }
+  .hero .col { display:flex; flex-direction:column; gap:2px; }
+  .chart { background:var(--card); border-radius:16px; padding:18px; }
+  .chart svg { width:100%; height:auto; display:block; }
+  .axis { fill:var(--sub); font-size:11px; font-variant-numeric:tabular-nums; }
+  .gridline { stroke:var(--line); stroke-width:1; }
+  .plot-line { fill:none; stroke:var(--brand); stroke-width:2;
+               stroke-linecap:round; stroke-linejoin:round; }
+  .plot-area { fill:var(--brand); opacity:.1; }
+  .plot-dot { fill:var(--brand); stroke:var(--card); stroke-width:2; }
+  .plot-dot-hi { fill:var(--deal); stroke:var(--card); stroke-width:2; }
+  .plot-label { fill:var(--ink); font-size:11px; font-weight:700; }
+  .bar { fill:var(--brand); }
+  .bar-best { fill:var(--deal); }
+  .hit { fill:transparent; }
+  table.data { width:100%; border-collapse:collapse; font-size:.9rem; }
+  table.data th, table.data td { text-align:left; padding:9px 10px;
+    border-bottom:1px solid var(--line); }
+  table.data th { color:var(--sub); font-weight:600; font-size:.82rem; }
+  table.data td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .routelist { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px;
+               list-style:none; padding:0; }
+  .routelist a { display:block; background:var(--card); border-radius:10px; padding:10px 13px;
+    text-decoration:none; color:var(--ink); font-size:.9rem; font-weight:600; }
+  .routelist .rl-price { color:var(--sub); font-weight:500; font-size:.82rem; }
 
   section.subscribe { background:var(--card); border-radius:16px; padding:22px;
     border:2px dashed var(--line); }
@@ -96,16 +142,10 @@
   .hint { font-size:.78rem !important; margin-top:10px; margin-bottom:0 !important; }
 
   footer { margin-top:48px; color:var(--sub); font-size:.78rem;
-            border-top:1px solid var(--line); padding-top:16px; }
+           border-top:1px solid var(--line); padding-top:16px; }
   footer p { margin-bottom:6px; }
 </style>
 <script>
-function subscribeMail() {
-  var sel = document.getElementById('route-sel');
-  var subject = encodeURIComponent('구독신청');
-  var body = encodeURIComponent('노선: ' + sel.value + ' (' + sel.selectedOptions[0].text + ')\n\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
-  location.href = 'mailto:flightpromokr@gmail.com?subject=' + subject + '&body=' + body;
-}
 document.addEventListener('DOMContentLoaded', function() {
   var chips = document.querySelectorAll('.chip');
   chips.forEach(function(chip) {
@@ -119,17 +159,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+function subscribeMail() {
+  var sel = document.getElementById('route-sel');
+  var subject = encodeURIComponent('구독신청');
+  var body = encodeURIComponent('노선: ' + sel.value + ' (' + sel.selectedOptions[0].text + ')\n\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
+  location.href = 'mailto:flightpromokr@gmail.com?subject=' + subject + '&body=' + body;
+}
 </script>
 </head>
 <body>
 <main>
   <header>
-    <div class="brand">갈래<em>말래</em> ✈️</div>
+    <div class="brand" style="font-size:2rem">갈래<em>말래</em> ✈️</div>
     <p class="tagline">매일 아침 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만.</p>
     <div class="stats">
       <span><b>26개</b> 노선 감시</span>
       <span>가격 데이터 <b>9,154건</b> (11일치)</span>
-      <span>매일 아침 자동 갱신 · 마지막 07.20 14:37</span>
+      <span>매일 아침 자동 갱신 · 마지막 07.20 17:45</span>
     </div>
   </header>
 
@@ -152,9 +198,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge transfer">경유 1회</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">발리</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DPS.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">발리</span>
+          </a>
         </div>
         <p class="dates">10.16(금) 출발 · 10.30(금) 귀국 · 왕복</p>
         
@@ -187,9 +235,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge direct">직항</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">세부</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CEB.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">세부</span>
+          </a>
         </div>
         <p class="dates">8.27(목) 출발 · 9.1(화) 귀국 · 왕복</p>
         
@@ -222,9 +272,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge direct">직항</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">세부</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CEB.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">세부</span>
+          </a>
         </div>
         <p class="dates">12.8(화) 출발 · 12.18(금) 귀국 · 왕복</p>
         
@@ -257,9 +309,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge transfer">경유 1회</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">발리</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DPS.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">발리</span>
+          </a>
         </div>
         <p class="dates">10.22(목) 출발 · 10.26(월) 귀국 · 왕복</p>
         
@@ -292,9 +346,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge transfer">경유 1회</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">발리</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DPS.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">발리</span>
+          </a>
         </div>
         <p class="dates">10.15(목) 출발 · 10.22(목) 귀국 · 왕복</p>
         
@@ -327,9 +383,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge direct">직항</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">후쿠오카</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-FUK.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">후쿠오카</span>
+          </a>
         </div>
         <p class="dates">8.19(수) 출발 · 8.26(수) 귀국 · 왕복</p>
         
@@ -362,9 +420,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge direct">직항</span>
         </div>
         <div class="route">
-          <span class="city">인천</span>
-          <span class="plane">✈</span>
-          <span class="city">세부</span>
+          <a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CEB.html">
+            <span class="city">인천</span>
+            <span class="plane">✈</span>
+            <span class="city">세부</span>
+          </a>
         </div>
         <p class="dates">7.27(월) 출발 · 7.31(금) 귀국 · 왕복</p>
         
@@ -431,6 +491,39 @@ document.addEventListener('DOMContentLoaded', function() {
        특정 노선만 해지하려면 본문에 노선 코드를 적어주세요.</p>
   </section>
 
+  <section>
+    <h2>📊 노선별 가격 분석</h2>
+    <p class="lead">각 노선의 최저가 추이와 언제 가면 싼지를 매일 갱신합니다.</p>
+    <ul class="routelist">
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-NRT.html">인천 → 도쿄<br><span class="rl-price">최저 181,152원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-KIX.html">인천 → 오사카<br><span class="rl-price">최저 164,903원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-FUK.html">인천 → 후쿠오카<br><span class="rl-price">최저 153,582원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-OKA.html">인천 → 오키나와<br><span class="rl-price">최저 313,776원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CTS.html">인천 → 삿포로<br><span class="rl-price">최저 400,545원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-NGO.html">인천 → 나고야<br><span class="rl-price">최저 257,473원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-TPE.html">인천 → 타이베이<br><span class="rl-price">최저 263,353원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-HKG.html">인천 → 홍콩<br><span class="rl-price">최저 227,799원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-BKK.html">인천 → 방콕<br><span class="rl-price">최저 322,580원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DAD.html">인천 → 다낭<br><span class="rl-price">최저 252,316원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-SGN.html">인천 → 호치민<br><span class="rl-price">최저 351,354원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-HAN.html">인천 → 하노이<br><span class="rl-price">최저 290,256원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-MNL.html">인천 → 마닐라<br><span class="rl-price">최저 254,427원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CEB.html">인천 → 세부<br><span class="rl-price">최저 273,802원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-SIN.html">인천 → 싱가포르<br><span class="rl-price">최저 322,046원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-KUL.html">인천 → 쿠알라룸푸르<br><span class="rl-price">최저 331,063원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-DPS.html">인천 → 발리<br><span class="rl-price">최저 287,847원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-GUM.html">인천 → 괌<br><span class="rl-price">최저 269,242원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-CDG.html">인천 → 파리<br><span class="rl-price">최저 867,922원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-LHR.html">인천 → 런던<br><span class="rl-price">최저 917,498원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-FCO.html">인천 → 로마<br><span class="rl-price">최저 652,080원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-BCN.html">인천 → 바르셀로나<br><span class="rl-price">최저 790,487원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-JFK.html">인천 → 뉴욕<br><span class="rl-price">최저 1,157,175원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-LAX.html">인천 → 로스앤젤레스<br><span class="rl-price">최저 888,875원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-SYD.html">인천 → 시드니<br><span class="rl-price">최저 824,301원</span></a></li>
+<li><a href="https://ryu-tomi.github.io/promo-ticket-site/routes/GMP-CJU.html">김포 → 제주<br><span class="rl-price">최저 61,439원</span></a></li>
+    </ul>
+  </section>
+
   <section class="mail">
     <h2>🎫 항공사 프로모션</h2>
     <ul>
@@ -445,17 +538,16 @@ document.addEventListener('DOMContentLoaded', function() {
   <section class="mail">
     <h2>📬 항공사 소식</h2>
     <ul>
-<li><span class='sender'>아시아나항공</span> [아시아나항공] 본인 인증 메일입니다.</li>
-<li><span class='sender'>Korean Air SKYPASS Member Support</span> [대한항공] 이메일 인증번호 안내</li>
-<li><span class='sender'>Air Premia</span> 에어프레미아 회원가입 인증(AirPremia Member Sign-Up Verification)</li>
-<li><span class='sender'>JEJU AIR</span> pistoncup12 고객님의 제주항공 회원가입을 축하드립니다.</li>
-<li><span class='sender'>AIRBUSAN</span> (광고)태국을 즐기는 완벽한 방법 부산-방콕, 인천-치앙마이 최대 13만원 할인</li>
-<li><span class='sender'>티웨이항공</span> (광고)멀리 갈 필요 없어요! 집 앞 공항에서 출발하는 특가 라인업</li>
-<li><span class='sender'>Korean Air Skypass Member Support</span> [대한항공] 회원정보 변경 안내</li>
-<li><span class='sender'>Air Premia</span> [Air Premia] 이벤트 및 혜택 정보 수신 동의 내역 안내</li>
+<li><span class='sender'>아시아나항공</span>[아시아나항공] 본인 인증 메일입니다.</li>
+<li><span class='sender'>Korean Air SKYPASS Member Support</span>[대한항공] 이메일 인증번호 안내</li>
+<li><span class='sender'>Air Premia</span>에어프레미아 회원가입 인증(AirPremia Member Sign-Up Verification)</li>
+<li><span class='sender'>JEJU AIR</span>pistoncup12 고객님의 제주항공 회원가입을 축하드립니다.</li>
+<li><span class='sender'>AIRBUSAN</span>(광고)태국을 즐기는 완벽한 방법 부산-방콕, 인천-치앙마이 최대 13만원 할인</li>
+<li><span class='sender'>티웨이항공</span>(광고)멀리 갈 필요 없어요! 집 앞 공항에서 출발하는 특가 라인업</li>
+<li><span class='sender'>Korean Air Skypass Member Support</span>[대한항공] 회원정보 변경 안내</li>
+<li><span class='sender'>Air Premia</span>[Air Premia] 이벤트 및 혜택 정보 수신 동의 내역 안내</li>
     </ul>
   </section>
-
   <footer>
     <p>· 가격은 조회 시점 기준이며 실제 예약 가격은 예약처에서 달라질 수 있습니다.</p>
     <p>· "예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>

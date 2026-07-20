@@ -20,8 +20,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
 from affiliates import booking_link
-from build_site import CITY, airline_name
 from detect_deals import compute_deals
+from labels import airline_name, city
 from mail_ingest import load_env
 from subscriptions import load_subscribers
 
@@ -36,8 +36,8 @@ def email_hash(addr: str) -> str:
 def deal_line(d) -> str:
     kind = "직항" if d["is_direct"] else "경유"
     url, shop = booking_link(d)
-    return (f"<li><b>{CITY.get(d['origin'], d['origin'])} → "
-            f"{CITY.get(d['destination'], d['destination'])}</b> "
+    return (f"<li><b>{city(d['origin'])} → "
+            f"{city(d['destination'])}</b> "
             f"{d['depart_date']}~{d['return_date']} 왕복 "
             f"<b>{d['price']:,}원</b> ({airline_name(d['airline'])}, {kind}) "
             f"— 시세 대비 <b>{d['discount_pct']}% 저렴</b> "
