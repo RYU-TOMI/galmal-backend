@@ -47,9 +47,18 @@ jobs:
         env:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          TP_MARKER: ${{ secrets.TP_MARKER }}
+          TP_TRIP_TRS: ${{ secrets.TP_TRIP_TRS }}
+          TP_TRIP_P: ${{ secrets.TP_TRIP_P }}
+          TP_TRIP_CAMPAIGN: ${{ secrets.TP_TRIP_CAMPAIGN }}
         run: python collector/send_alerts.py
 
       - name: 웹 피드 생성
+        env:
+          TP_MARKER: ${{ secrets.TP_MARKER }}
+          TP_TRIP_TRS: ${{ secrets.TP_TRIP_TRS }}
+          TP_TRIP_P: ${{ secrets.TP_TRIP_P }}
+          TP_TRIP_CAMPAIGN: ${{ secrets.TP_TRIP_CAMPAIGN }}
         run: python collector/build_site.py
 
       - name: 데이터·사이트 커밋
