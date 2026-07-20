@@ -135,7 +135,7 @@ def deal_card(conn, d):
           <span class="median">시세 {d['median']:,}원</span>
         </div>
         <span class="carrier">{html.escape(airline_name(d['airline']))}</span>
-        <a class="cta" href="{html.escape(d['link'])}" target="_blank" rel="noopener sponsored">예약</a>
+        <a class="cta" href="{html.escape(d['link'])}" target="_blank" rel="noopener sponsored">Aviasales 예약</a>
       </div>
     </article>"""
 
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 
   <footer>
     <p>· 가격은 조회 시점 기준이며 실제 예약 가격은 예약처에서 달라질 수 있습니다.</p>
-    <p>· "예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
+    <p>· "Aviasales 예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
     <p>· 시세는 해당 노선·유형(직항/경유)의 최근 30일 수집 가격 중앙값입니다. 데이터: Travelpayouts(Aviasales)</p>
     <p>· 갈래말래 · 문의 {SUBSCRIBE_ADDR}</p>
   </footer>

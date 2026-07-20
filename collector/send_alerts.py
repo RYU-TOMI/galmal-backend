@@ -39,7 +39,7 @@ def deal_line(d) -> str:
             f"{d['depart_date']}~{d['return_date']} 왕복 "
             f"<b>{d['price']:,}원</b> ({airline_name(d['airline'])}, {kind}) "
             f"— 시세 대비 <b>{d['discount_pct']}% 저렴</b> "
-            f"<a href='{d['link']}'>가격 확인</a></li>")
+            f"<a href='{d['link']}'>Aviasales에서 가격 확인</a></li>")
 
 
 def build_mail(to_addr, deals):
