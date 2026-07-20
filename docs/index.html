@@ -3,220 +3,496 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>오늘의 항공권 특가</title>
-<meta name="description" content="한국 출발 항공권 특가를 매일 자동 수집해 시세 대비 할인율로 알려드립니다.">
+<title>갈래말래 — 오늘의 항공권 특가</title>
+<meta name="description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
-    --bg:#f6f7f9; --card:#fff; --text:#1c2733; --sub:#5f6b7a;
-    --accent:#0b62d6; --deal:#d6274b; --line:#e4e8ee;
+    --bg:#FAF6EF; --card:#FFFFFF; --ink:#1E2B3C; --sub:#5C6878;
+    --brand:#23538F; --deal:#D9482B; --line:#E7E1D5; --chip:#F0EAE0;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#12161c; --card:#1b222c; --text:#e8edf3; --sub:#98a4b3;
-             --accent:#5aa2ff; --deal:#ff6b8b; --line:#2a3441; }
+    :root { --bg:#121820; --card:#1B2430; --ink:#E8ECF2; --sub:#97A3B2;
+             --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }
   }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--text);
-         font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-         line-height:1.5; padding:24px 16px 48px; }
-  main { max-width:960px; margin:0 auto; }
-  header h1 { font-size:1.6rem; margin-bottom:4px; }
-  header p { color:var(--sub); font-size:.9rem; margin-bottom:24px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
-           padding:18px; display:flex; flex-direction:column; gap:6px; }
-  .card-top { display:flex; gap:6px; }
-  .badge { font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:99px; }
+  body { background:var(--bg); color:var(--ink);
+         font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+         line-height:1.55; padding:28px 16px 56px; }
+  main { max-width:1000px; margin:0 auto; }
+
+  header .brand { font-size:2rem; font-weight:900; letter-spacing:-0.02em; }
+  header .brand em { font-style:normal; color:var(--brand); }
+  header .tagline { color:var(--sub); margin-top:2px; }
+  .stats { display:flex; gap:14px; flex-wrap:wrap; margin:14px 0 22px;
+            color:var(--sub); font-size:.82rem; }
+  .stats span b { color:var(--ink); font-weight:700; }
+
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .chip { background:var(--chip); color:var(--sub); border:none; font-weight:600;
+           padding:7px 14px; border-radius:99px; cursor:pointer; font-size:.88rem;
+           font-family:inherit; }
+  .chip.active { background:var(--brand); color:#fff; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+  .card { background:var(--card); border-radius:16px; overflow:hidden;
+           box-shadow:0 1px 3px rgba(20,30,50,.07); display:flex; flex-direction:column; }
+  .card-main { padding:18px 18px 10px; }
+  .card-top { display:flex; gap:6px; margin-bottom:10px; }
+  .badge { font-size:.74rem; font-weight:800; padding:3px 9px; border-radius:99px; }
   .discount { background:var(--deal); color:#fff; }
-  .direct { background:var(--accent); color:#fff; }
-  .transfer { background:var(--line); color:var(--sub); }
-  .card h2 { font-size:1.15rem; }
-  .dates, .meta { color:var(--sub); font-size:.85rem; }
-  .price { font-size:1.35rem; font-weight:800; }
-  .median { color:var(--sub); font-size:.8rem; font-weight:400;
-             text-decoration:line-through; margin-left:6px; }
-  .cta { margin-top:auto; text-align:center; background:var(--accent); color:#fff;
-          text-decoration:none; font-weight:700; padding:10px; border-radius:10px; }
-  .empty { color:var(--sub); padding:24px 0; }
-  section.mail { margin-top:40px; }
-  section.mail h2 { font-size:1.2rem; margin-bottom:12px; }
-  section.mail ul { list-style:none; display:flex; flex-direction:column; gap:8px; }
-  section.mail li { background:var(--card); border:1px solid var(--line);
-                     border-radius:10px; padding:10px 14px; font-size:.9rem; }
-  .sender { font-weight:700; margin-right:8px; }
+  .direct { background:var(--brand); color:#fff; }
+  .transfer { background:var(--chip); color:var(--sub); }
+  .route { display:flex; align-items:baseline; gap:10px; font-size:1.45rem; font-weight:800;
+            letter-spacing:-0.01em; }
+  .route .plane { color:var(--brand); font-size:1rem; }
+  .dates { color:var(--sub); font-size:.85rem; margin-top:4px; }
+
+  .spark { margin-top:12px; }
+  .spark-plot { position:relative; }
+  .spark svg { width:100%; height:34px; display:block; }
+  .spark-line { fill:none; stroke:var(--brand); stroke-width:2;
+                 stroke-linecap:round; stroke-linejoin:round; }
+  .spark-area { fill:var(--brand); opacity:.1; }
+  .spark-dot { position:absolute; right:calc(4.2% - 5px); width:8px; height:8px;
+                margin-top:-4px; border-radius:50%; background:var(--deal);
+                border:2px solid var(--card); }
+  .spark-label { color:var(--sub); font-size:.72rem; }
+
+  .tear { border-top:2px dashed var(--line); position:relative; margin:6px 0 0; }
+  .tear::before, .tear::after { content:""; position:absolute; top:-9px; width:18px; height:18px;
+    background:var(--bg); border-radius:50%; }
+  .tear::before { left:-9px; }
+  .tear::after { right:-9px; }
+
+  .card-stub { display:flex; align-items:center; gap:10px; padding:12px 18px 16px; }
+  .fare { display:flex; flex-direction:column; flex:1; }
+  .price { font-size:1.5rem; font-weight:900; letter-spacing:-0.02em; }
+  .price small { font-size:.9rem; font-weight:700; }
+  .median { color:var(--sub); font-size:.78rem; text-decoration:line-through; }
+  .carrier { color:var(--sub); font-size:.82rem; }
+  .cta { background:var(--deal); color:#fff; text-decoration:none; font-weight:800;
+          padding:10px 18px; border-radius:12px; font-size:.95rem; }
+  .empty { color:var(--sub); padding:28px 0; }
+
+  section { margin-top:44px; }
+  section h2 { font-size:1.15rem; margin-bottom:12px; }
+  section.mail ul { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
+  section.mail li { background:var(--card); border-radius:12px; padding:11px 15px; font-size:.9rem; }
+  .sender { font-weight:800; margin-right:8px; }
   .until { color:var(--deal); font-size:.8rem; }
-  section.mail a { color:var(--accent); font-weight:700; text-decoration:none; }
+  section.mail a { color:var(--brand); font-weight:700; text-decoration:none; }
+
+  section.subscribe { background:var(--card); border-radius:16px; padding:22px;
+    border:2px dashed var(--line); }
+  section.subscribe p { color:var(--sub); font-size:.9rem; margin-bottom:12px; }
+  .sub-form { display:flex; gap:8px; flex-wrap:wrap; }
+  .sub-form select { flex:1; min-width:220px; padding:11px; border-radius:12px;
+    border:1px solid var(--line); background:var(--bg); color:var(--ink);
+    font-size:.95rem; font-family:inherit; }
+  .sub-form button { background:var(--brand); color:#fff; border:none; font-weight:800;
+    padding:11px 20px; border-radius:12px; cursor:pointer; font-size:.95rem; font-family:inherit; }
+  .hint { font-size:.78rem !important; margin-top:10px; margin-bottom:0 !important; }
+
   footer { margin-top:48px; color:var(--sub); font-size:.78rem;
             border-top:1px solid var(--line); padding-top:16px; }
   footer p { margin-bottom:6px; }
-  section.subscribe { margin-top:40px; background:var(--card);
-    border:1px solid var(--line); border-radius:14px; padding:20px; }
-  section.subscribe h2 { font-size:1.2rem; margin-bottom:8px; }
-  section.subscribe p { color:var(--sub); font-size:.9rem; margin-bottom:12px; }
-  .sub-form { display:flex; gap:8px; flex-wrap:wrap; }
-  .sub-form select { flex:1; min-width:220px; padding:10px; border-radius:10px;
-    border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:.95rem; }
-  .sub-form button { background:var(--accent); color:#fff; border:none; font-weight:700;
-    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.95rem; }
-  .hint { font-size:.8rem !important; margin-top:10px; }
 </style>
 <script>
 function subscribeMail() {
-  var code = document.getElementById('route-sel').value;
-  var label = document.getElementById('route-sel').selectedOptions[0].text;
+  var sel = document.getElementById('route-sel');
   var subject = encodeURIComponent('구독신청');
-  var body = encodeURIComponent('노선: ' + code + ' (' + label + ')\n\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
+  var body = encodeURIComponent('노선: ' + sel.value + ' (' + sel.selectedOptions[0].text + ')\n\n이 메일을 그대로 보내주시면 구독이 신청됩니다.');
   location.href = 'mailto:flightpromokr@gmail.com?subject=' + subject + '&body=' + body;
 }
+document.addEventListener('DOMContentLoaded', function() {
+  var chips = document.querySelectorAll('.chip');
+  chips.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      chips.forEach(function(c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      var region = chip.dataset.region;
+      document.querySelectorAll('.card').forEach(function(card) {
+        card.style.display = (region === 'all' || card.dataset.region === region) ? '' : 'none';
+      });
+    });
+  });
+});
 </script>
 </head>
 <body>
 <main>
   <header>
-    <h1>✈️ 오늘의 항공권 특가</h1>
-    <p>한국 출발 주요 노선의 가격을 매일 수집해, 평소 시세보다 크게 저렴한 항공권만 골라 보여드립니다.
-       마지막 갱신: 2026-07-16 19:26 (KST)</p>
+    <div class="brand">갈래<em>말래</em> ✈️</div>
+    <p class="tagline">매일 아침 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만.</p>
+    <div class="stats">
+      <span><b>26개</b> 노선 감시</span>
+      <span>가격 데이터 <b>6,784건</b> (8일치)</span>
+      <span>매일 아침 자동 갱신 · 마지막 07.20 13:57</span>
+    </div>
   </header>
+
+  <div class="chips">
+<button class="chip active" data-region="all">전체</button>
+<button class="chip" data-region="jp">일본</button>
+<button class="chip" data-region="sea">동남아</button>
+<button class="chip" data-region="cn">중화권</button>
+<button class="chip" data-region="eu">유럽</button>
+<button class="chip" data-region="am">미주·대양주</button>
+<button class="chip" data-region="dom">국내·괌</button>
+  </div>
 
   <div class="grid">
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-44%</span>
-        <span class="badge transfer">경유 1회</span>
+    <article class="card" data-region="sea">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-44%</span>
+          <span class="badge transfer">경유 1회</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">발리</span>
+        </div>
+        <p class="dates">10.23(금) 출발 · 10.31(토) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,5.0 20.7,5.0 36.4,5.0 52.1,29.0 67.9,29.0 83.6,29.0 99.3,29.0 115.0,29.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,5.0 20.7,5.0 36.4,5.0 52.1,29.0 67.9,29.0 83.6,29.0 99.3,29.0 115.0,29.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:85.3%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 287,847원 ~ 312,569원</span>
       </div>
-      <h2>인천 → 발리</h2>
-      <p class="dates">2026-10-23 ~ 2026-10-31 왕복</p>
-      <p class="price">287,847원
-        <span class="median">시세 514,872원</span></p>
-      <p class="meta">베트남항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN2310DPS31101?t=VN17927781001792854000001325ICNSGNDPS17934627001793550300001400DPSSGNICN_40fd004bcbedd953f57a227e079365ac_14715&amp;search_date=12072026&amp;expected_price_uuid=019f55c8-26c1-8030-e9c0-722f45ae76a5&amp;static_fare_key=TY%7CP0%7CH0%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=TLP6-Ae2R5hO-dIhlGyfew&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=287847" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">287,847<small>원</small></span>
+          <span class="median">시세 514,872원</span>
+        </div>
+        <span class="carrier">베트남항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN2310DPS31101?t=VN17927781001792854000001325ICNSGNDPS17934627001793550300001400DPSSGNICN_40fd004bcbedd953f57a227e079365ac_14715&amp;search_date=12072026&amp;expected_price_uuid=019f55c8-26c1-8030-e9c0-722f45ae76a5&amp;static_fare_key=TY%7CP0%7CH0%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=TLP6-Ae2R5hO-dIhlGyfew&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=287847" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-44%</span>
-        <span class="badge transfer">경유 1회</span>
+    <article class="card" data-region="sea">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-44%</span>
+          <span class="badge transfer">경유 1회</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">발리</span>
+        </div>
+        <p class="dates">10.16(금) 출발 · 10.30(금) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,5.0 20.7,5.0 36.4,5.0 52.1,29.0 67.9,29.0 83.6,29.0 99.3,29.0 115.0,29.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,5.0 20.7,5.0 36.4,5.0 52.1,29.0 67.9,29.0 83.6,29.0 99.3,29.0 115.0,29.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:85.3%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 287,847원 ~ 312,569원</span>
       </div>
-      <h2>인천 → 발리</h2>
-      <p class="dates">2026-10-16 ~ 2026-10-30 왕복</p>
-      <p class="price">289,434원
-        <span class="median">시세 514,872원</span></p>
-      <p class="meta">베트남항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN1610DPS30101?t=VN17921733001792249200001325ICNSGNDPS17933763001793463900001400DPSSGNICN_68c85744c4c131275bd638efe62452e9_14842&amp;search_date=13072026&amp;expected_price_uuid=019f599c-a3c3-8030-a18d-806560a17fb7&amp;static_fare_key=TY%7CP0%7CH0%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=G3L_zBcZ1-mLXcqHIXhhHA&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=289434" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">289,434<small>원</small></span>
+          <span class="median">시세 514,872원</span>
+        </div>
+        <span class="carrier">베트남항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN1610DPS30101?t=VN17921733001792249200001325ICNSGNDPS17933763001793463900001400DPSSGNICN_68c85744c4c131275bd638efe62452e9_14842&amp;search_date=13072026&amp;expected_price_uuid=019f599c-a3c3-8030-a18d-806560a17fb7&amp;static_fare_key=TY%7CP0%7CH0%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=G3L_zBcZ1-mLXcqHIXhhHA&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=289434" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-42%</span>
-        <span class="badge direct">직항</span>
+    <article class="card" data-region="jp">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-42%</span>
+          <span class="badge direct">직항</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">후쿠오카</span>
+        </div>
+        <p class="dates">7.18(토) 출발 · 7.23(목) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,29.0 20.7,15.4 36.4,15.4 52.1,15.4 67.9,15.4 83.6,15.4 99.3,5.0 115.0,5.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,29.0 20.7,15.4 36.4,15.4 52.1,15.4 67.9,15.4 83.6,15.4 99.3,5.0 115.0,5.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:14.7%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 153,582원 ~ 162,748원</span>
       </div>
-      <h2>인천 → 후쿠오카</h2>
-      <p class="dates">2026-07-18 ~ 2026-07-23 왕복</p>
-      <p class="price">162,748원
-        <span class="median">시세 279,808원</span></p>
-      <p class="meta">이스타항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN1807FUK23071?t=ZE17843988001784403600000080ICNFUK17848062001784811600000090FUKICN_cbf1ad3b2194a7e4a4c1b23bac3b6383_8362&amp;search_date=12072026&amp;expected_price_uuid=019f544b-4552-8030-e66c-69b93f81739f&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=KLTfr1ObYoHeZ8jRltnJCA&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=162748" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">162,748<small>원</small></span>
+          <span class="median">시세 279,808원</span>
+        </div>
+        <span class="carrier">이스타항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN1807FUK23071?t=ZE17843988001784403600000080ICNFUK17848062001784811600000090FUKICN_cbf1ad3b2194a7e4a4c1b23bac3b6383_8362&amp;search_date=12072026&amp;expected_price_uuid=019f544b-4552-8030-e66c-69b93f81739f&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=KLTfr1ObYoHeZ8jRltnJCA&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=162748" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-42%</span>
-        <span class="badge transfer">경유 1회</span>
+    <article class="card" data-region="eu">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-42%</span>
+          <span class="badge transfer">경유 1회</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">로마</span>
+        </div>
+        <p class="dates">10.29(목) 출발 · 11.6(금) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,5.0 20.7,5.0 36.4,20.8 52.1,7.0 67.9,7.1 83.6,7.1 99.3,29.0 115.0,29.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,5.0 20.7,5.0 36.4,20.8 52.1,7.0 67.9,7.1 83.6,7.1 99.3,29.0 115.0,29.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:85.3%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 652,080원 ~ 747,244원</span>
       </div>
-      <h2>인천 → 로마</h2>
-      <p class="dates">2026-10-29 ~ 2026-11-06 왕복</p>
-      <p class="price">652,080원
-        <span class="median">시세 1,125,668원</span></p>
-      <p class="meta">에어차이나</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN2910FCO06111?t=CA17932854001793382600002100ICNPKXPEKFCO17939946001794088500001085FCOPEKICN_a1b92c88c5f3302cbcab862c9222b3d8_33505&amp;search_date=11072026&amp;expected_price_uuid=019f4f77-850e-8030-26a0-0843737ebb27&amp;static_fare_key=TY%7CP0%7CH1%7CL1_1_23%7CCH0%7CR0%7CTBC1&amp;itinerary_key=d1XshsMLge4RxN_OYRMjXg&amp;origin_airports=0,1&amp;destination_airports=0,1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=652080" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">652,080<small>원</small></span>
+          <span class="median">시세 1,125,668원</span>
+        </div>
+        <span class="carrier">에어차이나</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN2910FCO06111?t=CA17932854001793382600002100ICNPKXPEKFCO17939946001794088500001085FCOPEKICN_a1b92c88c5f3302cbcab862c9222b3d8_33505&amp;search_date=11072026&amp;expected_price_uuid=019f4f77-850e-8030-26a0-0843737ebb27&amp;static_fare_key=TY%7CP0%7CH1%7CL1_1_23%7CCH0%7CR0%7CTBC1&amp;itinerary_key=d1XshsMLge4RxN_OYRMjXg&amp;origin_airports=0,1&amp;destination_airports=0,1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=652080" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-40%</span>
-        <span class="badge direct">직항</span>
+    <article class="card" data-region="sea">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-40%</span>
+          <span class="badge direct">직항</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">세부</span>
+        </div>
+        <p class="dates">12.8(화) 출발 · 12.18(금) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,13.4 20.7,5.0 36.4,5.0 52.1,5.0 67.9,5.0 83.6,5.0 99.3,29.0 115.0,29.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,13.4 20.7,5.0 36.4,5.0 52.1,5.0 67.9,5.0 83.6,5.0 99.3,29.0 115.0,29.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:85.3%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 291,716원 ~ 345,703원</span>
       </div>
-      <h2>인천 → 세부</h2>
-      <p class="dates">2026-12-08 ~ 2026-12-18 왕복</p>
-      <p class="price">291,716원
-        <span class="median">시세 488,938원</span></p>
-      <p class="meta">제주항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN0812CEB18121?t=7C17967612001796775000000290ICNCEB17975568001797576900000275CEBICN_4b52c9157aca0f820e0d767e4d81e7ce_15358&amp;search_date=15072026&amp;expected_price_uuid=019f657e-13b6-8030-adc8-4781ca484a4f&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=dVGnQDXi-KUuDgxPDHVOew&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=291716" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">291,716<small>원</small></span>
+          <span class="median">시세 488,938원</span>
+        </div>
+        <span class="carrier">제주항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN0812CEB18121?t=7C17967612001796775000000290ICNCEB17975568001797576900000275CEBICN_4b52c9157aca0f820e0d767e4d81e7ce_15358&amp;search_date=15072026&amp;expected_price_uuid=019f657e-13b6-8030-adc8-4781ca484a4f&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=dVGnQDXi-KUuDgxPDHVOew&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=291716" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-39%</span>
-        <span class="badge direct">직항</span>
+    <article class="card" data-region="sea">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-39%</span>
+          <span class="badge direct">직항</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">세부</span>
+        </div>
+        <p class="dates">9.13(일) 출발 · 9.20(일) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,13.4 20.7,5.0 36.4,5.0 52.1,5.0 67.9,5.0 83.6,5.0 99.3,29.0 115.0,29.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,13.4 20.7,5.0 36.4,5.0 52.1,5.0 67.9,5.0 83.6,5.0 99.3,29.0 115.0,29.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:85.3%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 291,716원 ~ 345,703원</span>
       </div>
-      <h2>인천 → 세부</h2>
-      <p class="dates">2026-09-13 ~ 2026-09-20 왕복</p>
-      <p class="price">298,098원
-        <span class="median">시세 488,938원</span></p>
-      <p class="meta">제주항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN1309CEB20091?t=7C17893329001789346700000290ICNCEB17899158001789936500000285CEBICN_a98e53e32988fec1f026c7e4018cc4db_15628&amp;search_date=16072026&amp;expected_price_uuid=019f69e5-9fac-8030-239a-850ef1906875&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=tM8ShhqC6lb_Os1mVDYU2A&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=298098" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">298,098<small>원</small></span>
+          <span class="median">시세 488,938원</span>
+        </div>
+        <span class="carrier">제주항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN1309CEB20091?t=7C17893329001789346700000290ICNCEB17899158001789936500000285CEBICN_a98e53e32988fec1f026c7e4018cc4db_15628&amp;search_date=16072026&amp;expected_price_uuid=019f69e5-9fac-8030-239a-850ef1906875&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=tM8ShhqC6lb_Os1mVDYU2A&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=298098" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-37%</span>
-        <span class="badge direct">직항</span>
+    <article class="card" data-region="jp">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-37%</span>
+          <span class="badge direct">직항</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">후쿠오카</span>
+        </div>
+        <p class="dates">9.8(화) 출발 · 9.10(목) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,29.0 20.7,15.4 36.4,15.4 52.1,15.4 67.9,15.4 83.6,15.4 99.3,5.0 115.0,5.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,29.0 20.7,15.4 36.4,15.4 52.1,15.4 67.9,15.4 83.6,15.4 99.3,5.0 115.0,5.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:14.7%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 153,582원 ~ 162,748원</span>
       </div>
-      <h2>인천 → 후쿠오카</h2>
-      <p class="dates">2026-09-08 ~ 2026-09-10 왕복</p>
-      <p class="price">175,652원
-        <span class="median">시세 279,808원</span></p>
-      <p class="meta">에어부산</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN0809FUK10091?t=BX17888520001788857700000095ICNFUK17890344001789040100000095FUKICN_3057424bf7dcb14b2ea6f647be15010d_8976&amp;search_date=10072026&amp;expected_price_uuid=019f4bd6-dd3e-8030-a080-a357c5f85448&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=gz4ET_ysaA6c2_htVGQDKQ&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=175652" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">175,652<small>원</small></span>
+          <span class="median">시세 279,808원</span>
+        </div>
+        <span class="carrier">에어부산</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN0809FUK10091?t=BX17888520001788857700000095ICNFUK17890344001789040100000095FUKICN_3057424bf7dcb14b2ea6f647be15010d_8976&amp;search_date=10072026&amp;expected_price_uuid=019f4bd6-dd3e-8030-a080-a357c5f85448&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=gz4ET_ysaA6c2_htVGQDKQ&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=175652" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-37%</span>
-        <span class="badge transfer">경유 1회</span>
+    <article class="card" data-region="sea">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-37%</span>
+          <span class="badge transfer">경유 1회</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">발리</span>
+        </div>
+        <p class="dates">10.16(금) 출발 · 10.23(금) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,5.0 20.7,5.0 36.4,5.0 52.1,29.0 67.9,29.0 83.6,29.0 99.3,29.0 115.0,29.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,5.0 20.7,5.0 36.4,5.0 52.1,29.0 67.9,29.0 83.6,29.0 99.3,29.0 115.0,29.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:85.3%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 287,847원 ~ 312,569원</span>
       </div>
-      <h2>인천 → 발리</h2>
-      <p class="dates">2026-10-16 ~ 2026-10-23 왕복</p>
-      <p class="price">321,899원
-        <span class="median">시세 514,872원</span></p>
-      <p class="meta">베트남항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN1610DPS23101?t=VN17921733001792249200001325ICNSGNDPS17927712001792824000000820DPSSGNICN_58169a7bfab6ac632cdec7ea39ee3b11_16572&amp;search_date=14072026&amp;expected_price_uuid=019f5f9d-0f7a-8030-a17d-83ebaa895515&amp;static_fare_key=TY%7CP0%7CH1%7CL1_1_23%7CCH0%7CR0%7CTBC1&amp;itinerary_key=FfL6IavR0AeByoYFDrr3tA&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=321899" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">321,899<small>원</small></span>
+          <span class="median">시세 514,872원</span>
+        </div>
+        <span class="carrier">베트남항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN1610DPS23101?t=VN17921733001792249200001325ICNSGNDPS17927712001792824000000820DPSSGNICN_58169a7bfab6ac632cdec7ea39ee3b11_16572&amp;search_date=14072026&amp;expected_price_uuid=019f5f9d-0f7a-8030-a17d-83ebaa895515&amp;static_fare_key=TY%7CP0%7CH1%7CL1_1_23%7CCH0%7CR0%7CTBC1&amp;itinerary_key=FfL6IavR0AeByoYFDrr3tA&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=321899" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-36%</span>
-        <span class="badge direct">직항</span>
+    <article class="card" data-region="jp">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-36%</span>
+          <span class="badge direct">직항</span>
+        </div>
+        <div class="route">
+          <span class="city">인천</span>
+          <span class="plane">✈</span>
+          <span class="city">후쿠오카</span>
+        </div>
+        <p class="dates">8.19(수) 출발 · 8.26(수) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,29.0 20.7,15.4 36.4,15.4 52.1,15.4 67.9,15.4 83.6,15.4 99.3,5.0 115.0,5.0 115.0,29" class="spark-area"/>
+            <polyline points="5.0,29.0 20.7,15.4 36.4,15.4 52.1,15.4 67.9,15.4 83.6,15.4 99.3,5.0 115.0,5.0" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:14.7%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 153,582원 ~ 162,748원</span>
       </div>
-      <h2>인천 → 후쿠오카</h2>
-      <p class="dates">2026-08-19 ~ 2026-08-26 왕복</p>
-      <p class="price">178,545원
-        <span class="median">시세 279,808원</span></p>
-      <p class="meta">에어서울</p>
-      <a class="cta" href="https://www.aviasales.com/search/ICN1908FUK26081?t=RS17871495001787155200000095ICNFUK17877402001787745900000095FUKICN_8c8d1bcc695be05905d74d227b5cd1f0_9154&amp;search_date=13072026&amp;expected_price_uuid=019f5982-ef9c-8010-2df8-a2d8924c959d&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=KA61lT5-iwJCnEEmg4EPGQ&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=178545" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">178,545<small>원</small></span>
+          <span class="median">시세 279,808원</span>
+        </div>
+        <span class="carrier">에어서울</span>
+        <a class="cta" href="https://www.aviasales.com/search/ICN1908FUK26081?t=RS17871495001787155200000095ICNFUK17877402001787745900000095FUKICN_8c8d1bcc695be05905d74d227b5cd1f0_9154&amp;search_date=13072026&amp;expected_price_uuid=019f5982-ef9c-8010-2df8-a2d8924c959d&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=KA61lT5-iwJCnEEmg4EPGQ&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=178545" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
 
-    <article class="card">
-      <div class="card-top">
-        <span class="badge discount">-36%</span>
-        <span class="badge direct">직항</span>
+    <article class="card" data-region="dom">
+      <div class="card-main">
+        <div class="card-top">
+          <span class="badge discount">-36%</span>
+          <span class="badge direct">직항</span>
+        </div>
+        <div class="route">
+          <span class="city">김포</span>
+          <span class="plane">✈</span>
+          <span class="city">제주</span>
+        </div>
+        <p class="dates">11.16(월) 출발 · 11.18(수) 귀국 · 왕복</p>
+        
+      <div class="spark">
+        <div class="spark-plot">
+          <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="5,29 5.0,29.0 20.7,23.4 36.4,17.4 52.1,17.4 67.9,5.0 83.6,26.2 99.3,21.3 115.0,20.9 115.0,29" class="spark-area"/>
+            <polyline points="5.0,29.0 20.7,23.4 36.4,17.4 52.1,17.4 67.9,5.0 83.6,26.2 99.3,21.3 115.0,20.9" class="spark-line" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <span class="spark-dot" style="top:61.5%"></span>
+        </div>
+        <span class="spark-label">최근 8일 최저 61,439원 ~ 71,136원</span>
       </div>
-      <h2>김포 → 제주</h2>
-      <p class="dates">2026-11-16 ~ 2026-11-18 왕복</p>
-      <p class="price">64,726원
-        <span class="median">시세 100,448원</span></p>
-      <p class="meta">제주항공</p>
-      <a class="cta" href="https://www.aviasales.com/search/GMP1611CJU18111?t=7C17948574001794861900000075GMPCJU17949852001794989700000075CJUGMP_9bb3ef7fa348c9dbf8de5ecf5b96e69d_3331&amp;search_date=14072026&amp;expected_price_uuid=019f5ead-e339-8030-e0fe-d69ef8bb8845&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=k8bQuJCIoloXH4mKJNZCHQ&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=64726" target="_blank" rel="noopener sponsored">
-        이 가격 확인하기</a>
+      </div>
+      <div class="tear"></div>
+      <div class="card-stub">
+        <div class="fare">
+          <span class="price">64,726<small>원</small></span>
+          <span class="median">시세 100,448원</span>
+        </div>
+        <span class="carrier">제주항공</span>
+        <a class="cta" href="https://www.aviasales.com/search/GMP1611CJU18111?t=7C17948574001794861900000075GMPCJU17949852001794989700000075CJUGMP_9bb3ef7fa348c9dbf8de5ecf5b96e69d_3331&amp;search_date=14072026&amp;expected_price_uuid=019f5ead-e339-8030-e0fe-d69ef8bb8845&amp;static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&amp;itinerary_key=k8bQuJCIoloXH4mKJNZCHQ&amp;origin_airports=0&amp;destination_airports=1&amp;expected_price_source=share&amp;expected_price_currency=krw&amp;expected_price=64726" target="_blank" rel="noopener sponsored">예약</a>
+      </div>
     </article>
   </div>
 
@@ -227,7 +503,7 @@ function subscribeMail() {
     <div class="sub-form">
       <select id="route-sel">
 <option value="ALL">✈️ 전체 노선</option>
-<option value="ICN-NRT">인천 → 도쿄(나리타) (ICN-NRT)</option>
+<option value="ICN-NRT">인천 → 도쿄 (ICN-NRT)</option>
 <option value="ICN-KIX">인천 → 오사카 (ICN-KIX)</option>
 <option value="ICN-FUK">인천 → 후쿠오카 (ICN-FUK)</option>
 <option value="ICN-OKA">인천 → 오키나와 (ICN-OKA)</option>
@@ -282,15 +558,14 @@ function subscribeMail() {
 <li><span class='sender'>티웨이항공</span> (광고)멀리 갈 필요 없어요! 집 앞 공항에서 출발하는 특가 라인업</li>
 <li><span class='sender'>Korean Air Skypass Member Support</span> [대한항공] 회원정보 변경 안내</li>
 <li><span class='sender'>Air Premia</span> [Air Premia] 이벤트 및 혜택 정보 수신 동의 내역 안내</li>
-<li><span class='sender'>reservation@eastarjet.com</span> 이스타항공 회원가입을 환영합니다.</li>
-<li><span class='sender'>에어서울 (발신전용)</span> 회원 가입 안내 메일입니다.</li>
     </ul>
   </section>
 
   <footer>
     <p>· 가격은 조회 시점 기준이며 실제 예약 가격은 예약처에서 달라질 수 있습니다.</p>
-    <p>· "이 가격 확인하기" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
+    <p>· "예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
     <p>· 시세는 해당 노선·유형(직항/경유)의 최근 30일 수집 가격 중앙값입니다. 데이터: Travelpayouts(Aviasales)</p>
+    <p>· 갈래말래 · 문의 flightpromokr@gmail.com</p>
   </footer>
 </main>
 </body>
