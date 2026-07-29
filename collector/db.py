@@ -31,6 +31,20 @@ CREATE TABLE IF NOT EXISTS emails (
     UNIQUE(received_at, sender, subject)
 );
 
+-- 발견 피드용 광역 최저가 (목적지당 1건, fetch_breadth.py). "어디 갈까" 엔진.
+CREATE TABLE IF NOT EXISTS broad_offers (
+    fetched_date TEXT NOT NULL,
+    origin TEXT NOT NULL,
+    destination TEXT NOT NULL,
+    price INTEGER,
+    transfers INTEGER,
+    depart_date TEXT,
+    return_date TEXT,
+    found_at TEXT,
+    PRIMARY KEY (fetched_date, origin, destination)
+);
+CREATE INDEX IF NOT EXISTS idx_broad_dest ON broad_offers(destination, fetched_date);
+
 -- 구독 알림 발송 로그 (이메일은 해시로만 저장 — 공개 저장소에 PII 금지)
 CREATE TABLE IF NOT EXISTS alert_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

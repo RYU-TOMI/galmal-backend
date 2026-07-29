@@ -19,10 +19,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 가격 수집
+      - name: 가격 수집 (노선 상세)
         env:
           TP_TOKEN: ${{ secrets.TP_TOKEN }}
         run: python collector/fetch_prices.py
+
+      - name: 광역 수집 (발견 피드)
+        env:
+          TP_TOKEN: ${{ secrets.TP_TOKEN }}
+        run: python collector/fetch_breadth.py
 
       - name: 특가 판정
         run: python collector/detect_deals.py | tee data/deals_latest.txt
