@@ -8,23 +8,19 @@
   var svg = document.getElementById("map");
   if (!svg || !window.d3 || !d3.geoEquirectangular) return;
 
-  var proj = d3.geoEquirectangular();
+  var proj = d3.geoEquirectangular().translate([W / 2, H / 2]);
   var path = d3.geoPath(proj);
 
-  // 뷰 정의: [서, 동, 남, 북] 경위도 박스. 파트1은 korea 뷰만 사용.
+  // 뷰 정의: 중심 경도(rotate)·중심 위도(center)·배율(scale). 명시적 파라미터로 확정.
   var VIEWS = {
-    korea: [120, 136, 30, 43],
-    asia: [95, 150, -5, 48],
-    world: [-20, 200, -50, 70]
+    korea: { lon: 127.5, lat: 36.5, scale: 2400 },   // 한국 확대
+    asia: { lon: 122, lat: 22, scale: 620 },          // 일본~동남아
+    world: { lon: 60, lat: 25, scale: 150 }           // 전 세계
   };
 
-  function bbox(v) {
-    var w = v[0], e = v[1], s = v[2], n = v[3];
-    return { type: "Feature", geometry: { type: "Polygon",
-      coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] } };
-  }
   function fitView(name) {
-    proj.fitExtent([[PAD, PAD], [W - PAD, H - PAD]], bbox(VIEWS[name]));
+    var v = VIEWS[name];
+    proj.rotate([-v.lon, 0]).center([0, v.lat]).scale(v.scale).translate([W / 2, H / 2]);
   }
   function el(tag, attrs) {
     var e = document.createElementNS(SVGNS, tag);
