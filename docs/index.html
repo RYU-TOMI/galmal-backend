@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>갈래말래 — 오늘의 항공권 특가</title>
-<meta name="description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다. 노선별 가격 추이와 이메일 알림도 무료로 제공합니다.">
+<title>갈래말래 — 어디 싸게 갈까? 항공권 특가 지도</title>
+<meta name="description" content="시간 남는데 어디 싸게 갈까? 한국 출발 항공권 가격을 매일 스캔해 지도에서 싼 여행지를 골라보세요. 노선별 가격 추이와 이메일 알림도 무료.">
 <link rel="canonical" href="https://ryu-tomi.github.io/promo-ticket-site/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="갈래말래">
-<meta property="og:title" content="갈래말래 — 오늘의 항공권 특가">
-<meta property="og:description" content="매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다. 노선별 가격 추이와 이메일 알림도 무료로 제공합니다.">
+<meta property="og:title" content="갈래말래 — 어디 싸게 갈까? 항공권 특가 지도">
+<meta property="og:description" content="시간 남는데 어디 싸게 갈까? 한국 출발 항공권 가격을 매일 스캔해 지도에서 싼 여행지를 골라보세요. 노선별 가격 추이와 이메일 알림도 무료.">
 <meta property="og:url" content="https://ryu-tomi.github.io/promo-ticket-site/">
 <meta property="og:locale" content="ko_KR">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -144,7 +144,24 @@
   footer { margin-top:48px; color:var(--sub); font-size:.78rem;
            border-top:1px solid var(--line); padding-top:16px; }
   footer p { margin-bottom:6px; }
+
+  /* 발견 지도 */
+  .map-stage { margin:8px 0 8px; }
+  .map-prompt { font-size:1.15rem; font-weight:800; margin-bottom:10px; }
+  #map { width:100%; height:auto; aspect-ratio:4/3; display:block;
+         background:var(--card); border:1px solid var(--line); border-radius:16px; }
+  #map .land { fill:var(--chip); stroke:var(--line); stroke-width:0.5; }
+  #map .air-dot { fill:var(--brand); stroke:var(--card); stroke-width:2;
+                  cursor:pointer; transition:r .12s; }
+  #map .airport:hover .air-dot { r:12; }
+  #map .air-label { fill:var(--ink); font-size:13px; font-weight:700;
+                    font-family:inherit; pointer-events:none; }
+  .map-note { margin-top:8px; }
 </style>
+<script>window.__ORIGINS=[{"iata": "ICN", "name": "인천", "lat": 37.46, "lon": 126.44}, {"iata": "GMP", "name": "김포", "lat": 37.56, "lon": 126.8}, {"iata": "PUS", "name": "부산", "lat": 35.18, "lon": 128.94}, {"iata": "TAE", "name": "대구", "lat": 35.9, "lon": 128.66}, {"iata": "CJU", "name": "제주", "lat": 33.51, "lon": 126.49}];</script>
+<script defer src="assets/d3-array.min.js"></script>
+<script defer src="assets/d3-geo.min.js"></script>
+<script defer src="assets/map.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var chips = document.querySelectorAll('.chip');
@@ -171,13 +188,15 @@ function subscribeMail() {
 <main>
   <header>
     <div class="brand" style="font-size:2rem">갈래<em>말래</em> ✈️</div>
-    <p class="tagline">매일 아침 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만.</p>
-    <div class="stats">
-      <span><b>26개</b> 노선 감시</span>
-      <span>가격 데이터 <b>16,374건</b> (20일치)</span>
-      <span>매일 아침 자동 갱신 · 마지막 07.29 08:17</span>
-    </div>
+    <p class="tagline">시간 남는데 어디 싸게 갈까? 지도에서 골라보세요.</p>
   </header>
+
+  <section class="map-stage">
+    <p class="map-prompt">어디서 출발하세요?</p>
+    <svg id="map" viewBox="0 0 800 600" role="img" aria-label="출발 공항 지도"></svg>
+    <p class="map-note" style="color:var(--sub);font-size:.82rem">
+      한국 26개 노선 · 가격 데이터 16,374건 · 마지막 갱신 07.30 16:13</p>
+  </section>
 
   <div class="chips">
 <button class="chip active" data-region="all">전체</button>

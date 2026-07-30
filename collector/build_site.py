@@ -14,11 +14,14 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import json
+
 import config
 import db
 from affiliates import booking_link
 from charts import bar_chart, line_chart
 from detect_deals import IS_DIRECT_SQL, compute_deals
+from dests import ORIGIN_COORD, ORIGINS
 from labels import (REGION_CHIPS, REGION_NAME, SQL_WEEKDAY, airline_name, city,
                     fmt_date, fmt_month, region_of)
 from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
@@ -335,15 +338,21 @@ def build_index(conn, route_index):
     n_days = conn.execute("SELECT COUNT(DISTINCT fetched_date) FROM offers").fetchone()[0]
     updated = datetime.now(KST).strftime("%m.%d %H:%M")
 
+    origins_js = json.dumps(
+        [{"iata": o, "name": ORIGINS[o], "lat": ORIGIN_COORD[o][0], "lon": ORIGIN_COORD[o][1]}
+         for o in ORIGINS if o in ORIGIN_COORD], ensure_ascii=False)
+
     body = f"""  <header>
     <div class="brand" style="font-size:2rem">갈래<em>말래</em> ✈️</div>
-    <p class="tagline">매일 아침 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만.</p>
-    <div class="stats">
-      <span><b>{len(config.ROUTES)}개</b> 노선 감시</span>
-      <span>가격 데이터 <b>{n_offers:,}건</b> ({n_days}일치)</span>
-      <span>매일 아침 자동 갱신 · 마지막 {updated}</span>
-    </div>
+    <p class="tagline">시간 남는데 어디 싸게 갈까? 지도에서 골라보세요.</p>
   </header>
+
+  <section class="map-stage">
+    <p class="map-prompt">어디서 출발하세요?</p>
+    <svg id="map" viewBox="0 0 800 600" role="img" aria-label="출발 공항 지도"></svg>
+    <p class="map-note" style="color:var(--sub);font-size:.82rem">
+      한국 {len(config.ROUTES)}개 노선 · 가격 데이터 {n_offers:,}건 · 마지막 갱신 {updated}</p>
+  </section>
 
   <div class="chips">
 {chips}
@@ -389,12 +398,18 @@ def build_index(conn, route_index):
     </ul>
   </section>"""
 
+    map_scripts = (
+        f'<script>window.__ORIGINS={origins_js};</script>\n'
+        '<script defer src="assets/d3-array.min.js"></script>\n'
+        '<script defer src="assets/d3-geo.min.js"></script>\n'
+        '<script defer src="assets/map.js"></script>\n'
+    )
     DOCS.mkdir(parents=True, exist_ok=True)
     (DOCS / "index.html").write_text(
-        page(f"{SITE_NAME} — 오늘의 항공권 특가",
-             "매일 아침 한국 출발 항공권 가격을 스캔해, 시세보다 진짜 싼 특가만 골라 보여드립니다. "
-             "노선별 가격 추이와 이메일 알림도 무료로 제공합니다.",
-             "/", body, INDEX_JS), encoding="utf-8")
+        page(f"{SITE_NAME} — 어디 싸게 갈까? 항공권 특가 지도",
+             "시간 남는데 어디 싸게 갈까? 한국 출발 항공권 가격을 매일 스캔해 "
+             "지도에서 싼 여행지를 골라보세요. 노선별 가격 추이와 이메일 알림도 무료.",
+             "/", body, map_scripts + INDEX_JS), encoding="utf-8")
     return len(deals)
 
 

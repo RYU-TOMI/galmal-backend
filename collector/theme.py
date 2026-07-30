@@ -140,6 +140,19 @@ CSS = """
   footer { margin-top:48px; color:var(--sub); font-size:.78rem;
            border-top:1px solid var(--line); padding-top:16px; }
   footer p { margin-bottom:6px; }
+
+  /* 발견 지도 */
+  .map-stage { margin:8px 0 8px; }
+  .map-prompt { font-size:1.15rem; font-weight:800; margin-bottom:10px; }
+  #map { width:100%; height:auto; aspect-ratio:4/3; display:block;
+         background:var(--card); border:1px solid var(--line); border-radius:16px; }
+  #map .land { fill:var(--chip); stroke:var(--line); stroke-width:0.5; }
+  #map .air-dot { fill:var(--brand); stroke:var(--card); stroke-width:2;
+                  cursor:pointer; transition:r .12s; }
+  #map .airport:hover .air-dot { r:12; }
+  #map .air-label { fill:var(--ink); font-size:13px; font-weight:700;
+                    font-family:inherit; pointer-events:none; }
+  .map-note { margin-top:8px; }
 """
 
 FOOTER = f"""  <footer>
