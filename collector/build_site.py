@@ -241,25 +241,25 @@ def route_page(conn, origin, dest):
   </div>
 
   <section>
-    <h2>📈 {label} 최저가 추이</h2>
+    <h2>{label} 최저가 추이</h2>
     <p class="lead">매일 아침 수집한 이 노선의 왕복 최저가입니다. 아래로 꺾일수록 지금이 살 때입니다.</p>
     <div class="chart">{line_chart(trend, fmt_date)}</div>
   </section>
 
   <section>
-    <h2>📅 출발 월별 최저가</h2>
+    <h2>출발 월별 최저가</h2>
     <p class="lead">출발 시기에 따라 {label} 항공권 가격이 얼마나 달라지는지 비교했습니다.</p>
     <div class="chart">{bar_chart([(fmt_month(m), p) for m, p in months])}</div>
   </section>
 
   <section>
-    <h2>🗓 출발 요일별 최저가</h2>
+    <h2>출발 요일별 최저가</h2>
     <p class="lead">같은 노선도 무슨 요일에 떠나느냐로 가격이 달라집니다.</p>
     <div class="chart">{bar_chart(weekdays)}</div>
   </section>
 
   <section>
-    <h2>✈️ 항공사별 최저가</h2>
+    <h2>항공사별 최저가</h2>
     <p class="lead">최근 30일간 이 노선에서 수집된 항공사별 최저 왕복 요금입니다.</p>
     <table class="data">
       <thead><tr><th>항공사</th><th class="num">최저가</th><th class="num">수집 건수</th></tr></thead>
@@ -270,7 +270,7 @@ def route_page(conn, origin, dest):
   </section>
 
   <section class="subscribe">
-    <h2>🔔 {label} 특가 알림 받기</h2>
+    <h2>{label} 특가 알림 받기</h2>
     <p>이 노선에 특가가 뜨면 메일로 알려드립니다. 아래 버튼을 누르면 메일 앱이 열립니다 —
        <b>내용 수정 없이 그대로 보내주시면</b> 구독이 완료됩니다.</p>
     <div class="sub-form">
@@ -363,7 +363,7 @@ def build_index(conn, route_index):
   </div>
 
   <section class="subscribe">
-    <h2>🔔 노선 특가 알림 받기</h2>
+    <h2>노선 특가 알림 받기</h2>
     <p>원하는 노선에 특가가 뜨면 메일로 알려드립니다. 노선을 고르고 버튼을 누르면
        메일 앱이 열립니다 — <b>내용 수정 없이 그대로 보내주시면</b> 다음 수집부터 적용됩니다.</p>
     <div class="sub-form">
@@ -377,7 +377,7 @@ def build_index(conn, route_index):
   </section>
 
   <section>
-    <h2>📊 노선별 가격 분석</h2>
+    <h2>노선별 가격 분석</h2>
     <p class="lead">각 노선의 최저가 추이와 언제 가면 싼지를 매일 갱신합니다.</p>
     <ul class="routelist">
 {routelist}
@@ -385,14 +385,14 @@ def build_index(conn, route_index):
   </section>
 
   <section class="mail">
-    <h2>🎫 항공사 프로모션</h2>
+    <h2>항공사 프로모션</h2>
     <ul>
 {mail_deal_rows(conn) or "<li class='empty'>수집된 프로모션이 아직 없습니다.</li>"}
     </ul>
   </section>
 
   <section class="mail">
-    <h2>📬 항공사 소식</h2>
+    <h2>항공사 소식</h2>
     <ul>
 {mail_rows(conn)}
     </ul>

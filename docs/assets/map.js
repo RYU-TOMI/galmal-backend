@@ -46,7 +46,8 @@
       var p = proj([o.lon, o.lat]);
       if (!p) return;
       var a = el("g", { class: "airport", "data-iata": o.iata });
-      a.appendChild(el("circle", { cx: p[0], cy: p[1], r: 9, class: "air-dot" }));
+      a.appendChild(el("circle", { cx: p[0], cy: p[1], r: 16, class: "halo" }));
+      a.appendChild(el("circle", { cx: p[0], cy: p[1], r: 7, class: "air-dot" }));
       var t = el("text", { x: p[0], y: p[1] - 14, "text-anchor": "middle", class: "air-label" });
       t.textContent = o.name;
       a.appendChild(t);

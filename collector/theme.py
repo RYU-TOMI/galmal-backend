@@ -12,26 +12,32 @@ SITE_NAME = "갈래말래"
 
 CSS = """
   :root {
-    --bg:#FAF6EF; --card:#FFFFFF; --ink:#1E2B3C; --sub:#5C6878;
-    --brand:#23538F; --deal:#D9482B; --line:#E7E1D5; --chip:#F0EAE0;
+    --bg:#F3ECDD; --card:#FBF7EE; --ink:#2A2118; --sub:#7C6F5C;
+    --brand:#1F5C63; --deal:#C6532A; --line:#E0D6C2; --chip:#EAE1CE;
+    --ocean:#DCE6E0; --land:#E6D7BB;
+    --serif:'Gowun Batang','Nanum Myeongjo',serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#121820; --card:#1B2430; --ink:#E8ECF2; --sub:#97A3B2;
-            --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }
+    :root { --bg:#181410; --card:#221C15; --ink:#EDE6D8; --sub:#A99B84;
+            --brand:#5FB0B8; --deal:#E27A4E; --line:#332A20; --chip:#2A2218;
+            --ocean:#1B2622; --land:#3A3226; }
   }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--ink);
+  body { background-color:var(--bg); color:var(--ink);
+         background-image:radial-gradient(var(--line) 0.6px, transparent 0.6px);
+         background-size:24px 24px;
          font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-         line-height:1.55; padding:28px 16px 56px; }
+         line-height:1.6; padding:28px 16px 56px; }
   main { max-width:1000px; margin:0 auto; }
   a { color:var(--brand); }
 
   .topbar { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
-  .brand { font-size:1.6rem; font-weight:900; letter-spacing:-0.02em;
-           text-decoration:none; color:var(--ink); }
+  .brand { font-family:var(--serif); font-size:1.7rem; font-weight:700;
+           letter-spacing:-0.01em; text-decoration:none; color:var(--ink); }
   .brand em { font-style:normal; color:var(--brand); }
-  header .tagline { color:var(--sub); }
-  header h1 { font-size:1.9rem; font-weight:900; letter-spacing:-0.02em; margin-top:6px; }
+  header .tagline { color:var(--sub); font-family:var(--serif); font-size:1.02rem; }
+  header h1 { font-family:var(--serif); font-size:2rem; font-weight:700;
+              letter-spacing:-0.01em; margin-top:6px; }
   .stats { display:flex; gap:14px; flex-wrap:wrap; margin:14px 0 22px;
            color:var(--sub); font-size:.82rem; }
   .stats span b { color:var(--ink); font-weight:700; }
@@ -86,9 +92,11 @@ CSS = """
          padding:10px 18px; border-radius:12px; font-size:.95rem; }
   .empty { color:var(--sub); padding:28px 0; }
 
-  section { margin-top:44px; }
-  section h2 { font-size:1.15rem; margin-bottom:6px; }
-  section .lead { color:var(--sub); font-size:.88rem; margin-bottom:14px; }
+  section { margin-top:46px; }
+  section h2 { font-family:var(--serif); font-size:1.3rem; font-weight:700;
+               margin-bottom:8px; display:flex; align-items:center; gap:12px; }
+  section h2::after { content:""; flex:1; height:1px; background:var(--line); }
+  section .lead { color:var(--sub); font-size:.88rem; margin-bottom:14px; margin-top:-2px; }
   section.mail ul { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
   section.mail li { background:var(--card); border-radius:12px; padding:11px 15px; font-size:.9rem; }
   .sender { font-weight:800; margin-right:8px; }
@@ -142,16 +150,19 @@ CSS = """
   footer p { margin-bottom:6px; }
 
   /* 발견 지도 */
-  .map-stage { margin:8px 0 8px; }
-  .map-prompt { font-size:1.15rem; font-weight:800; margin-bottom:10px; }
+  .map-stage { margin:10px 0 8px; }
+  .map-prompt { font-family:var(--serif); font-size:1.3rem; font-weight:700; margin-bottom:12px; }
   #map { width:100%; height:auto; aspect-ratio:4/3; display:block;
-         background:var(--card); border:1px solid var(--line); border-radius:16px; }
-  #map .land { fill:var(--chip); stroke:var(--line); stroke-width:0.5; }
-  #map .air-dot { fill:var(--brand); stroke:var(--card); stroke-width:2;
+         background:var(--ocean); border:1px solid var(--line); border-radius:18px;
+         box-shadow:inset 0 1px 6px rgba(0,0,0,.05); }
+  #map .land { fill:var(--land); stroke:#00000018; stroke-width:0.5; }
+  #map .halo { fill:var(--deal); opacity:.14; }
+  #map .air-dot { fill:var(--deal); stroke:var(--card); stroke-width:2.5;
                   cursor:pointer; transition:r .12s; }
-  #map .airport:hover .air-dot { r:12; }
+  #map .airport:hover .air-dot { r:11; }
   #map .air-label { fill:var(--ink); font-size:13px; font-weight:700;
-                    font-family:inherit; pointer-events:none; }
+                    font-family:inherit; pointer-events:none;
+                    paint-order:stroke; stroke:var(--ocean); stroke-width:3px; }
   .map-note { margin-top:8px; }
 """
 
@@ -181,7 +192,9 @@ def page(title, description, canonical_path, body, extra_script=""):
 <meta property="og:url" content="{url}">
 <meta property="og:locale" content="ko_KR">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap">
 <style>{CSS}</style>
 {extra_script}
 </head>

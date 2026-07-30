@@ -13,29 +13,37 @@
 <meta property="og:url" content="https://ryu-tomi.github.io/promo-ticket-site/routes/ICN-GUM.html">
 <meta property="og:locale" content="ko_KR">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap">
 <style>
   :root {
-    --bg:#FAF6EF; --card:#FFFFFF; --ink:#1E2B3C; --sub:#5C6878;
-    --brand:#23538F; --deal:#D9482B; --line:#E7E1D5; --chip:#F0EAE0;
+    --bg:#F3ECDD; --card:#FBF7EE; --ink:#2A2118; --sub:#7C6F5C;
+    --brand:#1F5C63; --deal:#C6532A; --line:#E0D6C2; --chip:#EAE1CE;
+    --ocean:#DCE6E0; --land:#E6D7BB;
+    --serif:'Gowun Batang','Nanum Myeongjo',serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#121820; --card:#1B2430; --ink:#E8ECF2; --sub:#97A3B2;
-            --brand:#5D8FE0; --deal:#E85D35; --line:#2A3442; --chip:#232E3E; }
+    :root { --bg:#181410; --card:#221C15; --ink:#EDE6D8; --sub:#A99B84;
+            --brand:#5FB0B8; --deal:#E27A4E; --line:#332A20; --chip:#2A2218;
+            --ocean:#1B2622; --land:#3A3226; }
   }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--ink);
+  body { background-color:var(--bg); color:var(--ink);
+         background-image:radial-gradient(var(--line) 0.6px, transparent 0.6px);
+         background-size:24px 24px;
          font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-         line-height:1.55; padding:28px 16px 56px; }
+         line-height:1.6; padding:28px 16px 56px; }
   main { max-width:1000px; margin:0 auto; }
   a { color:var(--brand); }
 
   .topbar { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
-  .brand { font-size:1.6rem; font-weight:900; letter-spacing:-0.02em;
-           text-decoration:none; color:var(--ink); }
+  .brand { font-family:var(--serif); font-size:1.7rem; font-weight:700;
+           letter-spacing:-0.01em; text-decoration:none; color:var(--ink); }
   .brand em { font-style:normal; color:var(--brand); }
-  header .tagline { color:var(--sub); }
-  header h1 { font-size:1.9rem; font-weight:900; letter-spacing:-0.02em; margin-top:6px; }
+  header .tagline { color:var(--sub); font-family:var(--serif); font-size:1.02rem; }
+  header h1 { font-family:var(--serif); font-size:2rem; font-weight:700;
+              letter-spacing:-0.01em; margin-top:6px; }
   .stats { display:flex; gap:14px; flex-wrap:wrap; margin:14px 0 22px;
            color:var(--sub); font-size:.82rem; }
   .stats span b { color:var(--ink); font-weight:700; }
@@ -90,9 +98,11 @@
          padding:10px 18px; border-radius:12px; font-size:.95rem; }
   .empty { color:var(--sub); padding:28px 0; }
 
-  section { margin-top:44px; }
-  section h2 { font-size:1.15rem; margin-bottom:6px; }
-  section .lead { color:var(--sub); font-size:.88rem; margin-bottom:14px; }
+  section { margin-top:46px; }
+  section h2 { font-family:var(--serif); font-size:1.3rem; font-weight:700;
+               margin-bottom:8px; display:flex; align-items:center; gap:12px; }
+  section h2::after { content:""; flex:1; height:1px; background:var(--line); }
+  section .lead { color:var(--sub); font-size:.88rem; margin-bottom:14px; margin-top:-2px; }
   section.mail ul { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
   section.mail li { background:var(--card); border-radius:12px; padding:11px 15px; font-size:.9rem; }
   .sender { font-weight:800; margin-right:8px; }
@@ -146,16 +156,19 @@
   footer p { margin-bottom:6px; }
 
   /* 발견 지도 */
-  .map-stage { margin:8px 0 8px; }
-  .map-prompt { font-size:1.15rem; font-weight:800; margin-bottom:10px; }
+  .map-stage { margin:10px 0 8px; }
+  .map-prompt { font-family:var(--serif); font-size:1.3rem; font-weight:700; margin-bottom:12px; }
   #map { width:100%; height:auto; aspect-ratio:4/3; display:block;
-         background:var(--card); border:1px solid var(--line); border-radius:16px; }
-  #map .land { fill:var(--chip); stroke:var(--line); stroke-width:0.5; }
-  #map .air-dot { fill:var(--brand); stroke:var(--card); stroke-width:2;
+         background:var(--ocean); border:1px solid var(--line); border-radius:18px;
+         box-shadow:inset 0 1px 6px rgba(0,0,0,.05); }
+  #map .land { fill:var(--land); stroke:#00000018; stroke-width:0.5; }
+  #map .halo { fill:var(--deal); opacity:.14; }
+  #map .air-dot { fill:var(--deal); stroke:var(--card); stroke-width:2.5;
                   cursor:pointer; transition:r .12s; }
-  #map .airport:hover .air-dot { r:12; }
+  #map .airport:hover .air-dot { r:11; }
   #map .air-label { fill:var(--ink); font-size:13px; font-weight:700;
-                    font-family:inherit; pointer-events:none; }
+                    font-family:inherit; pointer-events:none;
+                    paint-order:stroke; stroke:var(--ocean); stroke-width:3px; }
   .map-note { margin-top:8px; }
 </style>
 
@@ -187,25 +200,25 @@
   </div>
 
   <section>
-    <h2>📈 인천 → 괌 최저가 추이</h2>
+    <h2>인천 → 괌 최저가 추이</h2>
     <p class="lead">매일 아침 수집한 이 노선의 왕복 최저가입니다. 아래로 꺾일수록 지금이 살 때입니다.</p>
     <div class="chart"><svg viewBox="0 0 680 230" role="img" aria-label="가격 추이 차트"><line class="gridline" x1="54" y1="177.2" x2="622" y2="177.2"/><text class="axis" x="46" y="181.2" text-anchor="end">30.0만</text><line class="gridline" x1="54" y1="96.6" x2="622" y2="96.6"/><text class="axis" x="46" y="100.6" text-anchor="end">40.0만</text><line class="gridline" x1="54" y1="16.0" x2="622" y2="16.0"/><text class="axis" x="46" y="20.0" text-anchor="end">50.0만</text><polygon class="plot-area" points="54,202 54.0,184.7 82.4,184.7 110.8,184.7 139.2,184.7 167.6,191.7 196.0,191.7 224.4,191.7 252.8,191.7 281.2,197.4 309.6,201.2 338.0,202.0 366.4,197.7 394.8,35.8 423.2,153.9 451.6,153.9 480.0,158.4 508.4,153.9 536.8,153.9 565.2,186.5 593.6,186.5 622.0,186.5 622,202"/><polyline class="plot-line" points="54.0,184.7 82.4,184.7 110.8,184.7 139.2,184.7 167.6,191.7 196.0,191.7 224.4,191.7 252.8,191.7 281.2,197.4 309.6,201.2 338.0,202.0 366.4,197.7 394.8,35.8 423.2,153.9 451.6,153.9 480.0,158.4 508.4,153.9 536.8,153.9 565.2,186.5 593.6,186.5 622.0,186.5"/><text class="axis" x="54" y="222">7.9(목)</text><text class="axis" x="622" y="222" text-anchor="end">7.29(수)</text><circle class="plot-dot-hi" cx="338.0" cy="202.0" r="4"/><circle class="plot-dot" cx="622.0" cy="186.5" r="4"/><text class="plot-label" x="346.0" y="193.0" text-anchor="start">최저 269,242원</text><text class="plot-label" x="630.0" y="190.5">288,412원</text><rect class="hit" x="39.8" y="16" width="28.4" height="186"><title>7.9(목) · 290,694원</title></rect><rect class="hit" x="68.2" y="16" width="28.4" height="186"><title>7.10(금) · 290,694원</title></rect><rect class="hit" x="96.6" y="16" width="28.4" height="186"><title>7.11(토) · 290,694원</title></rect><rect class="hit" x="125.0" y="16" width="28.4" height="186"><title>7.12(일) · 290,694원</title></rect><rect class="hit" x="153.4" y="16" width="28.4" height="186"><title>7.13(월) · 282,075원</title></rect><rect class="hit" x="181.8" y="16" width="28.4" height="186"><title>7.14(화) · 282,075원</title></rect><rect class="hit" x="210.2" y="16" width="28.4" height="186"><title>7.15(수) · 282,075원</title></rect><rect class="hit" x="238.6" y="16" width="28.4" height="186"><title>7.16(목) · 282,075원</title></rect><rect class="hit" x="267.0" y="16" width="28.4" height="186"><title>7.17(금) · 274,905원</title></rect><rect class="hit" x="295.4" y="16" width="28.4" height="186"><title>7.18(토) · 270,202원</title></rect><rect class="hit" x="323.8" y="16" width="28.4" height="186"><title>7.19(일) · 269,242원</title></rect><rect class="hit" x="352.2" y="16" width="28.4" height="186"><title>7.20(월) · 274,586원</title></rect><rect class="hit" x="380.6" y="16" width="28.4" height="186"><title>7.21(화) · 475,483원</title></rect><rect class="hit" x="409.0" y="16" width="28.4" height="186"><title>7.22(수) · 328,903원</title></rect><rect class="hit" x="437.4" y="16" width="28.4" height="186"><title>7.23(목) · 328,903원</title></rect><rect class="hit" x="465.8" y="16" width="28.4" height="186"><title>7.24(금) · 323,343원</title></rect><rect class="hit" x="494.2" y="16" width="28.4" height="186"><title>7.25(토) · 328,903원</title></rect><rect class="hit" x="522.6" y="16" width="28.4" height="186"><title>7.26(일) · 328,903원</title></rect><rect class="hit" x="551.0" y="16" width="28.4" height="186"><title>7.27(월) · 288,412원</title></rect><rect class="hit" x="579.4" y="16" width="28.4" height="186"><title>7.28(화) · 288,412원</title></rect><rect class="hit" x="607.8" y="16" width="28.4" height="186"><title>7.29(수) · 288,412원</title></rect></svg></div>
   </section>
 
   <section>
-    <h2>📅 출발 월별 최저가</h2>
+    <h2>출발 월별 최저가</h2>
     <p class="lead">출발 시기에 따라 인천 → 괌 항공권 가격이 얼마나 달라지는지 비교했습니다.</p>
     <div class="chart"><svg viewBox="0 0 680 200" role="img" aria-label="구간별 최저가 비교"><path class="bar-best" d="M43.4,174.0 L43.4,122.6 Q43.4,118.6 47.4,118.6 L63.4,118.6 Q67.4,118.6 67.4,122.6 L67.4,174.0 Z"><title>7월 · 269,242원</title></path><text class="plot-label" x="55.4" y="112.6" text-anchor="middle">26.9만</text><text class="axis" x="55.4" y="192" text-anchor="middle">7월</text><path class="bar" d="M138.3,174.0 L138.3,119.9 Q138.3,115.9 142.3,115.9 L158.3,115.9 Q162.3,115.9 162.3,119.9 L162.3,174.0 Z"><title>8월 · 282,075원</title></path><text class="plot-label" x="150.3" y="109.9" text-anchor="middle">28.2만</text><text class="axis" x="150.3" y="192" text-anchor="middle">8월</text><path class="bar" d="M233.1,174.0 L233.1,118.2 Q233.1,114.2 237.1,114.2 L253.1,114.2 Q257.1,114.2 257.1,118.2 L257.1,174.0 Z"><title>9월 · 290,694원</title></path><text class="plot-label" x="245.1" y="108.2" text-anchor="middle">29.1만</text><text class="axis" x="245.1" y="192" text-anchor="middle">9월</text><path class="bar" d="M328.0,174.0 L328.0,110.0 Q328.0,106.0 332.0,106.0 L348.0,106.0 Q352.0,106.0 352.0,110.0 L352.0,174.0 Z"><title>10월 · 330,240원</title></path><text class="plot-label" x="340.0" y="100.0" text-anchor="middle">33.0만</text><text class="axis" x="340.0" y="192" text-anchor="middle">10월</text><path class="bar" d="M422.9,174.0 L422.9,87.3 Q422.9,83.3 426.9,83.3 L442.9,83.3 Q446.9,83.3 446.9,87.3 L446.9,174.0 Z"><title>12월 · 440,720원</title></path><text class="plot-label" x="434.9" y="77.3" text-anchor="middle">44.1만</text><text class="axis" x="434.9" y="192" text-anchor="middle">12월</text><path class="bar" d="M517.7,174.0 L517.7,42.3 Q517.7,38.3 521.7,38.3 L537.7,38.3 Q541.7,38.3 541.7,42.3 L541.7,174.0 Z"><title>1월 · 659,407원</title></path><text class="plot-label" x="529.7" y="32.3" text-anchor="middle">65.9만</text><text class="axis" x="529.7" y="192" text-anchor="middle">1월</text><path class="bar" d="M612.6,174.0 L612.6,50.4 Q612.6,46.4 616.6,46.4 L632.6,46.4 Q636.6,46.4 636.6,50.4 L636.6,174.0 Z"><title>2월 · 619,804원</title></path><text class="plot-label" x="624.6" y="40.4" text-anchor="middle">62.0만</text><text class="axis" x="624.6" y="192" text-anchor="middle">2월</text></svg></div>
   </section>
 
   <section>
-    <h2>🗓 출발 요일별 최저가</h2>
+    <h2>출발 요일별 최저가</h2>
     <p class="lead">같은 노선도 무슨 요일에 떠나느냐로 가격이 달라집니다.</p>
     <div class="chart"><svg viewBox="0 0 680 200" role="img" aria-label="구간별 최저가 비교"><path class="bar-best" d="M43.4,174.0 L43.4,101.2 Q43.4,97.2 47.4,97.2 L63.4,97.2 Q67.4,97.2 67.4,101.2 L67.4,174.0 Z"><title>월 · 269,242원</title></path><text class="plot-label" x="55.4" y="91.2" text-anchor="middle">26.9만</text><text class="axis" x="55.4" y="192" text-anchor="middle">월</text><path class="bar" d="M138.3,174.0 L138.3,99.6 Q138.3,95.6 142.3,95.6 L158.3,95.6 Q162.3,95.6 162.3,99.6 L162.3,174.0 Z"><title>화 · 274,586원</title></path><text class="plot-label" x="150.3" y="89.6" text-anchor="middle">27.5만</text><text class="axis" x="150.3" y="192" text-anchor="middle">화</text><path class="bar" d="M233.1,174.0 L233.1,57.3 Q233.1,53.3 237.1,53.3 L253.1,53.3 Q257.1,53.3 257.1,57.3 L257.1,174.0 Z"><title>수 · 422,911원</title></path><text class="plot-label" x="245.1" y="47.3" text-anchor="middle">42.3만</text><text class="axis" x="245.1" y="192" text-anchor="middle">수</text><path class="bar" d="M328.0,174.0 L328.0,42.3 Q328.0,38.3 332.0,38.3 L348.0,38.3 Q352.0,38.3 352.0,42.3 L352.0,174.0 Z"><title>목 · 475,483원</title></path><text class="plot-label" x="340.0" y="32.3" text-anchor="middle">47.5만</text><text class="axis" x="340.0" y="192" text-anchor="middle">목</text><path class="bar" d="M422.9,174.0 L422.9,91.1 Q422.9,87.1 426.9,87.1 L442.9,87.1 Q446.9,87.1 446.9,91.1 L446.9,174.0 Z"><title>금 · 304,344원</title></path><text class="plot-label" x="434.9" y="81.1" text-anchor="middle">30.4만</text><text class="axis" x="434.9" y="192" text-anchor="middle">금</text><path class="bar" d="M517.7,174.0 L517.7,86.1 Q517.7,82.1 521.7,82.1 L537.7,82.1 Q541.7,82.1 541.7,86.1 L541.7,174.0 Z"><title>토 · 321,962원</title></path><text class="plot-label" x="529.7" y="76.1" text-anchor="middle">32.2만</text><text class="axis" x="529.7" y="192" text-anchor="middle">토</text><path class="bar" d="M612.6,174.0 L612.6,100.9 Q612.6,96.9 616.6,96.9 L632.6,96.9 Q636.6,96.9 636.6,100.9 L636.6,174.0 Z"><title>일 · 270,202원</title></path><text class="plot-label" x="624.6" y="90.9" text-anchor="middle">27.0만</text><text class="axis" x="624.6" y="192" text-anchor="middle">일</text></svg></div>
   </section>
 
   <section>
-    <h2>✈️ 항공사별 최저가</h2>
+    <h2>항공사별 최저가</h2>
     <p class="lead">최근 30일간 이 노선에서 수집된 항공사별 최저 왕복 요금입니다.</p>
     <table class="data">
       <thead><tr><th>항공사</th><th class="num">최저가</th><th class="num">수집 건수</th></tr></thead>
@@ -219,7 +232,7 @@
   </section>
 
   <section class="subscribe">
-    <h2>🔔 인천 → 괌 특가 알림 받기</h2>
+    <h2>인천 → 괌 특가 알림 받기</h2>
     <p>이 노선에 특가가 뜨면 메일로 알려드립니다. 아래 버튼을 누르면 메일 앱이 열립니다 —
        <b>내용 수정 없이 그대로 보내주시면</b> 구독이 완료됩니다.</p>
     <div class="sub-form">
