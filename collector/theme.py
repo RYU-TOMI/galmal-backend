@@ -9,18 +9,46 @@
 BASE_URL = "https://ryu-tomi.github.io/promo-ticket-site"
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SITE_NAME = "갈래말래"
+ACCENT = "#F2603F"
+
+# 로고 항적/비행기 기하 (DESIGN.md). "말래" 밑 페이드 비행운 + 접힌 종이비행기.
+import math as _math
+_P0, _P1, _P2 = (6, 34), (76, 40), (120, 16)
+_ANG = _math.degrees(_math.atan2(2 * (_P2[1] - _P1[1]), 2 * (_P2[0] - _P1[0])))
+_PLANE = (f'<g transform="translate({_P2[0]},{_P2[1]}) rotate({_ANG:.1f}) scale(1.02)">'
+          '<path class="pl-btm" d="M13,0 L-4,0 L-11,8 Z"/>'
+          '<path class="pl-top" d="M13,0 L-11,-8 L-4,0 Z"/>'
+          '<path class="pl-crease" d="M13,0 L-4,0"/></g>')
+
+
+def logo(gid="gm", href=None):
+    """워드마크 갈래말래 + 비행운 + 종이비행기. gid는 그라디언트 id 충돌 방지용."""
+    svg = (f'<svg class="lg" viewBox="0 0 170 46" overflow="visible" aria-hidden="true">'
+           f'<defs><linearGradient id="{gid}" x1="0" x2="1">'
+           f'<stop offset="0" stop-color="{ACCENT}" stop-opacity="0"/>'
+           f'<stop offset="1" stop-color="{ACCENT}" stop-opacity=".95"/></linearGradient></defs>'
+           f'<path d="M{_P0[0]},{_P0[1]} Q{_P1[0]},{_P1[1]} {_P2[0]-6},{_P2[1]+3}" '
+           f'fill="none" stroke="url(#{gid})" stroke-width="3" stroke-linecap="round"/>{_PLANE}</svg>')
+    inner = f'갈래<em>말래</em>{svg}'
+    if href:
+        return f'<a class="gm-logo" href="{href}" aria-label="{SITE_NAME}">{inner}</a>'
+    return f'<span class="gm-logo">{inner}</span>'
 
 CSS = """
   :root {
-    --bg:#F3ECDD; --card:#FBF7EE; --ink:#2A2118; --sub:#7C6F5C;
-    --brand:#1F5C63; --deal:#C6532A; --line:#E0D6C2; --chip:#EAE1CE;
-    --ocean:#DCE6E0; --land:#E6D7BB;
-    --serif:'Gowun Batang','Nanum Myeongjo',serif;
+    /* 디자인 시스템 (DESIGN.md) — 시그니처 코랄 */
+    --accent:#F2603F; --accent2:#C6472A;
+    --sea:#EDF4F3; --land:#D2E7DE; --coast:#33534F; --soft:#F0F5F4;
+    --bg:#F4F8F7; --card:#FFFFFF; --ink:#20353A; --sub:#5E7A7C; --line:#E6EDEC;
+    /* 하위호환 별칭(기존 클래스용): brand=청록(차트라인), deal=코랄(강조/CTA) */
+    --brand:#33534F; --deal:#F2603F; --chip:#F0F5F4; --ocean:#EDF4F3;
+    --serif:'Pretendard Variable',Pretendard,sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#181410; --card:#221C15; --ink:#EDE6D8; --sub:#A99B84;
-            --brand:#5FB0B8; --deal:#E27A4E; --line:#332A20; --chip:#2A2218;
-            --ocean:#1B2622; --land:#3A3226; }
+    :root { --accent:#FF7A57; --accent2:#D65A38;
+            --sea:#0F2A29; --land:#16403C; --coast:#2A625C; --soft:#1D3634;
+            --bg:#0F2A29; --card:#16302E; --ink:#EAF3F0; --sub:#8FB2AD; --line:#26403C;
+            --brand:#5FB0B8; --deal:#FF7A57; --chip:#1D3634; --ocean:#0F2A29; }
   }
   * { box-sizing:border-box; margin:0; }
   body { background-color:var(--bg); color:var(--ink);
@@ -164,6 +192,54 @@ CSS = """
                     font-family:inherit; pointer-events:none;
                     paint-order:stroke; stroke:var(--ocean); stroke-width:3px; }
   .map-note { margin-top:8px; }
+
+  /* ===== 디자인 시스템 컴포넌트 (DESIGN.md) ===== */
+  /* 로고 */
+  .gm-logo { position:relative; display:inline-block; font-weight:900;
+             letter-spacing:-.03em; color:var(--ink); line-height:1; }
+  .gm-logo em { font-style:normal; color:var(--accent); }
+  .gm-logo .lg { position:absolute; left:46%; right:0; bottom:-24%;
+                 height:1.1em; overflow:visible; }
+  .gm-logo .pl-top { fill:var(--accent); }
+  .gm-logo .pl-btm { fill:var(--accent2); }
+  .gm-logo .pl-crease { stroke:#ffffff88; stroke-width:.8; fill:none; }
+  /* 헤더 */
+  .gm-hdr { display:flex; align-items:center; height:60px; padding:0 22px;
+            background:var(--card); border-bottom:1px solid var(--line); }
+  .gm-hdr .gm-logo { font-size:1.5rem; margin-right:44px; }
+  .gm-nav { display:flex; gap:2px; margin-right:auto; }
+  .gm-nav a { font-weight:600; font-size:.92rem; color:var(--sub);
+              text-decoration:none; padding:8px 12px; border-radius:9px; }
+  .gm-nav a.on { color:var(--ink); font-weight:800; }
+  .gm-util { display:flex; align-items:center; gap:8px; }
+  .gm-util .icon { width:38px; height:38px; border-radius:10px; display:flex;
+                   align-items:center; justify-content:center; font-size:1.05rem; }
+  .gm-login { font-weight:700; font-size:.88rem; color:var(--ink);
+              border:1.5px solid var(--line); padding:8px 15px; border-radius:10px;
+              background:none; cursor:pointer; }
+  /* 지도 위 검색 패널 */
+  .gm-panel { background:var(--card); border-radius:16px; padding:16px;
+              box-shadow:0 8px 26px rgba(20,40,40,.14); }
+  .gm-panel h2 { font-size:1.35rem; font-weight:900; letter-spacing:-.02em; color:var(--ink); }
+  .gm-panel .desc { font-size:.82rem; color:var(--sub); margin:3px 0 12px; }
+  .gm-field { display:flex; justify-content:space-between; align-items:center;
+              border:1.5px solid var(--line); border-radius:11px; padding:11px 13px;
+              font-weight:700; color:var(--ink); font-size:.95rem; margin-bottom:10px; }
+  .gm-field .cur { color:var(--sub); font-weight:600; }
+  .gm-filterlabel { font-size:.78rem; color:var(--sub); font-weight:700; margin:2px 0 7px; }
+  .gm-chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .gm-chip { font-size:.82rem; font-weight:700; padding:7px 12px; border-radius:99px;
+             background:var(--soft); color:var(--sub); border:none; cursor:pointer; }
+  .gm-chip.on { background:var(--accent); color:#fff; }
+  /* 줌 컨트롤 */
+  .gm-zoom { background:var(--card); border-radius:12px; overflow:hidden;
+             box-shadow:0 4px 14px rgba(20,40,40,.14); }
+  .gm-zoom button { display:block; width:42px; height:42px; border:none; background:none;
+                    font-size:1.3rem; color:var(--ink); cursor:pointer; }
+  .gm-zoom button + button { border-top:1px solid var(--line); }
+  /* 특가 도장 */
+  .gm-stamp { display:inline-block; transform:rotate(-9deg); border:2px solid var(--accent);
+              color:var(--accent); font-weight:900; font-size:.72rem; padding:3px 8px; border-radius:6px; }
 """
 
 FOOTER = f"""  <footer>
@@ -192,9 +268,7 @@ def page(title, description, canonical_path, body, extra_script=""):
 <meta property="og:url" content="{url}">
 <meta property="og:locale" content="ko_KR">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap">
 <style>{CSS}</style>
 {extra_script}
 </head>
