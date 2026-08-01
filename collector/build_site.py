@@ -21,6 +21,7 @@ import db
 from affiliates import booking_link
 from charts import bar_chart, line_chart
 from detect_deals import IS_DIRECT_SQL, compute_deals
+from discover_data import build_deals_json
 from dests import ORIGIN_COORD, ORIGINS
 from labels import (REGION_CHIPS, REGION_NAME, SQL_WEEKDAY, airline_name, city,
                     fmt_date, fmt_month, region_of)
@@ -441,9 +442,11 @@ def main():
         if result:
             route_index.append(result)
     n_deals = build_index(conn, route_index)
+    n_disc = build_deals_json(conn)
     build_seo(route_index)
     conn.close()
-    print(f"생성 완료: index(특가 {n_deals}건) + 노선 페이지 {len(route_index)}개 + sitemap/robots")
+    print(f"생성 완료: index(특가 {n_deals}건) + 발견 deals.json({n_disc}건) "
+          f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots")
 
 
 if __name__ == "__main__":
