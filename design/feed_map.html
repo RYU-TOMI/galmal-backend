@@ -14,11 +14,19 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .tools{margin-left:auto;display:flex;gap:7px}
 .pill{border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;font-size:.78rem;color:var(--sub);background:#fff;font-weight:700;cursor:pointer}
 .pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.layout{flex:1 1 auto;display:flex;min-height:0}
+.layout{flex:1 1 auto;display:flex;min-height:0;position:relative}
+.mood.pill{cursor:pointer}.mood.pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.budget{display:flex;align-items:center;gap:7px;font-size:.74rem;font-weight:700;color:var(--sub);margin-left:4px}
+.budget input[type=range]{width:104px;accent-color:var(--accent);cursor:pointer}
+.budget b{color:var(--ink)}
 /* 카드 피드 레일 */
 .feed{flex:0 0 340px;overflow-y:auto;padding:14px;background:var(--bg);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
-.feedhead{display:flex;justify-content:space-between;align-items:baseline;padding:2px 2px 4px}
+.feedhead{padding:2px 2px 2px}
+.fh-top{display:flex;justify-content:space-between;align-items:baseline}
 .feedhead b{font-size:1.05rem;font-weight:900;letter-spacing:-.02em}.feedhead span{font-size:.7rem;color:var(--sub)}
+.sortbar{display:flex;gap:5px;margin-top:8px}
+.spill{font-size:.68rem;font-weight:700;padding:5px 10px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer}
+.spill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:10px;cursor:pointer;transition:border-color .12s,box-shadow .12s,transform .12s}
 .fcard:hover,.fcard.on{border-color:var(--accent);box-shadow:0 6px 18px rgba(242,96,63,.16);transform:translateY(-1px)}
 .thumb{flex:0 0 62px;height:62px;border-radius:10px;position:relative;background-size:cover}
@@ -64,6 +72,22 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .hc-why{font-size:.64rem;color:var(--ink);opacity:.82;margin-top:2px;line-height:1.38}
 .hc-tags{display:flex;gap:4px;margin-top:7px}
 .hc-cta{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;font-size:.72rem;border-radius:8px;padding:7px 0}
+/* 필터 흐림(dim) */
+.pin.dim{opacity:.28}.pin.dim .core{stroke-width:1.4}
+.fcard.dim{opacity:.42;filter:saturate(.55)}
+/* 화면0 출발지 선택 */
+.intro{position:absolute;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;transition:opacity .5s ease}
+.intro.hide{opacity:0;pointer-events:none}
+.intro h2{font-size:1.95rem;font-weight:900;letter-spacing:-.03em}
+.intro p{color:var(--sub);font-size:.9rem}
+.krwrap{width:min(560px,84vw);margin-top:6px}
+#introMap{width:100%;height:auto;aspect-ratio:4/3;background:var(--sea);border:1px solid var(--line);border-radius:18px;box-shadow:inset 0 1px 8px rgba(0,0,0,.05)}
+#introMap .land{fill:var(--land);stroke:#33534f22;stroke-width:.5}
+#introMap .ap{cursor:pointer}
+#introMap .ap .apr{fill:var(--accent);stroke:#fff;stroke-width:2;transition:r .12s}
+#introMap .ap:hover .apr{r:11}
+#introMap .ap .aph{fill:var(--accent);opacity:.16}
+#introMap .aplabel{font-size:12px;font-weight:800;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3px;pointer-events:none}
 @media(max-width:860px){
   .layout{flex-direction:column}
   .stage{flex:1 1 58%}
@@ -75,9 +99,18 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 </style></head><body>
 <div class="hdr"><span class="logo">갈래<em>말래</em></span>
   <span class="nav"><span class="on">발견</span><span>오늘의특가</span><span>노선별</span><span>알림</span></span>
-  <span class="tools"><span class="pill on">서울 출발 ▾</span><span class="pill">해변</span><span class="pill">도시</span><span class="pill">온천</span></span>
+  <span class="tools">
+    <span class="pill origin" id="originPill">서울 출발 ▾</span>
+    <span class="mood pill" data-mood="해변">해변</span><span class="mood pill" data-mood="도시">도시</span><span class="mood pill" data-mood="온천">온천</span>
+    <label class="budget">예산 <input id="budget" type="range" min="110000" max="260000" step="5000" value="260000"><b id="budgetVal">26만</b> 이하</label>
+  </span>
 </div>
 <div class="layout">
+  <div class="intro" id="intro">
+    <h2>어디서 출발하세요?</h2>
+    <p>출발 공항을 고르면 오늘 싼 곳들이 열려요</p>
+    <div class="krwrap"><svg id="introMap" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet"></svg></div>
+  </div>
   <div class="feed" id="feed"></div>
   <div class="stage">
     <svg class="map" id="map" preserveAspectRatio="xMidYMid slice">
@@ -136,11 +169,20 @@ var feed=document.getElementById('feed');
 var stageEl=document.querySelector('.stage');
 var hc=document.getElementById('hc');
 var active=null;
+var sortMode='value';   // value(가성비) | imminent(임박) | discount(할인율)
+var mood=null;          // 해변 | 도시 | 온천
+var budget=999999;      // 예산 상한(원)
 function svgToClient(x,y){var pt=svg.createSVGPoint();pt.x=x;pt.y=y;return pt.matrixTransform(svg.getScreenCTM());}
+function dkey(d){var m=d.match(/(\d+)\/(\d+)/);return m?(+m[1])*100+(+m[2]):9999;}
+function discNum(s){return parseInt(s,10)||0;}
+function dimmed(c){return (mood&&c.tags.indexOf(mood)<0)||(num(c.price)>budget);}
 
 function visibleCities(){var upto=STAGES.slice(0,stageIdx+1),showMinor=VIEWS[STAGES[stageIdx]].scale>=MINOR_SCALE,out=[];
   CITY.forEach(function(c,i){if(upto.indexOf(c.haul)>=0&&(showMinor||c.tier==='major')){c._i=i;out.push(c);}});
-  out.sort(function(a,b){return num(a.price)-num(b.price);});return out;}
+  var cmp={value:function(a,b){return num(a.price)-num(b.price);},
+           imminent:function(a,b){return dkey(a.date)-dkey(b.date);},
+           discount:function(a,b){return discNum(b.disc)-discNum(a.disc);}};
+  out.sort(cmp[sortMode]);return out;}
 
 function colorMaker(vis){var vn=vis.map(function(c){return num(c.price);});
   var lo=Math.min.apply(null,vn),hi=Math.max.apply(null,vn);
@@ -161,19 +203,24 @@ function render(){
   // 핀
   pins.innerHTML='';
   vis.forEach(function(c){
-    var g=document.createElementNS(SVGNS,'g');g.setAttribute('class','pin');g.dataset.i=c._i;
+    var g=document.createElementNS(SVGNS,'g');g.setAttribute('class','pin'+(dimmed(c)?' dim':''));g.dataset.i=c._i;
     g.innerHTML='<circle class="halo" cx="'+c.x+'" cy="'+c.y+'" r="'+(PIN_R*1.6)+'" fill="'+c._col+'"/>'+
       '<circle class="core" cx="'+c.x+'" cy="'+c.y+'" r="'+PIN_R+'" fill="'+c._col+'"/>'+
       '<text class="plabel'+(c.tier==='minor'?' minor':'')+'" x="'+c.x+'" y="'+(c.y+PIN_R+11)+'" text-anchor="middle">'+c.n+'</text>';
-    (function(el,i){el.addEventListener('mouseenter',function(){highlight(i,false);});
+    (function(el,i){el.addEventListener('mouseenter',function(){highlight(i,true);});
       el.addEventListener('click',function(e){e.stopPropagation();highlight(i,true);});})(g,c._i);
     pins.appendChild(g);
   });
   // 카드 피드
-  feed.innerHTML='<div class="feedhead"><b>오늘의 발견</b><span>서울 출발 · 3일 이내 · '+vis.length+'곳</span></div>';
+  feed.innerHTML='<div class="feedhead"><div class="fh-top"><b>오늘의 발견</b><span>서울 출발 · '+vis.length+'곳</span></div>'+
+    '<div class="sortbar">'+
+     '<button class="spill'+(sortMode==='value'?' on':'')+'" data-sort="value">가성비순</button>'+
+     '<button class="spill'+(sortMode==='imminent'?' on':'')+'" data-sort="imminent">임박순</button>'+
+     '<button class="spill'+(sortMode==='discount'?' on':'')+'" data-sort="discount">할인율순</button>'+
+    '</div></div>';
   vis.forEach(function(c,idx){
     var hero=idx===0;
-    var card=document.createElement('div');card.className='fcard'+(hero?' hero':'');card.dataset.i=c._i;
+    var card=document.createElement('div');card.className='fcard'+(hero?' hero':'')+(dimmed(c)?' dim':'');card.dataset.i=c._i;
     card.innerHTML=
       '<div class="thumb" style="background:'+c.g+'">'+(hero?'<span class="pick">오늘의 한 방</span>':'')+'</div>'+
       '<div class="fbody"><div class="frow"><b class="fcity">'+c.n+'</b><span class="stamp">'+c.disc+'</span></div>'+
@@ -187,6 +234,8 @@ function render(){
       el.addEventListener('click',function(){highlight(i,true);});})(card,c._i);
     feed.appendChild(card);
   });
+  var sps=feed.querySelectorAll('.spill');
+  for(var s=0;s<sps.length;s++){(function(el){el.addEventListener('click',function(){sortMode=el.dataset.sort;clearHi();render();});})(sps[s]);}
   if(active!==null)paintActive();
 }
 
@@ -218,7 +267,7 @@ function highlight(i,scroll){
     left=Math.max(98,Math.min(box.width-98,left));
     hc.style.left=left+'px';hc.style.top=top+'px';hc.classList.add('show');
   }
-  if(scroll){var card=document.querySelector('.fcard[data-i="'+i+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  if(scroll){var card=document.querySelector('.fcard[data-i="'+i+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});}
 }
 function clearHi(){active=null;paintActive();hc.classList.remove('show');
   if(arc.getTotalLength){arc.style.transition='stroke-dashoffset .2s ease';arc.style.strokeDashoffset=arc.getTotalLength();}}
@@ -229,6 +278,37 @@ var bs=document.querySelectorAll('.stagebar .pill');
 for(var b=0;b<bs.length;b++){(function(el,idx){el.addEventListener('click',function(){setStage(idx);});})(bs[b],b);}
 stageEl.addEventListener('mouseleave',function(){if(matchMedia('(hover:hover)').matches)clearHi();});
 svg.addEventListener('click',function(e){if(e.target===svg||e.target.classList.contains('land'))clearHi();});
+
+// 분위기 필터(헤더 칩) — 흐림 토글
+var moodEls=document.querySelectorAll('.tools .mood');
+for(var mi=0;mi<moodEls.length;mi++){(function(el){el.addEventListener('click',function(){
+  var m=el.dataset.mood;mood=(mood===m?null:m);
+  for(var k=0;k<moodEls.length;k++)moodEls[k].classList.toggle('on',moodEls[k].dataset.mood===mood);
+  clearHi();render();});})(moodEls[mi]);}
+// 예산 슬라이더 — 실시간 흐림
+var bslider=document.getElementById('budget'),bval=document.getElementById('budgetVal');
+budget=+bslider.value;
+bslider.addEventListener('input',function(){budget=+bslider.value;bval.textContent=Math.round(budget/10000)+'만';clearHi();render();});
+
+// 화면0: 출발지 5핀
+var AIRPORTS=[{n:'서울',lon:126.99,lat:37.55},{n:'청주',lon:127.50,lat:36.72},{n:'대구',lon:128.66,lat:35.90},{n:'부산',lon:129.03,lat:35.18},{n:'제주',lon:126.49,lat:33.51}];
+function renderIntro(){
+  var im=document.getElementById('introMap');
+  var ip=d3.geoEquirectangular().rotate([-127.7,0]).center([0,35.9]).scale(3100).translate([200,150]);
+  var ipath=d3.geoPath(ip);
+  var lp2=document.createElementNS(SVGNS,'path');lp2.setAttribute('d',ipath(WORLD));lp2.setAttribute('class','land');im.appendChild(lp2);
+  AIRPORTS.forEach(function(a){var p=ip([a.lon,a.lat]);
+    var g=document.createElementNS(SVGNS,'g');g.setAttribute('class','ap');
+    g.innerHTML='<circle class="aph" cx="'+p[0]+'" cy="'+p[1]+'" r="14"/>'+
+      '<circle class="apr" cx="'+p[0]+'" cy="'+p[1]+'" r="7"/>'+
+      '<text class="aplabel" x="'+p[0]+'" y="'+(p[1]-13)+'" text-anchor="middle">'+a.n+'</text>';
+    g.addEventListener('click',function(){pickOrigin(a.n);});
+    im.appendChild(g);});
+}
+function pickOrigin(name){document.getElementById('originPill').textContent=name+' 출발 ▾';
+  document.getElementById('intro').classList.add('hide');}
+document.getElementById('originPill').addEventListener('click',function(){document.getElementById('intro').classList.remove('hide');});
+renderIntro();
 render();
 </script>
 </body></html>
