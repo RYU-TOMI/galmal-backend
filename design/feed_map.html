@@ -9,7 +9,11 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pretendard,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
 .hdr{display:flex;align-items:center;height:56px;padding:0 18px;background:var(--card);border-bottom:1px solid var(--line);flex:0 0 auto}
-.logo{font-weight:900;letter-spacing:-.03em;font-size:1.25rem}.logo em{font-style:normal;color:var(--accent)}
+.gm-logo{position:relative;display:inline-block;font-weight:900;letter-spacing:-.03em;color:var(--ink);line-height:1;font-size:1.3rem;margin-right:16px}
+.gm-logo em{font-style:normal;color:var(--accent)}
+.gm-logo .lg{position:absolute;left:46%;right:0;bottom:-24%;height:1.1em;overflow:visible}
+.gm-logo .pl-top{fill:var(--accent)}.gm-logo .pl-btm{fill:var(--accent2)}
+.gm-logo .pl-crease{stroke:#ffffff88;stroke-width:.8;fill:none}
 .nav{display:flex;gap:4px;margin-left:26px;font-size:.85rem;color:var(--sub);font-weight:600}.nav .on{color:var(--ink);font-weight:800}
 .tools{margin-left:auto;display:flex;gap:7px}
 .pill{border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;font-size:.78rem;color:var(--sub);background:#fff;font-weight:700;cursor:pointer}
@@ -91,6 +95,14 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .hc-why{font-size:.64rem;color:var(--ink);opacity:.82;margin-top:2px;line-height:1.38}
 .hc-tags{display:flex;gap:4px;margin-top:7px}
 .hc-cta{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;font-size:.72rem;border-radius:8px;padding:7px 0}
+.hc-date{font-size:.66rem;color:var(--sub);font-weight:700;margin-top:3px}
+/* 확장(클릭) 상세 카드 */
+.hovercard.expanded{width:238px;pointer-events:auto}
+.hc-detail{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
+.hc-sec{font-size:.63rem;font-weight:800;color:var(--sub);margin:2px 0 6px}
+.spark{width:100%;height:38px;display:block;margin-bottom:8px}
+.hc-cta.big{display:block;margin-top:10px}
+.hc-ad{font-size:.56rem;color:var(--sub);opacity:.85;margin-top:6px;text-align:center}
 /* 필터 흐림(dim) */
 .pin.dim{opacity:.28}.pin.dim .core{stroke-width:1.4}
 .fcard.dim{opacity:.42;filter:saturate(.55)}
@@ -116,8 +128,8 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
   .gorow{display:none}
 }
 </style></head><body>
-<div class="hdr"><span class="logo">갈래<em>말래</em></span>
-  <span class="nav"><span class="on">발견</span><span>오늘의특가</span><span>노선별</span><span>알림</span></span>
+<div class="hdr"><span class="gm-logo">갈래<em>말래</em><svg class="lg" viewBox="0 0 170 46" overflow="visible" aria-hidden="true"><defs><linearGradient id="gmlg" x1="0" x2="1"><stop offset="0" stop-color="#F2603F" stop-opacity="0"/><stop offset="1" stop-color="#F2603F" stop-opacity=".95"/></linearGradient></defs><path d="M6,34 Q76,40 114,19" fill="none" stroke="url(#gmlg)" stroke-width="3" stroke-linecap="round"/><g transform="translate(120,16) rotate(-28.6) scale(1.02)"><path class="pl-btm" d="M13,0 L-4,0 L-11,8 Z"/><path class="pl-top" d="M13,0 L-11,-8 L-4,0 Z"/><path class="pl-crease" d="M13,0 L-4,0"/></g></svg></span>
+  <span class="nav"><span class="on">발견</span><span>노선별</span></span>
   <span class="tools"><span class="pill origin" id="originPill">서울 출발 ▾</span></span>
 </div>
 <div class="layout">
@@ -224,8 +236,13 @@ function dateDim(c){if(!dateMode)return false;var k=dkey(c.date);
 function dimmed(c){return (mood&&c.tags.indexOf(mood)<0)||(num(c.price)>budget)||dateDim(c);}
 function anyFilter(){return mood||dateMode||budget<BUDGET_MAX;}
 
-function visibleCities(){var upto=STAGES.slice(0,stageIdx+1),showMinor=VIEWS[STAGES[stageIdx]].scale>=MINOR_SCALE,out=[];
-  CITY.forEach(function(c,i){if(upto.indexOf(c.haul)>=0&&(showMinor||c.tier==='major')){c._i=i;out.push(c);}});
+function visibleCities(){var out=[];
+  if(anyFilter()){ // 필터 켜면 거리·등급 무관 전 지역에서 매칭
+    CITY.forEach(function(c,i){c._i=i;out.push(c);});
+  }else{ // 평소엔 현재 단계 + LOD
+    var upto=STAGES.slice(0,stageIdx+1),showMinor=VIEWS[STAGES[stageIdx]].scale>=MINOR_SCALE;
+    CITY.forEach(function(c,i){if(upto.indexOf(c.haul)>=0&&(showMinor||c.tier==='major')){c._i=i;out.push(c);}});
+  }
   var cmp={value:function(a,b){return num(a.price)-num(b.price);},
            imminent:function(a,b){return dkey(a.date)-dkey(b.date);},
            discount:function(a,b){return discNum(b.disc)-discNum(a.disc);}};
@@ -257,37 +274,41 @@ function render(){
       '<circle class="core" cx="'+c.x+'" cy="'+c.y+'" r="'+PIN_R+'" fill="'+c._col+'"/>'+
       '<text class="plabel'+(c.tier==='minor'?' minor':'')+'" x="'+c.x+'" y="'+(c.y+PIN_R+11)+'" text-anchor="middle">'+c.n+'</text>';
     (function(el,i){el.addEventListener('mouseenter',function(){highlight(i,true);});
-      el.addEventListener('click',function(e){e.stopPropagation();highlight(i,true);});})(g,c._i);
+      el.addEventListener('click',function(e){e.stopPropagation();expand(i);});})(g,c._i);
     pins.appendChild(g);
   });
   // 카드 피드
-  feed.innerHTML='<div class="feedhead"><div class="fh-top"><b>오늘의 발견</b><span>서울 출발 · '+vis.length+'곳</span></div>'+
+  feed.innerHTML='<div class="feedhead"><div class="fh-top"><b>오늘의 발견</b><span>'+(anyFilter()?'전 지역에서 찾는 중':'서울 출발 · '+vis.length+'곳')+'</span></div>'+
     '<div class="sortbar">'+
      '<button class="spill'+(sortMode==='value'?' on':'')+'" data-sort="value">가성비순</button>'+
      '<button class="spill'+(sortMode==='imminent'?' on':'')+'" data-sort="imminent">임박순</button>'+
      '<button class="spill'+(sortMode==='discount'?' on':'')+'" data-sort="discount">할인율순</button>'+
     '</div></div>';
-  var matchCount=0;for(var q=0;q<vis.length;q++)if(!dimmed(vis[q]))matchCount++;
-  if(anyFilter()&&matchCount===0){var nt=document.createElement('div');nt.className='feednote';
+  var matches=[];for(var q=0;q<vis.length;q++)if(!dimmed(vis[q]))matches.push(vis[q]);
+  if(anyFilter()&&matches.length===0){var nt=document.createElement('div');nt.className='feednote';
     nt.textContent='이 조건엔 딜이 없어요 — 조건을 바꿔보세요';feed.appendChild(nt);}
-  vis.forEach(function(c,idx){
-    var hero=idx===0&&!dimmed(c);
+  // hero = 매칭 중 할인율 최고(동률이면 임박) — "진짜 갈래말래?"
+  var heroCity=null;
+  matches.forEach(function(c){if(!heroCity||discNum(c.disc)>discNum(heroCity.disc)||(discNum(c.disc)===discNum(heroCity.disc)&&dkey(c.date)<dkey(heroCity.date)))heroCity=c;});
+  var order=heroCity?[heroCity].concat(vis.filter(function(c){return c!==heroCity;})):vis;
+  order.forEach(function(c){
+    var hero=(c===heroCity);
     var card=document.createElement('div');card.className='fcard'+(hero?' hero':'')+(dimmed(c)?' dim':'');card.dataset.i=c._i;
     card.innerHTML=
-      '<div class="thumb" style="background:'+c.g+'">'+(hero?'<span class="pick">오늘의 한 방</span>':'')+'</div>'+
+      '<div class="thumb" style="background:'+c.g+'">'+(hero?'<span class="pick">진짜 갈래말래?</span>':'')+'</div>'+
       '<div class="fbody"><div class="frow"><b class="fcity">'+c.n+'</b><span class="stamp">'+c.disc+'</span></div>'+
       '<div class="fprice"><small>₩</small>'+c.price+' <span class="tilde">~</span></div>'+
       '<div class="fdate"><span class="when">'+c.when+'</span>'+c.date+' · '+c.nights+'</div>'+
       '<div class="fwhy">'+c.why+'</div>'+
       '<div class="ftags">'+c.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>'+
-      (hero?'<div class="gorow"><button class="go">갈래 →</button><button class="skip">말래</button></div>':'')+
+      (hero?'<div class="gorow"><button class="go">갈래 → 자세히 보기</button></div>':'')+
       '</div>';
     (function(el,i){el.addEventListener('mouseenter',function(){highlight(i,false);});
-      el.addEventListener('click',function(){highlight(i,true);});})(card,c._i);
+      el.addEventListener('click',function(){expand(i);});})(card,c._i);
     feed.appendChild(card);
   });
   var sps=feed.querySelectorAll('.spill');
-  for(var s=0;s<sps.length;s++){(function(el){el.addEventListener('click',function(){sortMode=el.dataset.sort;clearHi();render();});})(sps[s]);}
+  for(var s=0;s<sps.length;s++){(function(el){el.addEventListener('click',function(){sortMode=el.dataset.sort;collapse();render();});})(sps[s]);}
   if(active!==null)paintActive();
 }
 
@@ -297,39 +318,53 @@ function paintActive(){
   var ps=document.querySelectorAll('.pin');for(var k=0;k<ps.length;k++)ps[k].classList.toggle('act',+ps[k].dataset.i===active);
   var cs=document.querySelectorAll('.fcard');for(var j=0;j<cs.length;j++)cs[j].classList.toggle('on',+cs[j].dataset.i===active);
 }
-function highlight(i,scroll){
+var expandedI=null;
+function drawArc(c){var mx=(ORIGIN.x+c.x)/2,my=(ORIGIN.y+c.y)/2,dx=c.x-ORIGIN.x,dy=c.y-ORIGIN.y,len=Math.hypot(dx,dy)||1;
+  var lift=Math.min(90,len*0.24),cx=mx-dy/len*lift,cy=my+dx/len*lift;
+  arc.setAttribute('d','M'+ORIGIN.x+','+ORIGIN.y+' Q'+cx+','+cy+' '+c.x+','+c.y);
+  var L=arc.getTotalLength();arc.style.transition='none';arc.style.strokeDasharray=L;arc.style.strokeDashoffset=L;
+  arc.getBoundingClientRect();arc.style.transition='stroke-dashoffset .42s ease';arc.style.strokeDashoffset=0;}
+function photoHTML(c){return '<div class="hc-photo" style="background:'+c.g+'"><span class="ph-tag">사진 · Unsplash</span><span class="cityname">'+c.n+'</span></div>';}
+function bodyTop(c){return '<div class="hc-row"><span class="hc-price"><small>₩</small>'+c.price+' <span class="tilde">~</span></span><span class="stamp">특가 '+c.disc+'</span></div>'+
+  '<div class="hc-date">'+c.date+' · '+c.nights+'</div>'+
+  '<div class="hc-why">'+c.why+'</div>'+
+  '<div class="hc-tags">'+c.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>';}
+function spark(){var pts=[28,25,30,22,26,19,24,16,20,15],Ws=152,Hs=38,st=Ws/(pts.length-1),mi=pts.indexOf(Math.min.apply(null,pts));
+  var co=pts.map(function(v,i){return [Math.round(i*st),Math.round(Hs-(v/32*Hs))];});
+  return '<svg class="spark" viewBox="0 0 '+Ws+' '+Hs+'"><path d="M'+co.map(function(p){return p[0]+','+p[1];}).join(' L')+'" fill="none" stroke="var(--coast)" stroke-width="2"/><circle cx="'+co[mi][0]+'" cy="'+co[mi][1]+'" r="3.5" fill="var(--accent)"/></svg>';}
+function compactHTML(c){return photoHTML(c)+'<div class="hc-body">'+bodyTop(c)+'<div class="hc-cta">갈래 → 자세히 보기</div></div>';}
+function detailHTML(c){return photoHTML(c)+'<div class="hc-body">'+bodyTop(c)+
+  '<div class="hc-detail"><div class="hc-sec">최근 30일 가격</div>'+spark()+
+   '<div class="hc-sec">직항 · 약 5시간 · 최저가 기준일</div>'+
+   '<a class="hc-cta big">갈래 → 예약하러 가기</a>'+
+   '<div class="hc-ad">예약이 이뤄지면 수수료를 받을 수 있어요 · (광고)</div>'+
+  '</div></div>';}
+function positionCard(c){var cp=svgToClient(c.x,c.y),box=stageEl.getBoundingClientRect(),h=hc.offsetHeight;
+  var left=cp.x-box.left,top=cp.y-box.top-16-h;if(top<8)top=cp.y-box.top+20;
+  left=Math.max(120,Math.min(box.width-120,left));hc.style.left=left+'px';hc.style.top=top+'px';}
+function showCard(i,scroll,expanded){
   active=i;var c=cityByI(i);paintActive();
-  if(c&&c.x!=null){
-    var mx=(ORIGIN.x+c.x)/2,my=(ORIGIN.y+c.y)/2,dx=c.x-ORIGIN.x,dy=c.y-ORIGIN.y,len=Math.hypot(dx,dy)||1;
-    var lift=Math.min(90,len*0.24),cx=mx-dy/len*lift,cy=my+dx/len*lift;
-    arc.setAttribute('d','M'+ORIGIN.x+','+ORIGIN.y+' Q'+cx+','+cy+' '+c.x+','+c.y);
-    var L=arc.getTotalLength();arc.style.transition='none';arc.style.strokeDasharray=L;arc.style.strokeDashoffset=L;
-    arc.getBoundingClientRect();arc.style.transition='stroke-dashoffset .42s ease';arc.style.strokeDashoffset=0;
-    // 지도 위 플로팅 카드(항로 끝)
-    hc.innerHTML='<div class="hc-photo" style="background:'+c.g+'"><span class="ph-tag">사진 · Unsplash</span>'+
-      '<span class="cityname">'+c.n+'</span></div><div class="hc-body">'+
-      '<div class="hc-row"><span class="hc-price"><small>₩</small>'+c.price+' <span class="tilde">~</span></span>'+
-      '<span class="stamp">특가 '+c.disc+'</span></div>'+
-      '<div class="hc-why">'+c.why+'</div>'+
-      '<div class="hc-tags">'+c.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>'+
-      '<div class="hc-cta">갈래 → 예약 보기</div></div>';
-    var cp=svgToClient(c.x,c.y),box=stageEl.getBoundingClientRect();
-    var left=cp.x-box.left,top=cp.y-box.top-16-214;
-    if(top<8)top=cp.y-box.top+20;
-    left=Math.max(98,Math.min(box.width-98,left));
-    hc.style.left=left+'px';hc.style.top=top+'px';hc.classList.add('show');
-  }
+  if(!c||c.x==null){hc.classList.remove('show');return;}
+  drawArc(c);
+  hc.classList.toggle('expanded',!!expanded);
+  hc.innerHTML=expanded?detailHTML(c):compactHTML(c);
+  hc.classList.add('show');positionCard(c);
   if(scroll){var card=document.querySelector('.fcard[data-i="'+i+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});}
 }
-function clearHi(){active=null;paintActive();hc.classList.remove('show');
+function highlight(i,scroll){if(expandedI!==null)return;showCard(i,scroll,false);}
+function expand(i){expandedI=i;showCard(i,true,true);}
+function clearHi(){if(expandedI!==null)return;active=null;paintActive();hc.classList.remove('show');
   if(arc.getTotalLength){arc.style.transition='stroke-dashoffset .2s ease';arc.style.strokeDashoffset=arc.getTotalLength();}}
+function collapse(){expandedI=null;active=null;paintActive();hc.classList.remove('show','expanded');
+  if(arc.getTotalLength){arc.style.transition='stroke-dashoffset .2s ease';arc.style.strokeDashoffset=arc.getTotalLength();}}
+hc.addEventListener('click',function(e){e.stopPropagation();});
 
-function setStage(idx){stageIdx=idx;clearHi();render();
+function setStage(idx){stageIdx=idx;collapse();render();
   var bs=document.querySelectorAll('.stagebar .pill');for(var k=0;k<bs.length;k++)bs[k].classList.toggle('on',k===idx);}
 var bs=document.querySelectorAll('.stagebar .pill');
 for(var b=0;b<bs.length;b++){(function(el,idx){el.addEventListener('click',function(){setStage(idx);});})(bs[b],b);}
 stageEl.addEventListener('mouseleave',function(){if(matchMedia('(hover:hover)').matches)clearHi();});
-svg.addEventListener('click',function(e){if(e.target===svg||e.target.classList.contains('land'))clearHi();});
+svg.addEventListener('click',function(e){if(e.target===svg||e.target.classList.contains('land'))collapse();});
 
 // 오른쪽 아래 필터 도크
 var bslider=document.getElementById('budget'),bval=document.getElementById('budgetVal');
@@ -347,20 +382,20 @@ function setActiveDate(mode){dateMode=mode;
 for(var di=0;di<dateEls.length;di++){(function(el){el.addEventListener('click',function(){
   setActiveDate(el.dataset.date);
   if(dateMode!=='custom')dateCustom=null;
-  updCount();clearHi();render();});})(dateEls[di]);}
+  updCount();collapse();render();});})(dateEls[di]);}
 function readCustom(){function k(v){if(!v)return null;var p=v.split('-');return (+p[1])*100+(+p[2]);}
   var lo=k(document.getElementById('cdStart').value),hi=k(document.getElementById('cdEnd').value);
   dateCustom=(lo===null&&hi===null)?null:[lo===null?0:lo,hi===null?9999:hi];}
 ['cdStart','cdEnd'].forEach(function(id){document.getElementById(id).addEventListener('change',function(){
-  setActiveDate('custom');readCustom();updCount();clearHi();render();});});
+  setActiveDate('custom');readCustom();updCount();collapse();render();});});
 // 분위기(토글)
 var moodEls=document.querySelectorAll('.fchip.moodf');
 for(var mi=0;mi<moodEls.length;mi++){(function(el){el.addEventListener('click',function(){
   var m=el.dataset.mood;mood=(mood===m?null:m);
   for(var k=0;k<moodEls.length;k++)moodEls[k].classList.toggle('on',moodEls[k].dataset.mood===mood);
-  updCount();clearHi();render();});})(moodEls[mi]);}
+  updCount();collapse();render();});})(moodEls[mi]);}
 // 예산 슬라이더(실시간)
-bslider.addEventListener('input',function(){budget=+bslider.value;bval.textContent=Math.round(budget/10000)+'만';updCount();clearHi();render();});
+bslider.addEventListener('input',function(){budget=+bslider.value;bval.textContent=Math.round(budget/10000)+'만';updCount();collapse();render();});
 // 접기/펼치기
 var fdock=document.getElementById('fdock');
 document.getElementById('fdtoggle').addEventListener('click',function(){fdock.classList.toggle('collapsed');});
