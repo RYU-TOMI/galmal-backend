@@ -52,18 +52,28 @@ var hc=document.getElementById('hc');
 var active=null;
 var sortMode='value';   // value(가성비) | imminent(임박) | discount(할인율)
 var mood=null;          // 해변 | 도시 | 온천
+var dateMode='';        // '' | week | weekend | nextmonth | custom
+var dateCustom=null;    // [lo,hi] dkey(MMDD)
+var DATE_RANGES={week:[801,807],weekend:[808,810],nextmonth:[901,930]};
+var BUDGET_MAX=260000;
 var budget=999999;      // 예산 상한(원)
 function svgToClient(x,y){var pt=svg.createSVGPoint();pt.x=x;pt.y=y;return pt.matrixTransform(svg.getScreenCTM());}
 function dkey(d){var m=d.match(/(\d+)\/(\d+)/);return m?(+m[1])*100+(+m[2]):9999;}
 function discNum(s){return parseInt(s,10)||0;}
-function dimmed(c){return (mood&&c.tags.indexOf(mood)<0)||(num(c.price)>budget);}
+function dateDim(c){if(!dateMode)return false;var k=dkey(c.date);
+  if(dateMode==='custom'){if(!dateCustom)return false;return k<dateCustom[0]||k>dateCustom[1];}
+  var r=DATE_RANGES[dateMode];return r?(k<r[0]||k>r[1]):false;}
+function dimmed(c){return (mood&&c.tags.indexOf(mood)<0)||(num(c.price)>budget)||dateDim(c);}
+function anyFilter(){return mood||dateMode||budget<BUDGET_MAX;}
 
 function visibleCities(){var upto=STAGES.slice(0,stageIdx+1),showMinor=VIEWS[STAGES[stageIdx]].scale>=MINOR_SCALE,out=[];
   CITY.forEach(function(c,i){if(upto.indexOf(c.haul)>=0&&(showMinor||c.tier==='major')){c._i=i;out.push(c);}});
   var cmp={value:function(a,b){return num(a.price)-num(b.price);},
            imminent:function(a,b){return dkey(a.date)-dkey(b.date);},
            discount:function(a,b){return discNum(b.disc)-discNum(a.disc);}};
-  out.sort(cmp[sortMode]);return out;}
+  // 필터에 맞는(안 흐린) 딜을 위로, 그 안에서 정렬 기준 적용
+  out.sort(function(a,b){var da=dimmed(a)?1:0,db=dimmed(b)?1:0;if(da!==db)return da-db;return cmp[sortMode](a,b);});
+  return out;}
 
 function colorMaker(vis){var vn=vis.map(function(c){return num(c.price);});
   var lo=Math.min.apply(null,vn),hi=Math.max.apply(null,vn);
@@ -99,8 +109,11 @@ function render(){
      '<button class="spill'+(sortMode==='imminent'?' on':'')+'" data-sort="imminent">임박순</button>'+
      '<button class="spill'+(sortMode==='discount'?' on':'')+'" data-sort="discount">할인율순</button>'+
     '</div></div>';
+  var matchCount=0;for(var q=0;q<vis.length;q++)if(!dimmed(vis[q]))matchCount++;
+  if(anyFilter()&&matchCount===0){var nt=document.createElement('div');nt.className='feednote';
+    nt.textContent='이 조건엔 딜이 없어요 — 조건을 바꿔보세요';feed.appendChild(nt);}
   vis.forEach(function(c,idx){
-    var hero=idx===0;
+    var hero=idx===0&&!dimmed(c);
     var card=document.createElement('div');card.className='fcard'+(hero?' hero':'')+(dimmed(c)?' dim':'');card.dataset.i=c._i;
     card.innerHTML=
       '<div class="thumb" style="background:'+c.g+'">'+(hero?'<span class="pick">오늘의 한 방</span>':'')+'</div>'+
@@ -160,16 +173,40 @@ for(var b=0;b<bs.length;b++){(function(el,idx){el.addEventListener('click',funct
 stageEl.addEventListener('mouseleave',function(){if(matchMedia('(hover:hover)').matches)clearHi();});
 svg.addEventListener('click',function(e){if(e.target===svg||e.target.classList.contains('land'))clearHi();});
 
-// 분위기 필터(헤더 칩) — 흐림 토글
-var moodEls=document.querySelectorAll('.tools .mood');
+// 오른쪽 아래 필터 도크
+var bslider=document.getElementById('budget'),bval=document.getElementById('budgetVal');
+budget=+bslider.value;
+function updCount(){var n=0;
+  if(dateMode&&!(dateMode==='custom'&&!dateCustom))n++;
+  if(mood)n++;if(budget<BUDGET_MAX)n++;
+  document.getElementById('fdcount').textContent=n?('· '+n):'';}
+// 날짜(단일 선택 + 달력 지정)
+var dateEls=document.querySelectorAll('.fchip.date');
+var customBox=document.getElementById('customdates');
+function setActiveDate(mode){dateMode=mode;
+  for(var k=0;k<dateEls.length;k++)dateEls[k].classList.toggle('on',dateEls[k].dataset.date===mode);
+  customBox.classList.toggle('show',mode==='custom');}
+for(var di=0;di<dateEls.length;di++){(function(el){el.addEventListener('click',function(){
+  setActiveDate(el.dataset.date);
+  if(dateMode!=='custom')dateCustom=null;
+  updCount();clearHi();render();});})(dateEls[di]);}
+function readCustom(){function k(v){if(!v)return null;var p=v.split('-');return (+p[1])*100+(+p[2]);}
+  var lo=k(document.getElementById('cdStart').value),hi=k(document.getElementById('cdEnd').value);
+  dateCustom=(lo===null&&hi===null)?null:[lo===null?0:lo,hi===null?9999:hi];}
+['cdStart','cdEnd'].forEach(function(id){document.getElementById(id).addEventListener('change',function(){
+  setActiveDate('custom');readCustom();updCount();clearHi();render();});});
+// 분위기(토글)
+var moodEls=document.querySelectorAll('.fchip.moodf');
 for(var mi=0;mi<moodEls.length;mi++){(function(el){el.addEventListener('click',function(){
   var m=el.dataset.mood;mood=(mood===m?null:m);
   for(var k=0;k<moodEls.length;k++)moodEls[k].classList.toggle('on',moodEls[k].dataset.mood===mood);
-  clearHi();render();});})(moodEls[mi]);}
-// 예산 슬라이더 — 실시간 흐림
-var bslider=document.getElementById('budget'),bval=document.getElementById('budgetVal');
-budget=+bslider.value;
-bslider.addEventListener('input',function(){budget=+bslider.value;bval.textContent=Math.round(budget/10000)+'만';clearHi();render();});
+  updCount();clearHi();render();});})(moodEls[mi]);}
+// 예산 슬라이더(실시간)
+bslider.addEventListener('input',function(){budget=+bslider.value;bval.textContent=Math.round(budget/10000)+'만';updCount();clearHi();render();});
+// 접기/펼치기
+var fdock=document.getElementById('fdock');
+document.getElementById('fdtoggle').addEventListener('click',function(){fdock.classList.toggle('collapsed');});
+updCount();
 
 // 화면0: 출발지 5핀
 var AIRPORTS=[{n:'서울',lon:126.99,lat:37.55},{n:'청주',lon:127.50,lat:36.72},{n:'대구',lon:128.66,lat:35.90},{n:'부산',lon:129.03,lat:35.18},{n:'제주',lon:126.49,lat:33.51}];
@@ -252,8 +289,27 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .plabel{font-size:13px;font-weight:800;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3px;pointer-events:none}
 .plabel.minor{font-size:11px;font-weight:700;fill:#4a6a66}
 .stagebar{position:absolute;left:18px;bottom:18px;display:flex;gap:6px}
-.zoom{position:absolute;right:16px;bottom:18px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,40,.12)}
+.zoom{position:absolute;right:16px;top:16px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,40,.12)}
 .zoom button{width:38px;height:38px;border:0;background:none;font-size:1.2rem;color:var(--ink);cursor:pointer}.zoom button+button{border-top:1px solid var(--line)}
+/* 오른쪽 아래 필터 도크 */
+.filterdock{position:absolute;right:16px;bottom:18px;width:270px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(20,40,40,.18);overflow:hidden;z-index:7}
+.fdtoggle{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:#fff;font-weight:800;font-size:.9rem;color:var(--ink);padding:12px 15px;cursor:pointer}
+.fdtoggle #fdcount{color:var(--accent);font-size:.76rem;margin-left:auto;margin-right:8px}
+.fdtoggle i{font-style:normal;color:var(--sub);transition:transform .2s}
+.filterdock.collapsed .fdbody{display:none}
+.filterdock.collapsed .fdtoggle i{transform:rotate(-90deg)}
+.fdbody{padding:2px 15px 15px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line)}
+.fdrow{display:flex;flex-direction:column;gap:7px}
+.fdlabel{font-size:.7rem;font-weight:800;color:var(--sub)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{font-size:.74rem;font-weight:700;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer}
+.fchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.budgetwrap{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--sub)}
+.budgetwrap input{flex:1;accent-color:var(--accent);cursor:pointer}.budgetwrap b{color:var(--ink)}
+.customdates{display:none;gap:6px;align-items:center;margin-top:8px;font-size:.72rem;color:var(--sub)}
+.customdates.show{display:flex}
+.customdates input{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font:inherit;font-size:.72rem;color:var(--ink);accent-color:var(--accent)}
+.feednote{background:var(--soft);border:1px dashed var(--line2,#cfd8d7);border-radius:10px;padding:11px 12px;font-size:.76rem;color:var(--sub);font-weight:600;text-align:center}
 .prompt{position:absolute;left:18px;top:16px;background:#ffffffdd;border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:.74rem;color:var(--sub)}
 .prompt b{color:var(--ink);font-weight:800}
 /* 지도 위 플로팅 카드(핀/항로 끝) */
@@ -294,11 +350,7 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 </style></head><body>
 <div class="hdr"><span class="logo">갈래<em>말래</em></span>
   <span class="nav"><span class="on">발견</span><span>오늘의특가</span><span>노선별</span><span>알림</span></span>
-  <span class="tools">
-    <span class="pill origin" id="originPill">서울 출발 ▾</span>
-    <span class="mood pill" data-mood="해변">해변</span><span class="mood pill" data-mood="도시">도시</span><span class="mood pill" data-mood="온천">온천</span>
-    <label class="budget">예산 <input id="budget" type="range" min="110000" max="260000" step="5000" value="260000"><b id="budgetVal">26만</b> 이하</label>
-  </span>
+  <span class="tools"><span class="pill origin" id="originPill">서울 출발 ▾</span></span>
 </div>
 <div class="layout">
   <div class="intro" id="intro">
@@ -314,6 +366,30 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
     <div class="prompt"><b>카드에 올리면</b> 지도에 항로가 날아가요 · <b>핀에 올리면</b> 카드가 켜져요</div>
     <div class="stagebar"><span class="pill on">가까운 곳</span><span class="pill">＋ 동남아</span><span class="pill">＋ 유럽·미주</span></div>
     <div class="zoom"><button>＋</button><button>－</button></div>
+    <div class="filterdock" id="fdock">
+      <button class="fdtoggle" id="fdtoggle">필터 <span id="fdcount"></span><i>▾</i></button>
+      <div class="fdbody">
+        <div class="fdrow"><span class="fdlabel">언제 갈래요?</span>
+          <div class="chips">
+            <button class="fchip date on" data-date="">아무때</button>
+            <button class="fchip date" data-date="week">이번 주</button>
+            <button class="fchip date" data-date="weekend">이번 주말</button>
+            <button class="fchip date" data-date="nextmonth">다음 달</button>
+            <button class="fchip date" data-date="custom">날짜 지정</button>
+          </div>
+          <div class="customdates" id="customdates">
+            <input type="date" id="cdStart"><span>~</span><input type="date" id="cdEnd">
+          </div></div>
+        <div class="fdrow"><span class="fdlabel">분위기</span>
+          <div class="chips">
+            <button class="fchip moodf" data-mood="해변">해변</button>
+            <button class="fchip moodf" data-mood="도시">도시</button>
+            <button class="fchip moodf" data-mood="온천">온천</button>
+          </div></div>
+        <div class="fdrow"><span class="fdlabel">예산</span>
+          <div class="budgetwrap"><input id="budget" type="range" min="110000" max="260000" step="5000" value="260000"><b id="budgetVal">26만</b> 이하</div></div>
+      </div>
+    </div>
     <div class="hovercard" id="hc"></div>
   </div>
 </div>
