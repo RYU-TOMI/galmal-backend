@@ -2,11 +2,14 @@
 
 다른 세션/사람/AI 모델과 협업할 때 **눈으로 확인**할 수 있는 디자인 근거.
 
-- **storyboard.html** — 발견 지도의 상태별 정지 장면(입장 / 일본 확대 / 호버 / 동남아 축소·확대).
+- **feed_map.html** ⭐ (최신 확정 홈 레이아웃) — 지도(무대) + 좌 "오늘의 발견" 카드 피드 + 핀 플로팅 카드.
+  카드↔지도 양방향 연동(카드 hover→항로, 핀 hover→카드), 날짜·"왜 지금" 훅·갈래/말래. `python design/build_feed_map.py`로 재생성.
+- **storyboard.html** — 발견 지도의 상태별 정지 장면(입장 / 일본 확대 / 호버 / 동남아 축소·확대). LOD(축소=주요, 확대=소도시) 확인용.
   실제 d3-geo 지도·좌표로 렌더되며 d3·world.geojson이 인라인돼 있어 **더블클릭(파일 열기)만으로** 확인 가능.
-- **build_storyboard.py** — 위 HTML 생성기. 도시·뷰·LOD 임계값을 바꿔 다시 뽑으려면:
+- **build_*.py** — 위 HTML 생성기. 도시·뷰·LOD 임계값을 바꿔 다시 뽑으려면:
   ```
-  python design/build_storyboard.py
+  python design/build_feed_map.py     # 홈 레이아웃
+  python design/build_storyboard.py   # LOD 스토리보드
   ```
   (저장소 `docs/assets/d3-*.min.js` + `docs/data/world.geojson`를 읽어 인라인.)
 
