@@ -322,96 +322,14 @@ function subscribeMail() {
 
 
 def build_index(conn, route_index):
-    deals = compute_deals(conn)
-    cards = "\n".join(deal_card(conn, d) for d in deals) if deals else \
-        "<p class='empty'>오늘은 기준(시세 대비 35% 이상 할인)을 넘는 특가가 없습니다. 내일 아침 다시 스캔합니다.</p>"
-    chips = "\n".join(
-        f'<button class="chip{" active" if c == "all" else ""}" data-region="{c}">{lab}</button>'
-        for c, lab in REGION_CHIPS)
-    opts = "\n".join(['<option value="ALL">✈️ 전체 노선</option>'] + [
-        f'<option value="{o}-{d}">{city(o)} → {city(d)} ({o}-{d})</option>'
-        for o, d in config.ROUTES])
-    routelist = "\n".join(
-        f'<li><a href="{BASE_URL}/routes/{code}.html">{city(code[:3])} → {city(code[4:])}'
-        f'<br><span class="rl-price">최저 {price:,}원</span></a></li>'
-        for code, price in route_index)
-    n_offers = conn.execute("SELECT COUNT(*) FROM offers").fetchone()[0]
-    n_days = conn.execute("SELECT COUNT(DISTINCT fetched_date) FROM offers").fetchone()[0]
-    updated = datetime.now(KST).strftime("%m.%d %H:%M")
-
-    origins_js = json.dumps(
-        [{"iata": o, "name": ORIGINS[o], "lat": ORIGIN_COORD[o][0], "lon": ORIGIN_COORD[o][1]}
-         for o in ORIGINS if o in ORIGIN_COORD], ensure_ascii=False)
-
-    body = f"""  <header>
-    <div class="brand" style="font-size:2rem">갈래<em>말래</em> ✈️</div>
-    <p class="tagline">시간 남는데 어디 싸게 갈까? 지도에서 골라보세요.</p>
-  </header>
-
-  <section class="map-stage">
-    <p class="map-prompt">어디서 출발하세요?</p>
-    <svg id="map" viewBox="0 0 800 600" role="img" aria-label="출발 공항 지도"></svg>
-    <p class="map-note" style="color:var(--sub);font-size:.82rem">
-      한국 {len(config.ROUTES)}개 노선 · 가격 데이터 {n_offers:,}건 · 마지막 갱신 {updated}</p>
-  </section>
-
-  <div class="chips">
-{chips}
-  </div>
-
-  <div class="grid">
-{cards}
-  </div>
-
-  <section class="subscribe">
-    <h2>노선 특가 알림 받기</h2>
-    <p>원하는 노선에 특가가 뜨면 메일로 알려드립니다. 노선을 고르고 버튼을 누르면
-       메일 앱이 열립니다 — <b>내용 수정 없이 그대로 보내주시면</b> 다음 수집부터 적용됩니다.</p>
-    <div class="sub-form">
-      <select id="route-sel">
-{opts}
-      </select>
-      <button onclick="subscribeMail()">메일로 구독 신청</button>
-    </div>
-    <p class="hint">해지: 같은 주소로 제목 '구독취소' 메일을 보내주세요.
-       특정 노선만 해지하려면 본문에 노선 코드를 적어주세요.</p>
-  </section>
-
-  <section>
-    <h2>노선별 가격 분석</h2>
-    <p class="lead">각 노선의 최저가 추이와 언제 가면 싼지를 매일 갱신합니다.</p>
-    <ul class="routelist">
-{routelist}
-    </ul>
-  </section>
-
-  <section class="mail">
-    <h2>항공사 프로모션</h2>
-    <ul>
-{mail_deal_rows(conn) or "<li class='empty'>수집된 프로모션이 아직 없습니다.</li>"}
-    </ul>
-  </section>
-
-  <section class="mail">
-    <h2>항공사 소식</h2>
-    <ul>
-{mail_rows(conn)}
-    </ul>
-  </section>"""
-
-    map_scripts = (
-        f'<script>window.__ORIGINS={origins_js};</script>\n'
-        '<script defer src="assets/d3-array.min.js"></script>\n'
-        '<script defer src="assets/d3-geo.min.js"></script>\n'
-        '<script defer src="assets/map.js"></script>\n'
-    )
+    """발견 홈(docs/index.html) — deals.json + world.geojson 인라인."""
+    from discover_home import render_home
+    dj = (DOCS / "data" / "deals.json").read_text(encoding="utf-8")
+    wj = (DOCS / "data" / "world.geojson").read_text(encoding="utf-8")
+    data = json.loads(dj)
     DOCS.mkdir(parents=True, exist_ok=True)
-    (DOCS / "index.html").write_text(
-        page(f"{SITE_NAME} — 어디 싸게 갈까? 항공권 특가 지도",
-             "시간 남는데 어디 싸게 갈까? 한국 출발 항공권 가격을 매일 스캔해 "
-             "지도에서 싼 여행지를 골라보세요. 노선별 가격 추이와 이메일 알림도 무료.",
-             "/", body, map_scripts + INDEX_JS), encoding="utf-8")
-    return len(deals)
+    (DOCS / "index.html").write_text(render_home(data, dj, wj, route_index), encoding="utf-8")
+    return len(data.get("deals", []))
 
 
 # ---------------------------------------------------------------- SEO 파일
@@ -441,11 +359,11 @@ def main():
         result = route_page(conn, origin, dest)
         if result:
             route_index.append(result)
-    n_deals = build_index(conn, route_index)
     n_disc = build_deals_json(conn)
+    n_deals = build_index(conn, route_index)
     build_seo(route_index)
     conn.close()
-    print(f"생성 완료: index(특가 {n_deals}건) + 발견 deals.json({n_disc}건) "
+    print(f"생성 완료: 발견 홈({n_deals}딜) + deals.json({n_disc}건) "
           f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots")
 
 
