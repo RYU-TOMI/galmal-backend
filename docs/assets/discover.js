@@ -187,6 +187,7 @@
       "</div></div>";
   }
   function positionCard(c) {
+    if (window.innerWidth <= 860) { hc.style.left = ""; hc.style.top = ""; return; }  // 모바일=하단 시트(CSS)
     var cp = svgToClient(c.x, c.y), box = stageEl.getBoundingClientRect(), h = hc.offsetHeight;
     var left = cp.x - box.left, top = cp.y - box.top - 16 - h; if (top < 8) top = cp.y - box.top + 20;
     left = Math.max(120, Math.min(box.width - 120, left)); hc.style.left = left + "px"; hc.style.top = top + "px";
@@ -229,6 +230,7 @@
   if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = Math.round(budget / 10000) + "만"; updCount(); collapse(); render(); });
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
+  if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작
 
   // ---- 화면0: 출발지 선택 ----
   function renderIntro() {
