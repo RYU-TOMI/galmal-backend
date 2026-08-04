@@ -122,7 +122,10 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
   .feedhead{order:-1;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;padding:0 4px 0 2px;border:0}
   .fh-top{display:none}
   .sortbar{flex-direction:column;gap:6px;margin:0}
-  .fcard{flex:0 0 230px}.fcard.hero{flex-direction:row}.fcard.hero .thumb{width:62px;height:62px;margin:0}
+  /* 모바일 카드 = 세로 포스터형으로 통일(높이 균일, hero 배지 정상) */
+  .fcard{flex:0 0 208px;flex-direction:column;gap:0;padding:10px}
+  .fcard .thumb{width:100%;height:96px;flex:0 0 auto;margin:0 0 8px}
+  .fcard.hero .thumb{height:96px}
   .feednote{flex:0 0 200px}
   .gorow{display:none}
   /* 지도 위 요소 정리 */
