@@ -214,7 +214,7 @@
   function expand(i) { expandedI = i; showCard(i, true, true); }
   function clearHi() { if (expandedI !== null) return; active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
   function collapse() { expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
-  hc.addEventListener("click", function (e) { e.stopPropagation(); });
+  hc.addEventListener("click", function (e) { e.stopPropagation(); if (expandedI === null && active !== null) expand(active); });
 
   // ---- 단계 · 필터 도크 ----
   function setStage(idx) { stageIdx = idx; collapse(); render(); var bs = document.querySelectorAll(".stagebar .pill"); for (var k = 0; k < bs.length; k++) bs[k].classList.toggle("on", k === idx); }

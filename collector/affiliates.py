@@ -107,14 +107,18 @@ def google_flights_link(origin, dest, depart_date, return_date=None):
 
 
 def compare_links(origin, dest, depart_date, return_date=None):
-    """예약처 비교 목록 [{name, url, tag}] — 한국어·메타 우선, Aviasales 마지막(수수료)."""
-    return [
+    """예약처 비교 목록 [{name, url, tag}] — 한국어 메타/OTA 우선.
+    Aviasales(영어)는 수수료 마커(TP_MARKER)가 있을 때만 = 실제로 수익 날 때만 노출.
+    한국인 전용 사이트라 마커 없으면 영어 예약처는 숨긴다."""
+    links = [
         {"name": "스카이스캐너", "tag": "전체 비교",
          "url": skyscanner_link(origin, dest, depart_date, return_date)},
         {"name": "구글 항공권", "tag": "중립",
          "url": google_flights_link(origin, dest, depart_date, return_date)},
         {"name": "Trip.com", "tag": "한국어",
          "url": trip_link(origin, dest, depart_date, return_date)},
-        {"name": "Aviasales", "tag": "영어",
-         "url": aviasales_link(origin, dest, depart_date, return_date)},
     ]
+    if _env("TP_MARKER"):
+        links.append({"name": "Aviasales", "tag": "영어·수수료",
+                      "url": aviasales_link(origin, dest, depart_date, return_date)})
+    return links
