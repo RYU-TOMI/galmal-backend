@@ -187,10 +187,9 @@
   function compactHTML(c) { return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
   function compareHTML(links) {
     if (!links || !links.length) return "";
-    return '<div class="hc-compare">' + links.map(function (l, i) {
-      return '<a class="cmp' + (i === 0 ? " hero" : "") + '" href="' + l.url + '" target="_blank" rel="noopener sponsored">' +
+    return '<div class="hc-compare">' + links.map(function (l) {
+      return '<a class="cmp" href="' + l.url + '" target="_blank" rel="noopener sponsored">' +
         '<span class="cmp-name">' + l.name + '</span>' +
-        '<span class="cmp-tag">' + l.tag + '</span>' +
         '<span class="cmp-go">최저가 보기 →</span></a>';
     }).join("") + "</div>";
   }
