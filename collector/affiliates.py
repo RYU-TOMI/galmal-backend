@@ -35,22 +35,29 @@ def _trip_configured():
                ("TP_MARKER", "TP_TRIP_TRS", "TP_TRIP_P", "TP_TRIP_CAMPAIGN"))
 
 
-def trip_deeplink(origin, dest, depart_date, return_date):
-    """kr.trip.com 왕복 검색 딥링크를 tp.media 제휴 래퍼로 감싸 반환."""
-    target = ("https://kr.trip.com/flights/showfarefirst"
-              f"?dcity={origin.lower()}&acity={dest.lower()}"
-              f"&ddate={depart_date}&rdate={return_date}"
-              "&triptype=rt&class=y&quantity=1&locale=ko-KR&curr=KRW")
-    return ("https://tp.media/r"
-            f"?marker={_env('TP_MARKER')}&trs={_env('TP_TRIP_TRS')}"
-            f"&p={_env('TP_TRIP_P')}&campaign_id={_env('TP_TRIP_CAMPAIGN')}"
-            f"&u={urllib.parse.quote(target, safe='')}")
+def _trip_target(origin, dest, depart_date, return_date):
+    base = ("https://kr.trip.com/flights/showfarefirst"
+            f"?dcity={origin.lower()}&acity={dest.lower()}"
+            f"&ddate={depart_date}&class=y&quantity=1&locale=ko-KR&curr=KRW")
+    if return_date:
+        return base + f"&rdate={return_date}&triptype=rt"
+    return base + "&triptype=ow"
+
+
+def trip_link(origin, dest, depart_date, return_date=None):
+    """kr.trip.com(한국어) 검색 링크. 제휴 설정 시 tp.media 래퍼로 감싸 수수료 발생,
+    미설정 시 순수 Trip.com 링크(수수료 없음, 사용자 UX는 동일하게 한국어)."""
+    target = _trip_target(origin, dest, depart_date, return_date)
+    if _trip_configured():
+        return ("https://tp.media/r"
+                f"?marker={_env('TP_MARKER')}&trs={_env('TP_TRIP_TRS')}"
+                f"&p={_env('TP_TRIP_P')}&campaign_id={_env('TP_TRIP_CAMPAIGN')}"
+                f"&u={urllib.parse.quote(target, safe='')}")
+    return target
 
 
 def booking_link(deal):
-    """딜에 대한 (예약 URL, 예약처 이름) 반환. Trip.com 미설정 시 Aviasales 폴백."""
-    if _trip_configured():
-        return (trip_deeplink(deal["origin"], deal["destination"],
-                              deal["depart_date"], deal["return_date"]),
-                "Trip.com")
-    return deal["link"], "Aviasales"
+    """딜 dict → (예약 URL, 예약처 이름). 항상 Trip.com 한국어."""
+    return (trip_link(deal["origin"], deal["destination"],
+                      deal.get("depart_date"), deal.get("return_date")),
+            "Trip.com")

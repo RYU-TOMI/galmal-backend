@@ -39,7 +39,7 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓",
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country };
+      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, book: dl.book };
   }
 
   // ---- 파싱/공용 ----
@@ -182,8 +182,8 @@
     return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail"><div class="hc-sec">최근 가격 추이</div>' + spark() +
       '<div class="hc-sec">' + (c.tags.indexOf("경유") >= 0 ? "" : "직항 · ") + "최저가 기준일</div>" +
-      '<a class="hc-cta big">갈래 → 예약하러 가기</a>' +
-      '<div class="hc-ad">예약이 이뤄지면 수수료를 받을 수 있어요 · (광고)</div>' +
+      '<a class="hc-cta big" href="' + (c.book || "#") + '" target="_blank" rel="noopener sponsored">갈래 → Trip.com에서 예약</a>' +
+      '<div class="hc-ad">Trip.com(한국어)로 이동 · 예약 시 수수료를 받을 수 있어요 · (광고)</div>' +
       "</div></div>";
   }
   function positionCard(c) {
