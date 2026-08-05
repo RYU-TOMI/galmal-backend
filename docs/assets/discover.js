@@ -39,7 +39,7 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓",
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [] };
+      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0 };
   }
 
   // ---- 파싱/공용 ----
@@ -172,10 +172,17 @@
       '<div class="hc-why">' + c.why + "</div>" +
       '<div class="hc-tags">' + c.tags.map(function (t) { return '<span class="tag">' + t + "</span>"; }).join("") + "</div>";
   }
-  function spark() {
-    var pts = [28, 25, 30, 22, 26, 19, 24, 16, 20, 15], Ws = 152, Hs = 38, st = Ws / (pts.length - 1), mi = pts.indexOf(Math.min.apply(null, pts));
-    var co = pts.map(function (v, i) { return [Math.round(i * st), Math.round(Hs - (v / 32 * Hs))]; });
-    return '<svg class="spark" viewBox="0 0 ' + Ws + " " + Hs + '"><path d="M' + co.map(function (p) { return p[0] + "," + p[1]; }).join(" L") + '" fill="none" stroke="var(--coast)" stroke-width="2"/><circle cx="' + co[mi][0] + '" cy="' + co[mi][1] + '" r="3.5" fill="var(--accent)"/></svg>';
+  function priceCompare(c) {
+    // 실데이터: 평소 시세(중앙값) 대비 발견가. 할인 없으면 생략.
+    var now = num(c.price), med = c.median || 0;
+    if (!med || med <= now) return "";
+    var w = Math.max(12, Math.round(now / med * 100)), pct = Math.round((med - now) / med * 100);
+    return '<div class="hc-sec">평소 시세와 비교</div>' +
+      '<div class="pc">' +
+      '<div class="pc-row"><span>평소 시세(중앙값)</span><span>₩' + med.toLocaleString("en-US") + "</span></div>" +
+      '<div class="pc-bar"><div class="pc-fill" style="width:' + w + '%"></div></div>' +
+      '<div class="pc-row now"><span>발견가</span><span>₩' + c.price + " · " + pct + "%↓</span></div>" +
+      "</div>";
   }
   function compactHTML(c) { return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
   function compareHTML(links) {
@@ -190,15 +197,22 @@
   function detailHTML(c) {
     return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail">' +
-      '<div class="hc-sec">최근 가격 추이</div>' + spark() +
+      priceCompare(c) +
       '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links) +
       '<div class="hc-ad">위 가격은 발견가(스캔 시점) · 실시간 최저가는 각 사이트에서 확인하세요 · 일부는 예약 시 수수료 (광고)</div>' +
       "</div></div>";
   }
   function positionCard(c) {
-    if (window.innerWidth <= 860) { hc.style.left = ""; hc.style.top = ""; return; }  // 모바일=하단 시트(CSS)
+    if (window.innerWidth <= 860) { hc.style.left = ""; hc.style.top = ""; hc.style.maxHeight = ""; return; }  // 모바일=하단 시트(CSS)
     var cp = svgToClient(c.x, c.y), box = stageEl.getBoundingClientRect(), h = hc.offsetHeight;
-    var left = cp.x - box.left, top = cp.y - box.top - 16 - h; if (top < 8) top = cp.y - box.top + 20;
+    var maxH = box.height - 16;
+    if (h > maxH) { hc.style.maxHeight = maxH + "px"; hc.style.overflowY = "auto"; h = maxH; }
+    else { hc.style.maxHeight = ""; hc.style.overflowY = ""; }
+    var left = cp.x - box.left, top = cp.y - box.top - 16 - h;
+    if (top < 8) {  // 위로 안 들어가면 아래로, 그래도 넘치면 무대 안에 고정
+      top = cp.y - box.top + 20;
+      if (top + h > box.height - 8) top = Math.max(8, box.height - 8 - h);
+    }
     left = Math.max(120, Math.min(box.width - 120, left)); hc.style.left = left + "px"; hc.style.top = top + "px";
   }
   function showCard(i, scroll, expanded) {
