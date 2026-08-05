@@ -30,6 +30,14 @@ def _yymmdd(iso):
     return f"{d.year % 100:02d}{d.month:02d}{d.day:02d}"
 
 
+def _yyyymmdd(iso):
+    d = date.fromisoformat(iso)
+    return f"{d.year:04d}{d.month:02d}{d.day:02d}"
+
+
+_KR_AIRPORTS = {"ICN", "GMP", "PUS", "TAE", "CJU"}
+
+
 def _env(name):
     val = os.environ.get(name)
     if val:
@@ -106,6 +114,16 @@ def google_flights_link(origin, dest, depart_date, return_date=None):
             + urllib.parse.quote(q))
 
 
+def naver_link(origin, dest, depart_date, return_date=None):
+    """네이버 항공권 — 한국인 최다 이용·자체 비교. 국내선/국제선 자동 구분."""
+    o, d = origin.upper(), dest.upper()
+    kind = "domestic" if d in _KR_AIRPORTS else "international"
+    path = f"{o}-{d}-{_yyyymmdd(depart_date)}"
+    if return_date:
+        path += f"/{d}-{o}-{_yyyymmdd(return_date)}"
+    return f"https://flight.naver.com/flights/{kind}/{path}?adult=1&fareType=Y"
+
+
 def compare_links(origin, dest, depart_date, return_date=None):
     """예약처 비교 목록 [{name, url, tag}] — 한국어 메타/OTA 우선.
     Aviasales(영어)는 수수료 마커(TP_MARKER)가 있을 때만 = 실제로 수익 날 때만 노출.
@@ -113,6 +131,8 @@ def compare_links(origin, dest, depart_date, return_date=None):
     links = [
         {"name": "스카이스캐너", "tag": "전체 비교",
          "url": skyscanner_link(origin, dest, depart_date, return_date)},
+        {"name": "네이버 항공권", "tag": "한국 인기",
+         "url": naver_link(origin, dest, depart_date, return_date)},
         {"name": "구글 항공권", "tag": "중립",
          "url": google_flights_link(origin, dest, depart_date, return_date)},
         {"name": "Trip.com", "tag": "한국어",
