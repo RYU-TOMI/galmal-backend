@@ -39,7 +39,7 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓",
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, book: dl.book };
+      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [] };
   }
 
   // ---- 파싱/공용 ----
@@ -178,12 +178,21 @@
     return '<svg class="spark" viewBox="0 0 ' + Ws + " " + Hs + '"><path d="M' + co.map(function (p) { return p[0] + "," + p[1]; }).join(" L") + '" fill="none" stroke="var(--coast)" stroke-width="2"/><circle cx="' + co[mi][0] + '" cy="' + co[mi][1] + '" r="3.5" fill="var(--accent)"/></svg>';
   }
   function compactHTML(c) { return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
+  function compareHTML(links) {
+    if (!links || !links.length) return "";
+    return '<div class="hc-compare">' + links.map(function (l, i) {
+      return '<a class="cmp' + (i === 0 ? " hero" : "") + '" href="' + l.url + '" target="_blank" rel="noopener sponsored">' +
+        '<span class="cmp-name">' + l.name + '</span>' +
+        '<span class="cmp-tag">' + l.tag + '</span>' +
+        '<span class="cmp-go">최저가 보기 →</span></a>';
+    }).join("") + "</div>";
+  }
   function detailHTML(c) {
     return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
-      '<div class="hc-detail"><div class="hc-sec">최근 가격 추이</div>' + spark() +
-      '<div class="hc-sec">' + (c.tags.indexOf("경유") >= 0 ? "" : "직항 · ") + "최저가 기준일</div>" +
-      '<a class="hc-cta big" href="' + (c.book || "#") + '" target="_blank" rel="noopener sponsored">갈래 → Trip.com에서 예약</a>' +
-      '<div class="hc-ad">Trip.com(한국어)로 이동 · 예약 시 수수료를 받을 수 있어요 · (광고)</div>' +
+      '<div class="hc-detail">' +
+      '<div class="hc-sec">최근 가격 추이</div>' + spark() +
+      '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links) +
+      '<div class="hc-ad">위 가격은 발견가(스캔 시점) · 실시간 최저가는 각 사이트에서 확인하세요 · 일부는 예약 시 수수료 (광고)</div>' +
       "</div></div>";
   }
   function positionCard(c) {

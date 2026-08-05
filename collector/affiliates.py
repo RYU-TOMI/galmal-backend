@@ -14,9 +14,20 @@ Trip.com 프로그램 가입 후 아래 4개 값을 .env / GitHub Secrets에 넣
 """
 import os
 import urllib.parse
+from datetime import date
 from pathlib import Path
 
 _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+
+
+def _ddmm(iso):
+    d = date.fromisoformat(iso)
+    return f"{d.day:02d}{d.month:02d}"
+
+
+def _yymmdd(iso):
+    d = date.fromisoformat(iso)
+    return f"{d.year % 100:02d}{d.month:02d}{d.day:02d}"
 
 
 def _env(name):
@@ -57,7 +68,53 @@ def trip_link(origin, dest, depart_date, return_date=None):
 
 
 def booking_link(deal):
-    """딜 dict → (예약 URL, 예약처 이름). 항상 Trip.com 한국어."""
+    """딜 dict → (예약 URL, 예약처 이름). 항상 Trip.com 한국어. (하위호환)"""
     return (trip_link(deal["origin"], deal["destination"],
                       deal.get("depart_date"), deal.get("return_date")),
             "Trip.com")
+
+
+# ---------------------------------------------------------------- 비교 패널
+# 특정 예약처를 밀지 않고 여러 곳을 나란히 — 사용자가 최저가를 직접 고른다.
+# 수수료 되는 곳(Aviasales)엔 마커 자동, 나머지는 순수 검색 링크(한국어 UX 우선).
+
+def aviasales_link(origin, dest, depart_date, return_date=None):
+    """Aviasales 검색 딥링크 + 우리 마커(승인된 유일 수수료원). 영어 UX."""
+    seg = f"{origin.upper()}{_ddmm(depart_date)}{dest.upper()}"
+    if return_date:
+        seg += _ddmm(return_date)
+    url = f"https://www.aviasales.com/search/{seg}1"
+    marker = _env("TP_MARKER")
+    return url + (f"?marker={marker}" if marker else "")
+
+
+def skyscanner_link(origin, dest, depart_date, return_date=None):
+    """스카이스캐너 KR — 전체 비교(메타)·한국어."""
+    path = f"{origin.lower()}/{dest.lower()}/{_yymmdd(depart_date)}/"
+    if return_date:
+        path += f"{_yymmdd(return_date)}/"
+    return (f"https://www.skyscanner.co.kr/transport/flights/{path}"
+            "?adults=1&currency=KRW&market=KR&locale=ko-KR")
+
+
+def google_flights_link(origin, dest, depart_date, return_date=None):
+    """구글 항공권 — 중립·한국어. q 기반 best-effort 프리필."""
+    q = f"{origin.upper()} to {dest.upper()} on {depart_date}"
+    if return_date:
+        q += f" through {return_date}"
+    return ("https://www.google.com/travel/flights?hl=ko&curr=KRW&q="
+            + urllib.parse.quote(q))
+
+
+def compare_links(origin, dest, depart_date, return_date=None):
+    """예약처 비교 목록 [{name, url, tag}] — 한국어·메타 우선, Aviasales 마지막(수수료)."""
+    return [
+        {"name": "스카이스캐너", "tag": "전체 비교",
+         "url": skyscanner_link(origin, dest, depart_date, return_date)},
+        {"name": "구글 항공권", "tag": "중립",
+         "url": google_flights_link(origin, dest, depart_date, return_date)},
+        {"name": "Trip.com", "tag": "한국어",
+         "url": trip_link(origin, dest, depart_date, return_date)},
+        {"name": "Aviasales", "tag": "영어",
+         "url": aviasales_link(origin, dest, depart_date, return_date)},
+    ]

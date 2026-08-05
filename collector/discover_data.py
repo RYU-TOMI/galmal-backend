@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import dests
-from affiliates import trip_link
+from affiliates import compare_links
 
 KST = timezone(timedelta(hours=9))
 DOCS = Path(__file__).resolve().parent.parent / "docs"
@@ -99,8 +99,8 @@ def build_deals_json(conn):
             "dep": dd["dep"], "ret": dd["ret"],
             "nights": (f"{n}박{n + 1}일" if n else ""),
             "median": med, "discount": disc, "when": _when_label(dep, today),
-            # 예약 링크는 실제 공항코드(_oi: ICN/GMP/PUS…)로 — SEL은 공항이 아님
-            "book": trip_link(dd["_oi"], dd["d"], dd["dep"], dd["ret"]),
+            # 예약처 비교 링크는 실제 공항코드(_oi: ICN/GMP/PUS…)로 — SEL은 공항이 아님
+            "links": compare_links(dd["_oi"], dd["d"], dd["dep"], dd["ret"]),
         })
 
     deals.sort(key=lambda x: x["price"])
