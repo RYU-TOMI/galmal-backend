@@ -189,6 +189,18 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 참고: `discount=0`인 딜 23건 중 22건은 표본 4건 이상으로 **시세가 제대로 계산된**
     정직한 0이다(프론트 B24는 도장 문구 문제이지 데이터 문제가 아님을 실측으로 확인).
 
+- **BB13. `fetched_date`와 collect 커밋 라벨이 UTC 날짜라 하루 밀려 보인다.**
+  크론이 22:10 UTC에 돌아 `date.today()`(러너 UTC)로 `fetched_date`를 찍고,
+  커밋 메시지도 `date -u`를 쓴다. 그래서 **KST 08-21 아침 7시에 성공한 수집이
+  `2026-08-20`으로 기록**된다. 한국 전용 서비스라 읽는 사람은 전부 KST로 해석한다.
+  - 2026-08-22 실제로 오해가 발생했다. 기획 세션이 "크론이 2일째 안 돈다"고
+    사고 보고를 올렸으나, 실행 이력상 6일 연속 성공이었고 마지막 실행은 20시간 전,
+    다음 실행은 4시간 뒤였다. `found_at`(BB11)에 이어 **같은 함정에 두 번째로 걸린 것**이다.
+  - 고치려면 `fetched_date` 의미가 바뀌므로 `detect_deals`·`discover_data`의 날짜
+    비교와 기존 행 전부에 영향이 간다. 되돌릴 수 없는 데이터라 신중히 — BE1에서 판단한다.
+  - 최소 조치안: 커밋 메시지만 KST로 바꾸고(`date -u -d '+9 hours'`), `fetched_date`는
+    UTC로 두되 그 사실을 `CONTRACT.md`·`BACKEND.md`에 명시.
+
 ### 미분류
 - **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
   `file://`로도 열리게 한 의도적 선택이지만(`PROJECT.md`) 비용 측정은 안 됐다.
