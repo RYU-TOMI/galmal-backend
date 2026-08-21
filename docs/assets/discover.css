@@ -44,7 +44,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .ftags{display:flex;gap:4px;margin-top:7px}.tag{font-size:.6rem;background:var(--soft);border-radius:99px;padding:2px 7px;color:var(--sub);font-weight:700}
 .gorow{display:flex;gap:7px;margin-top:11px}
 .go{flex:1;background:var(--accent);color:#fff;border:0;font-weight:800;font-size:.8rem;border-radius:9px;padding:9px 0;cursor:pointer}
-.skip{flex:0 0 74px;background:#fff;color:var(--sub);border:1.5px solid var(--line);font-weight:800;font-size:.8rem;border-radius:9px;cursor:pointer}
 /* 지도 무대 */
 .stage{flex:1 1 auto;position:relative;min-width:0}
 svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;background:var(--sea);touch-action:manipulation}
@@ -95,8 +94,6 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .hovercard.expanded{width:238px;pointer-events:auto}
 .hc-detail{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
 .hc-sec{font-size:.63rem;font-weight:800;color:var(--sub);margin:2px 0 6px}
-.spark{width:100%;height:38px;display:block;margin-bottom:8px}
-.hc-cta.big{display:block;margin-top:10px}
 .hc-ad{font-size:.56rem;color:var(--sub);opacity:.85;margin-top:6px;text-align:center}
 /* 필터 흐림(dim) */
 .pin.dim{opacity:.28}.pin.dim .core{stroke-width:1.4}
