@@ -6,6 +6,8 @@
   카드↔지도 양방향 연동(카드 hover→항로, 핀 hover→카드), 날짜·"왜 지금" 훅·갈래/말래. `python design/build_feed_map.py`로 재생성.
 - **storyboard.html** — 발견 지도의 상태별 정지 장면(입장 / 일본 확대 / 호버 / 동남아 축소·확대). LOD(축소=주요, 확대=소도시) 확인용.
   실제 d3-geo 지도·좌표로 렌더되며 d3·world.geojson이 인라인돼 있어 **더블클릭(파일 열기)만으로** 확인 가능.
+- **freshness.html** — 신선도 배지 확정 스펙(등급 3단계·부착 위치 3곳·실측 분포·기각안·계약 영향).
+  손으로 쓴 정적 페이지라 생성기 없음. `../DESIGN.md`의 "신선도 배지" 섹션의 시각 대응물.
 - **build_*.py** — 위 HTML 생성기. 도시·뷰·LOD 임계값을 바꿔 다시 뽑으려면:
   ```
   python design/build_feed_map.py     # 홈 레이아웃
