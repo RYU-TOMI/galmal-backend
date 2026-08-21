@@ -72,8 +72,9 @@
     return null;
   }
   function dateDim(c) { var w = dateWindow(); if (!w) return false; return c.dep < w[0] || c.dep > w[1]; }
-  function dimmed(c) { return (mood && c.tags.indexOf(mood) < 0) || (num(c.price) > budget) || dateDim(c); }
-  function anyFilter() { return mood || dateMode || budget < BUDGET_MAX; }
+  function budgetOn() { return budget < BUDGET_MAX; }  // 슬라이더가 최대면 예산 필터는 꺼진 것
+  function dimmed(c) { return (mood && c.tags.indexOf(mood) < 0) || (budgetOn() && num(c.price) > budget) || dateDim(c); }
+  function anyFilter() { return mood || dateMode || budgetOn(); }
 
   function visibleCities() {
     var out = [];
@@ -238,7 +239,7 @@
 
   if (bslider) { budget = +bslider.value; }
   function updCount() {
-    var n = 0; if (dateMode && !(dateMode === "custom" && !dateCustom)) n++; if (mood) n++; if (budget < BUDGET_MAX) n++;
+    var n = 0; if (dateMode && !(dateMode === "custom" && !dateCustom)) n++; if (mood) n++; if (budgetOn()) n++;
     var el = document.getElementById("fdcount"); if (el) el.textContent = n ? ("· " + n) : "";
   }
   var dateEls = document.querySelectorAll(".fchip.date"), customBox = document.getElementById("customdates");

@@ -10,6 +10,8 @@
 | `DESIGN.md` | 디자인 시스템 + 발견 인터랙션·LOD·가격 정책 (**확정 스펙**) |
 | `CONTRACT.md` | **프론트↔백엔드 데이터 계약**(deals.json 스키마) |
 | `DECISIONS.md` | **왜 그렇게 정했나 + 기각된 대안** — 이미 폐기된 길을 다시 파기 전에 확인 |
+| `FRONTEND.md` | **프론트 세션 작업 방식**(챕터·태스크·스코프 잠금·QA·리빌드 규칙) + 챕터 로드맵 |
+| `BACKLOG.md` | 프론트가 발견했지만 **아직 안 고친 것** — 중복 발견 방지 |
 
 ## 세션 3개와 담당 구역
 
@@ -23,6 +25,7 @@
 
 ### 2) 프론트 (frontend) — deals.json **소비자**
 - **소유**: `docs/assets/discover.js` · `docs/assets/discover.css` · `collector/discover_home.py`(HTML 셸 템플릿) · `docs/assets/`의 벤더 라이브러리
+- **소유(문서)**: `FRONTEND.md`(작업 방식·챕터 로드맵) · `BACKLOG.md`(곁가지 적재소) — 다른 세션은 읽기만.
 - **역할**: 지도·카드 피드·필터 도크·확장 상세·반응형·인터랙션.
 - **개발 방식**: 커밋된 `docs/data/deals.json`을 **픽스처**로 사용 → 백엔드를 기다리지 않는다.
 - **금지**: `collector/`의 데이터 로직(`discover_data.py`, `affiliates.py`, `dests.py`, 수집기), `build_site.py`.
