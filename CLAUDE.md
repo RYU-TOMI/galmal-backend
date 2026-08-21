@@ -12,6 +12,7 @@
 | `DECISIONS.md` | **왜 그렇게 정했나 + 기각된 대안** — 이미 폐기된 길을 다시 파기 전에 확인 |
 | `FRONTEND.md` | **프론트 세션 작업 방식**(챕터·태스크·스코프 잠금·QA·리빌드 규칙) + 챕터 로드맵 |
 | `BACKLOG.md` | 프론트가 발견했지만 **아직 안 고친 것** — 중복 발견 방지 |
+| `BACKEND.md` | **백엔드 세션 작업 방식**(챕터·태스크·DoD·산출물 커밋 규칙) + 챕터 로드맵 + 곁가지 백로그 |
 
 ## 세션 3개와 담당 구역
 
@@ -31,7 +32,8 @@
 - **금지**: `collector/`의 데이터 로직(`discover_data.py`, `affiliates.py`, `dests.py`, 수집기), `build_site.py`.
 
 ### 3) 백엔드 (backend) — deals.json **생산자**
-- **소유**: `collector/*.py` 전부(단 `discover_home.py` 제외) · `build_site.py` · `.github/workflows/` · `data/`
+- **소유**: `collector/*.py` 전부(단 `discover_home.py` 제외) · `build_site.py` · `.github/workflows/` · `data/` · `tests/`
+- **소유(문서)**: `BACKEND.md`(작업 방식·챕터 로드맵·곁가지 백로그) — 다른 세션은 읽기만.
 - **역할**: 수집(가격·광역·메일)·특가 판정·`deals.json` 생성·예약/비교 링크·크론·SEO 페이지.
 - **금지**: `docs/assets/discover.js|css`, `discover_home.py`.
 
