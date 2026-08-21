@@ -179,6 +179,16 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 > 가격조차 8.8h 된 것이 되어 말이 안 되고, 최대 나이도 103h로 필터 자신의 컷(96h)을 넘어버린다.
 > **결론(UTC 변환 필요)은 기획이 맞다. 근거 숫자만 정정하면 된다.**
 
+- **BB12. 이력이 없는 목적지에 `median`을 지어낸다.** `discover_data.py`의
+  `med = _median(hist) or dd["price"]`가 이력이 0건일 때 **현재가를 평소 시세라고
+  단언**한다. 우리가 모르는 값을 아는 척하는 것이라 "가짜 데이터 금지"(`DECISIONS.md`)와
+  성격이 같다. 지금은 94건 중 1건뿐이고 `median == price`면 프론트가 비교 막대를
+  생략해 화면상 피해는 없지만, 새 목적지를 추가할 때마다 늘어난다.
+  - 정직한 값은 `median: null`이지만 계약상 `median`이 number라 **계약 변경이 필요**하다.
+    기획·프론트 합의 후 BE2에서 다룬다.
+  - 참고: `discount=0`인 딜 23건 중 22건은 표본 4건 이상으로 **시세가 제대로 계산된**
+    정직한 0이다(프론트 B24는 도장 문구 문제이지 데이터 문제가 아님을 실측으로 확인).
+
 ### 미분류
 - **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
   `file://`로도 열리게 한 의도적 선택이지만(`PROJECT.md`) 비용 측정은 안 됐다.
