@@ -100,7 +100,7 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 
 | # | 챕터 | 범위 | 상태 |
 |---|---|---|---|
-| **BE0** | **검증 기반** | 순수 함수 유닛테스트 · `deals.json` 계약 검증기 · CI test job | **진행 중** |
+| **BE0** | **검증 기반** | 순수 함수 유닛테스트 · `deals.json` 계약 검증기 · CI test job | **진행 중** (T1 완료) |
 | BE1 | 파이프라인 신뢰성 | 수집 실패 시 사이트가 비는 문제 · 크론 실패 감지 · DB 성장 관리 | 대기 |
 | BE2 | 데이터 품질·신선도 | `found_at` 노출(계약 v1.1) · `median` 윈도우 · 할인율 산식 | 대기 |
 | BE3 | 발견 데이터 확장 | 목적지 사전·좌표 검증 · 프론트 요청 필드 대응 | 대기 |
@@ -134,6 +134,19 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   `detect_deals`는 `BASELINE_DAYS=30` 창을 쓰는 것과 대비된다.
 - **BB5. `found_at`이 저장돼 있는데 계약에 안 나간다.** `broad_offers.found_at`은 있으나
   `build_deals_json()`의 SELECT에 없다. → **프론트 요청 B8과 같은 항목**(§8 참조).
+
+- **BB7. `_when_label`이 이번 달 출발을 이번 달 이름으로 표시한다.** 8월에 8월 말 평일
+  출발이면 `when`이 `"8월"`이 된다(주말도 이번 주도 다음 달도 아니라 월 이름으로 떨어짐).
+  오늘이 8월인 사용자에게 "8월"은 정보가 없다. 2026-08-21자 `deals.json`에 3건
+  (푸꾸옥 8/31, 로스앤젤레스 8/31, 오클랜드 8/30). 오늘이 월초면 그 달 22일치가 해당된다.
+- **BB8. `when` 라벨에 연도 구분이 없다.** `f"{dep.month}월"`이라 이듬해 출발도 `"1월"`·`"3월"`로
+  나간다. 2026-08-21자 `deals.json`의 2027년 출발 12건이 전부 이렇다(하노이 2027-01-01 →
+  `"1월"`, 멜버른 2027-03-01 → `"3월"`). 사용자가 지나간 달로 읽을 수 있다.
+- **BB9. `dests.py` docstring의 통제 어휘와 실제 태그가 다르다.** docstring은 9종
+  (`해변 도시 자연 온천 쇼핑 미식 액티비티 휴양 문화`)을 선언하는데 실제로는 12종이 쓰인다.
+  어휘 밖 3종은 `야시장`(TPE)·`유적`(REP/RGN/DEL/IST/FCO)·`트레킹`(KTM).
+  `CONTRACT.md`가 태그를 "필터·사진 색 선택에 사용"이라 명시하므로 프론트에 영향이 갈 수 있다.
+  docstring을 실제에 맞출지 태그를 9종으로 흡수할지는 **기획 세션 확인 필요** — 단독 결정 금지.
 
 ### 미분류
 - **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
