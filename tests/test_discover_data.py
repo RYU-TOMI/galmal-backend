@@ -9,10 +9,17 @@
    해당 케이스에 BB 번호를 달아 두었다(`BACKEND.md` 곁가지 백로그).
    BE2에서 고치면 이 테스트들이 실패하면서 무엇이 바뀌었는지 알려준다.
 """
+import json
+import sqlite3
+import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from unittest import mock
 
-from discover_data import _median, _when_label
+import db
+import discover_data
+from discover_data import SEEN_MAX_DAYS, _median, _seen_kst, _when_label
 
 
 class MedianTest(unittest.TestCase):
@@ -117,3 +124,99 @@ class WhenLabelTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SeenConversionTest(unittest.TestCase):
+    """`_seen_kst` — API의 naive `found_at`(UTC)을 KST로.
+
+    여기가 틀리면 화면의 신선도 배지가 통째로 9시간 거짓말을 한다.
+    """
+
+    def test_naive_input_is_treated_as_utc(self):
+        """오프셋이 없으면 UTC로 간주해 +9시간 한 KST를 돌려준다."""
+        got = _seen_kst("2026-08-18T03:17:35")
+        self.assertEqual(got.isoformat(), "2026-08-18T12:17:35+09:00")
+
+    def test_existing_offset_is_respected(self):
+        """향후 API가 오프셋을 붙여 주면 그대로 존중한다(UTC로 덮어쓰지 않는다)."""
+        got = _seen_kst("2026-08-18T03:17:35+00:00")
+        self.assertEqual(got.isoformat(), "2026-08-18T12:17:35+09:00")
+        got = _seen_kst("2026-08-18T12:17:35+09:00")
+        self.assertEqual(got.isoformat(), "2026-08-18T12:17:35+09:00")
+
+    def test_unusable_values_become_none(self):
+        """계약상 `seen`은 null을 허용한다 — 프론트가 배지를 생략한다."""
+        for raw in (None, "", "어제쯤", "2026-13-99T99:99:99", 12345):
+            with self.subTest(raw=raw):
+                self.assertIsNone(_seen_kst(raw))
+
+
+class BuildDealsSeenTest(unittest.TestCase):
+    """`build_deals_json`이 `seen`을 실제로 채우고 유령 가격을 거르는가.
+
+    `DOCS`를 임시 폴더로 갈아끼운다 — 안 그러면 커밋된 `docs/data/deals.json`
+    (프론트 픽스처)을 테스트가 덮어쓴다.
+    """
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.executescript(db.SCHEMA)
+        self.today = date.today()
+
+    def add(self, dest, price, seen_days_ago, fetched_days_ago=0, origin="ICN"):
+        """`seen`이 며칠 전인 딜 1건. 출발일은 항상 미래.
+
+        `broad_offers`의 PK가 `(수집일, 출발지, 목적지)`라 **하루에 같은 노선은
+        1건뿐**이다. 같은 도시의 딜을 둘 이상 만들려면 수집일을 달리해야 하며,
+        실제 파이프라인도 3일 창에 여러 날짜 행이 겹쳐 들어오는 구조다.
+        """
+        found = (datetime.now(timezone.utc) - timedelta(days=seen_days_ago))
+        fetched = self.today - timedelta(days=fetched_days_ago)
+        self.conn.execute(
+            """INSERT INTO broad_offers (fetched_date, origin, destination, price,
+                                         transfers, depart_date, return_date, found_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (fetched.isoformat(), origin, dest, price, 0,
+             (self.today + timedelta(days=30)).isoformat(),
+             (self.today + timedelta(days=33)).isoformat(),
+             found.replace(tzinfo=None).isoformat()))
+
+    def build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(discover_data, "DOCS", Path(tmp)):
+                discover_data.build_deals_json(self.conn)
+                written = (Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8")
+        return json.loads(written)
+
+    def test_seen_is_emitted_with_kst_offset(self):
+        self.add("FUK", 100000, seen_days_ago=1)
+        deal = self.build()["deals"][0]
+        self.assertTrue(deal["seen"].endswith("+09:00"), deal["seen"])
+
+    def test_fresh_deals_survive_the_hard_cut(self):
+        self.add("FUK", 100000, seen_days_ago=SEEN_MAX_DAYS - 1)
+        self.assertEqual(len(self.build()["deals"]), 1)
+
+    def test_ghost_prices_are_dropped(self):
+        """7일 넘게 관측되지 않은 가격은 내보내지 않는다."""
+        self.add("FUK", 100000, seen_days_ago=SEEN_MAX_DAYS + 1)
+        self.assertEqual(self.build()["deals"], [])
+
+    def test_the_cut_runs_before_deduplication(self):
+        """유령 가격이 최저가라도, 같은 도시의 멀쩡한 딜이 살아남아야 한다.
+
+        컷을 중복 제거 뒤에 두면 싼 유령이 대표로 뽑힌 다음 잘려서
+        후쿠오카가 통째로 사라진다.
+        """
+        self.add("FUK", 10000, seen_days_ago=SEEN_MAX_DAYS + 1, fetched_days_ago=1)
+        self.add("FUK", 90000, seen_days_ago=1, fetched_days_ago=0)
+        deals = self.build()["deals"]
+        self.assertEqual([d["price"] for d in deals], [90000],
+                         "신선한 딜이 살아남아야 한다")
+
+    def test_no_deals_still_produces_a_valid_shape(self):
+        """0건인 날에도 계약 형태는 유지된다."""
+        out = self.build()
+        self.assertEqual(out["deals"], [])
+        self.assertEqual(out["origins"], {})
+        self.assertIn("updated", out)
