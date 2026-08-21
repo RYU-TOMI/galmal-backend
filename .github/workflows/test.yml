@@ -1,0 +1,28 @@
+name: 테스트
+
+# 세 세션(plan/frontend/backend)이 각자 브랜치로 일하므로 브랜치를 가리지 않는다.
+# main 커밋에도 돌아가는데, 여기엔 매일 아침 크론이 만든 산출물 커밋이 포함된다
+# → 계약 검증기가 **그날 생성된 deals.json이 계약을 지키는지** 자동으로 확인해 준다.
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 의존성 설치 단계가 없는 것은 의도다. 테스트는 표준 라이브러리만 쓰며
+      # anthropic이 필요한 parse_mail.py는 건드리지 않는다. 설치가 필요해졌다면
+      # 테스트가 수집·메일 계열로 번진 것이니 범위를 먼저 의심할 것.
+      - name: 유닛 테스트 + 계약 검증
+        run: python -m unittest discover -s tests -t . -v
