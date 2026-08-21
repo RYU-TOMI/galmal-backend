@@ -13,9 +13,9 @@ Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·�
 
 | 세션 | 폴더 | 브랜치 | 소유 |
 |---|---|---|---|
-| 기획 | `../pts-plan` | `plan` | PRODUCT/DESIGN/PROJECT/CONTRACT.md, `design/` |
-| 프론트 | `../pts-frontend` | `frontend` | `docs/assets/discover.js|css`, `collector/discover_home.py` |
-| 백엔드 | `../pts-backend` | `backend` | `collector/*.py`(discover_home 제외), `build_site.py`, `.github/workflows/` |
+| 기획 | `../galmal-plan` | `plan` | PRODUCT/DESIGN/PROJECT/CONTRACT.md, `design/` |
+| 프론트 | `../galmal-frontend` | `frontend` | `docs/assets/discover.js|css`, `collector/discover_home.py` |
+| 백엔드 | `../galmal-backend` | `backend` | `collector/*.py`(discover_home 제외), `build_site.py`, `.github/workflows/` |
 | (통합) | `promo-ticket-site` | `main` | 크론이 매일 `data/`·`docs/` 커밋 → **배포 원본** |
 
 - 작업 전 `git merge origin/main`, 기능 단위로 main 병합(트렁크 기반, 브랜치 오래 끌지 않기).
