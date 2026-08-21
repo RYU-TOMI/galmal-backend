@@ -9,14 +9,16 @@
 | `PRODUCT.md` | 제품 본질(대상·목적·포지셔닝) |
 | `DESIGN.md` | 디자인 시스템 + 발견 인터랙션·LOD·가격 정책 (**확정 스펙**) |
 | `CONTRACT.md` | **프론트↔백엔드 데이터 계약**(deals.json 스키마) |
+| `DECISIONS.md` | **왜 그렇게 정했나 + 기각된 대안** — 이미 폐기된 길을 다시 파기 전에 확인 |
 
 ## 세션 3개와 담당 구역
 
 **⚠️ 자기 구역 파일만 수정한다.** 남의 구역이 필요하면 코드를 고치지 말고, 사용자에게 "○○ 세션에 전달해달라"고 요청한다.
 
 ### 1) 기획 (plan)
-- **소유**: `PRODUCT.md` `DESIGN.md` `PROJECT.md` `CONTRACT.md` `design/`(목업·스토리보드)
+- **소유**: `PRODUCT.md` `DESIGN.md` `PROJECT.md` `CONTRACT.md` `DECISIONS.md` `design/`(목업·스토리보드)
 - **역할**: 제품 방향·UX·디자인 확정, 목업 제작, 결정을 문서에 기록. 스키마 변경 중재.
+- **결정을 내리면** `DESIGN.md`(무엇을)와 `DECISIONS.md`(왜·무엇을 버렸나) **둘 다** 갱신한다.
 - **산출**: 문서 + `design/*.html` 목업. **앱 코드는 건드리지 않는다.**
 
 ### 2) 프론트 (frontend) — deals.json **소비자**
