@@ -8,6 +8,20 @@
 "시간 남는데 어디 싸게 갈까?"에 답하는 **항공권 특가 발견(discovery) 서비스**.
 목적지를 검색하는 게 아니라, 예산·기분으로 **목적지를 정해준다**. 한국 출발 전용.
 
+## 작업 체제 — 3세션 분업 (2026-08-06~)
+Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·규칙은 **`CLAUDE.md`**, 프론트↔백 인터페이스는 **`CONTRACT.md`**(deals.json 스키마)가 단일 출처.
+
+| 세션 | 폴더 | 브랜치 | 소유 |
+|---|---|---|---|
+| 기획 | `../pts-plan` | `plan` | PRODUCT/DESIGN/PROJECT/CONTRACT.md, `design/` |
+| 프론트 | `../pts-frontend` | `frontend` | `docs/assets/discover.js|css`, `collector/discover_home.py` |
+| 백엔드 | `../pts-backend` | `backend` | `collector/*.py`(discover_home 제외), `build_site.py`, `.github/workflows/` |
+| (통합) | `promo-ticket-site` | `main` | 크론이 매일 `data/`·`docs/` 커밋 → **배포 원본** |
+
+- 작업 전 `git merge origin/main`, 기능 단위로 main 병합(트렁크 기반, 브랜치 오래 끌지 않기).
+- `.env`는 gitignore라 worktree에 자동 복사되지 않음 → **백엔드 worktree에만 복사해 둠**(수집·빌드용).
+- 사용자가 세 세션을 오가며 조율. 결정·계약 변경은 **문서로 남기고** 반대편 세션에 전달.
+
 ## 제품 방향 (중요 — 2026-07-30 전환)
 - 초기엔 "특가 목록"이었으나, **발견(discovery)** 콘셉트로 전환.
 - 경쟁(스카이스캐너·트립닷컴)은 "목적지 우선 검색". 우리는 "목적지를 정해주는" 틈새.
