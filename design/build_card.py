@@ -208,21 +208,28 @@ h2 .n{{color:var(--accent);margin-right:8px}}
  background:conic-gradient(from var(--ang,0deg),#ff5f6d,#ffc371,#f7ff7a,#5efc8d,#5ec8fc,#a97bff,#ff5f6d);
  animation:hue 4s linear infinite}}
 @keyframes hue{{to{{--ang:360deg}}}}
-/* R2 — 홀로그램 광택(무지개 sheen) + 코랄 채움 */
-.stamp.r2{{transform:rotate(-9deg) translateY(-16px) scale(1.06);
- background:linear-gradient(135deg,#F2603F,#C6472A);color:#fff;border:0;
- font-size:.66rem;padding:3px 9px;overflow:hidden;
+/* R2 — 홀로그램: 상시 무지개 결 + 흐르는 광택 (코랄 채움 유지)
+   ⚠️ 2026-08-22 수정: 예전엔 mix-blend-mode:screen이라 코랄 위에서 무지개가 하얗게 날아갔고,
+      광택이 주기의 62%를 화면 밖에 서 있어 거의 안 보였다.
+      → 무지개 결을 "배경 레이어"로 상시 깔고(텍스트 뒤), 광택은 블렌드 없이 자주 흐르게 한다. */
+.stamp.r2{{transform:rotate(-9deg) translateY(-16px) scale(1.06);color:#fff;border:0;
+ font-size:.66rem;padding:3px 9px;overflow:hidden;text-shadow:0 1px 2px rgba(120,30,10,.55);
+ background:
+   linear-gradient(115deg,rgba(255,95,109,.42),rgba(255,195,113,.42),rgba(247,255,122,.42),
+   rgba(94,252,141,.42),rgba(94,200,252,.42),rgba(169,123,255,.42)),
+   linear-gradient(135deg,#F2603F,#C6472A);
  box-shadow:0 0 0 2px #fff,0 5px 14px rgba(198,71,42,.36)}}
-.stamp.r2::after{{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
- background:linear-gradient(105deg,transparent 30%,rgba(255,95,109,.55) 40%,rgba(255,195,113,.55) 46%,
- rgba(94,252,141,.55) 52%,rgba(94,200,252,.55) 58%,rgba(169,123,255,.55) 64%,transparent 74%);
- transform:translateX(-130%);animation:sheen 2.8s ease-in-out infinite}}
+.stamp.r2::after{{content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(100deg,transparent 18%,rgba(255,255,255,.30) 34%,
+ rgba(255,255,255,.85) 50%,rgba(255,255,255,.30) 66%,transparent 82%);
+ transform:translateX(-160%);animation:sheen2 2.4s ease-in-out infinite}}
+@keyframes sheen2{{0%,40%{{transform:translateX(-160%)}}100%{{transform:translateX(160%)}}}}
 /* R3 — 전면 무지개 */
 .stamp.r3{{transform:rotate(-9deg) translateY(-16px) scale(1.06);color:#fff;border:0;
  font-size:.66rem;padding:3px 9px;overflow:hidden;text-shadow:0 1px 2px rgba(0,0,0,.45);
  background:linear-gradient(105deg,#ff5f6d,#ffc371,#5efc8d,#5ec8fc,#a97bff);
  box-shadow:0 0 0 2px #fff,0 5px 14px rgba(0,0,0,.22)}}
-@media (prefers-reduced-motion:reduce){{.stamp.r1::before,.stamp.r2::after{{animation:none}}}}
+@media (prefers-reduced-motion:reduce){{.stamp.r1::before,.stamp.r2::after{{animation:none;opacity:0}}}}
 /* 시안 칸 — 링·후광이 이웃을 침범하지 않게 여유를 준다 */
 .vrow{{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;padding:30px 26px 36px;
  background:var(--sea);border:1px solid var(--line);border-radius:16px}}
@@ -324,7 +331,7 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
     <span class="vd">회전하는 conic 링<br>채움은 코랄 유지</span></div>
   <div class="vcell"><span class="vn">R2 · 홀로그램</span>
     <span class="vs"><span class="stamp r2" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
-    <span class="vd">코랄 채움 위로<br>무지개 <b>광택만</b> 흐름</span></div>
+    <span class="vd">무지개 <b>결이 상시</b> 깔리고<br>그 위로 광택이 흐름</span></div>
   <div class="vcell"><span class="vn">R3 · 전면 무지개</span>
     <span class="vs"><span class="stamp r3" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
     <span class="vd">배경 전체가 무지개<br>코랄이 사라짐</span></div>
