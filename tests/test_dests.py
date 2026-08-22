@@ -11,10 +11,16 @@
 enum 값(region/haul/tier)은 `CONTRACT.md`가 프론트에 약속한 목록이므로
 여기 리터럴로 고정한다. 사전에 새 값이 생기면 계약 위반으로 잡힌다.
 """
+import re
 import unittest
+from pathlib import Path
 
 import dests
 from discover_data import ORIGIN_HUBS, ORIGIN_NORM
+
+TAGS_MD = Path(__file__).resolve().parent.parent / "TAGS.md"
+# | `IATA` | 도시 | 전 | `태그`, `태그`... | **카드** |  ← 4열이 dests.py에 넣을 값
+ASSIGN_ROW_RE = re.compile(r"^\|\s*`([A-Z]{3})`\s*\|([^|]*)\|[^|]*\|([^|]*)\|", re.M)
 
 # CONTRACT.md의 deal 객체 정의에서 그대로 옮긴 값
 REGIONS = {"jp", "cn", "sea", "island", "oc", "eu", "am", "etc", "dom"}
@@ -64,6 +70,26 @@ class DestDictionaryTest(unittest.TestCase):
     # 태그 통제 어휘 일치는 검사하지 않는다 — BB9 참조.
     # dests.py docstring은 9종을 선언하는데 실제로는 12종이 쓰인다
     # (야시장·유적·트레킹). 어느 쪽이 맞는지 정해진 뒤에 검사를 넣는다.
+
+    def test_tag_order_matches_the_assignment_table(self):
+        """`tags`는 **순서 있는 배열**이다 — `TAGS.md` 순서를 그대로 유지한다.
+
+        2026-08-22부터 카드 표시가 "하위 전부 + 상위 1개, 최대 4개"라
+        **배열 순서가 화면에 보이는 태그와 순서를 그대로 결정**한다.
+        누군가 `sorted()`로 정리하면 계약 위반은 아니지만 표시가 조용히 바뀐다.
+        그래서 배정표와 순서까지 대조한다.
+        """
+        table = TAGS_MD.read_text(encoding="utf-8")
+        want = {iata: re.findall(r"`([^`]+)`", col)
+                for iata, _, col in ASSIGN_ROW_RE.findall(table)
+                if re.findall(r"`([^`]+)`", col)}
+        self.assertTrue(want, "TAGS.md 배정표를 읽지 못했다 — 표 형식 변경 의심")
+        self.assertEqual(set(want), set(dests.DEST),
+                         "TAGS.md와 dests.py의 목적지 집합이 다르다")
+        mismatched = sorted(
+            f"{iata}: {dests.DEST[iata][4]} != {want[iata]}"
+            for iata in want if dests.DEST[iata][4] != want[iata])
+        self.assertEqual(mismatched, [], f"배정표와 다른 목적지: {mismatched}")
 
     def test_helpers_agree_with_the_dictionaries(self):
         """dest_coord / is_destination / tier가 사전과 같은 답을 내는가."""
