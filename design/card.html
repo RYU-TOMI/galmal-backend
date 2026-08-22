@@ -56,14 +56,17 @@ h2 .n{color:var(--accent);margin-right:8px}
 .bdg .pl{margin-right:3px;font-size:.9em;opacity:.9}
 
 /* ── T3 무지개 실험 (사용자 요청, 2026-08-22) ── */
-/* R1 — 무지개 테두리(conic) + 코랄 채움 */
+/* R1 — 무지개 테두리(conic) + 코랄 채움
+   ⚠️ 요소 자체를 rotate()하면 사각형 모서리가 밖으로 휘둘린다(2026-08-22 버그).
+      제자리에서 그라디언트 "각도"만 돌린다. @property 미지원이면 정지된 링으로 폴백. */
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
 .stamp.r1{transform:rotate(-9deg) translateY(-16px) scale(1.06);
  background:linear-gradient(135deg,#F2603F,#C6472A);color:#fff;border:0;
  font-size:.66rem;padding:3px 9px;overflow:visible;isolation:isolate}
 .stamp.r1::before{content:"";position:absolute;inset:-3px;border-radius:6px;z-index:-1;
- background:conic-gradient(from 0deg,#ff5f6d,#ffc371,#f7ff7a,#5efc8d,#5ec8fc,#a97bff,#ff5f6d);
- animation:spin 4s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+ background:conic-gradient(from var(--ang,0deg),#ff5f6d,#ffc371,#f7ff7a,#5efc8d,#5ec8fc,#a97bff,#ff5f6d);
+ animation:hue 4s linear infinite}
+@keyframes hue{to{--ang:360deg}}
 /* R2 — 홀로그램 광택(무지개 sheen) + 코랄 채움 */
 .stamp.r2{transform:rotate(-9deg) translateY(-16px) scale(1.06);
  background:linear-gradient(135deg,#F2603F,#C6472A);color:#fff;border:0;
@@ -79,10 +82,11 @@ h2 .n{color:var(--accent);margin-right:8px}
  background:linear-gradient(105deg,#ff5f6d,#ffc371,#5efc8d,#5ec8fc,#a97bff);
  box-shadow:0 0 0 2px #fff,0 5px 14px rgba(0,0,0,.22)}
 @media (prefers-reduced-motion:reduce){.stamp.r1::before,.stamp.r2::after{animation:none}}
-.vrow{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;padding:26px 20px 34px;
+/* 시안 칸 — 링·후광이 이웃을 침범하지 않게 여유를 준다 */
+.vrow{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;padding:30px 26px 36px;
  background:var(--sea);border:1px solid var(--line);border-radius:16px}
-.vcell{text-align:center;min-width:118px}
-.vcell .vs{display:block;margin:16px 0 10px;height:26px}
+.vcell{text-align:center;min-width:132px}
+.vcell .vs{display:flex;align-items:center;justify-content:center;margin:20px 0 14px;height:40px;overflow:visible}
 .vcell .vn{font-size:.7rem;font-weight:800;color:var(--sub)}
 .vcell .vd{font-size:.66rem;color:var(--sub);margin-top:3px;line-height:1.45}
 .price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:7px}
@@ -265,7 +269,14 @@ ul.k{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}ul.k li{
     <span class="vs"><span class="stamp r3" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
     <span class="vd">배경 전체가 무지개<br>코랄이 사라짐</span></div>
 </div>
-<div class="panel" style="margin-top:16px"><ul class="k">
+<div class="panel" style="margin-top:16px">
+<p class="note" style="margin:0 0 12px"><b>🐛 고침(2026-08-22)</b> — R1에서 무지개 사각형이 통째로 빙글빙글 돌아
+모서리가 밖으로 튀어나오고 있었다. <b>요소를 <code>rotate()</code>한 게 원인</b>이었다.
+제자리에서 <b>그라디언트의 각도만</b> 도는 방식으로 바꿨다.</p>
+<p class="note" style="margin:0 0 14px"><b>밖으로 나가는 게 정상인 것</b>도 있다 —
+<b>흰 링·후광</b>은 도장 테두리 바깥에 그려지는 게 맞고, <b>T3가 썸네일 위로 올라타는 것</b>도
+의도한 효과다(색을 안 늘리고 "특별함"을 만드는 수단). 도는 사각형만 버그였다.</p>
+<ul class="k">
 <li><b>R2(홀로그램)가 실물 트레이딩 카드에 가장 가깝다.</b> 진짜 SSR·포일 카드는
     배경이 무지개가 아니라 <b>바탕색 위로 무지개 광택이 흐르는</b> 구조다.
     <b>코랄 시그니처가 살아 있으면서</b> 화려함은 다 얻는다.</li>
