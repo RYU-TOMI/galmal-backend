@@ -194,7 +194,14 @@ h2 .n{{color:var(--accent);margin-right:8px}}
  font-size:.7rem;font-weight:800;color:var(--ink)}}
 .wpill{{background:var(--accent);color:#fff;font-weight:800;font-size:.6rem;padding:2px 8px;border-radius:99px}}
 /* 후보 */
-.wpill.n{{background:var(--soft);color:var(--sub);border:1px solid var(--line)}}
+.wpill.n{{background:var(--accent);color:#fff}}          /* 코랄 복귀 (사용자 선택) */
+.wpill.t{{background:#FCEAE4;color:var(--accent2)}}       /* 후보: 코랄 틴트 */
+/* 태그 후보 — 배지와 형태를 가르기 위한 것 */
+.tag.s1{{border-radius:99px;background:var(--soft);border:0}}   /* 기각된 현행 */
+.tag.s2{{border-radius:5px;background:var(--soft);border:0}}
+.tag.s4{{background:transparent;padding:0;color:var(--sub);font-weight:700}}
+.tags.plain{{gap:0}}
+.tags.plain .sep2{{color:var(--sub);opacity:.5;margin:0 5px;font-size:.58rem}}
 .dline{{font-variant-numeric:tabular-nums}}
 .dsub{{display:block;font-size:.64rem;font-weight:700;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums}}
 .dmain{{font-size:.72rem;font-weight:800;color:var(--ink)}}
@@ -275,7 +282,8 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 .lab .sep{{opacity:.45}}.lab .fr{{color:var(--sub)}}
 .hook{{font-size:.72rem;color:var(--sub);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}}
 .tags{{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}}
-.tag{{font-size:.58rem;background:var(--soft);border-radius:99px;padding:2px 7px;color:var(--sub);font-weight:700}}
+.tag{{font-size:.58rem;background:transparent;border:1px solid var(--line);border-radius:5px;
+ padding:2px 7px;color:var(--sub);font-weight:700}}   /* S3 확정: 테두리만 + 각진 모서리 */
 table{{width:100%;border-collapse:collapse;font-size:.88rem}}
 th{{text-align:left;font-weight:700;font-size:.76rem;color:var(--sub);padding:0 10px 9px;border-bottom:1px solid var(--line)}}
 td{{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}}
@@ -466,6 +474,51 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
 <code>다음 달 · 3박4일</code>이고, <code>9/12(토)</code>는 마음이 기운 뒤에 본다.
 줄이 하나 늘지만 <b>각 줄이 짧아져 실제로는 더 빨리 읽힌다.</b>
 C는 더 깔끔하지만 <code>→</code>가 편도로 오해될 여지가 있다.</p>
+</div>
+
+<h2><span class="n">11</span>배지와 태그를 형태로 가르기</h2>
+<p class="note">"태그랑 도형이 같아서 구분이 안 된다"는 지적. 맞다 —
+<b>날짜 배지·직항 배지·태그가 전부 같은 알약</b>(radius 99)이고 색도 비슷했다.
+<code>다음 달</code>은 요청대로 <b>코랄로 되돌렸다.</b></p>
+<div class="panel">
+<p class="note" style="margin:0 0 14px"><b>역할이 다르다.</b>
+배지는 <b>"이 딜의 상태"</b>(언제·어떻게 가나), 태그는 <b>"목적지가 어떤 곳인가"</b>다.
+배지는 알약으로 두고 <b>태그의 형태를 바꾼다.</b></p>
+<div class="vrow" style="gap:36px">
+  <div class="vcell" style="min-width:200px"><span class="vn">기각 · 알약(현행)</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span style="display:flex;gap:4px;margin-top:8px">
+      <span class="tag s1">야경</span><span class="tag s1">골목</span><span class="tag s1">쇼핑</span></span>
+    </span>
+    <span class="vd">배지와 <b>같은 모양</b><br>구분이 안 된다</span></div>
+  <div class="vcell" style="min-width:200px"><span class="vn">기각 · S2 각진+채움</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span style="display:flex;gap:4px;margin-top:8px">
+      <span class="tag s2">야경</span><span class="tag s2">골목</span><span class="tag s2">쇼핑</span></span>
+    </span>
+    <span class="vd">태그만 <b>모서리를 각지게</b><br>알약=배지, 사각=태그</span></div>
+  <div class="vcell" style="min-width:200px"><span class="vn" style="color:var(--accent)">✅ S3 · 테두리만</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span style="display:flex;gap:4px;margin-top:8px">
+      <span class="tag s3">야경</span><span class="tag s3">골목</span><span class="tag s3">쇼핑</span></span>
+    </span>
+    <span class="vd">배경을 비워<br>무게를 낮춤</span></div>
+  <div class="vcell" style="min-width:200px"><span class="vn">기각 · S4 텍스트만</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span class="tags plain" style="margin-top:8px">
+      <span class="tag s4">야경</span><span class="sep2">·</span><span class="tag s4">골목</span>
+      <span class="sep2">·</span><span class="tag s4">쇼핑</span></span>
+    </span>
+    <span class="vd">가장 가볍다<br>칩 느낌은 사라짐</span></div>
+</div>
+<p class="note" style="margin:16px 0 0"><b>S3 확정.</b>
+<b>모양(각진 사각)과 채움(테두리만) 둘 다</b> 배지와 다르다 — 한 축만 바꾼 S2보다 확실히 갈린다.
+배경을 비워 <b>무게도 낮아져</b> 카드 맨 아래 보조 정보라는 위계와 맞는다.
+테두리가 남아 있어 <b>"고를 수 있는 것"이라는 신호는 유지</b>된다(S4는 그게 사라진다).</p>
 </div>
 
 <p class="foot">확정 스펙 <b>../SPEC.md</b> §CH3 · 근거·기각안 <b>../DECISIONS.md</b> · 문구 <b>../COPY.md</b><br>
