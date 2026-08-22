@@ -15,6 +15,7 @@ D = json.loads((ROOT / "docs/data/deals.json").read_text(encoding="utf-8"))
 
 WD = ["월", "화", "수", "목", "금", "토", "일"]
 STAMP_MIN = 15
+TIERS = [(35, "t3"), (25, "t2"), (15, "t1")]   # 할인 도장 티어 (내림차순)
 GRAD = {"해변": "linear-gradient(135deg,#8fd0e0,#2a6f8f)", "도시": "linear-gradient(135deg,#ff9a76,#c6472a)",
         "미식": "linear-gradient(135deg,#f2603f,#7a2e18)", "자연": "linear-gradient(135deg,#a8e0c0,#2a8f6c)",
         "문화": "linear-gradient(135deg,#ffcf9a,#c6652a)", "온천": "linear-gradient(135deg,#ffc07a,#e0782f)"}
@@ -28,6 +29,20 @@ def md(iso):
 
 def transit(d):
     return "직항" if d["transfers"] == 0 else f"경유 {d['transfers']}회"
+
+
+def tier(d):
+    """할인 도장 티어. 임계값 미만이면 None(도장 없음)."""
+    v = d.get("discount", 0)
+    for lo, t in TIERS:
+        if v >= lo:
+            return t
+    return None
+
+
+def direct_badge(d):
+    """직항 배지는 중·장거리에만. 근거리 직항은 75%라 당연해서 배지가 아니다."""
+    return d["transfers"] == 0 and d["haul"] != "short"
 
 
 def old_why(d):
@@ -59,16 +74,18 @@ def card(d, new, hero=False):
     disc = d.get("discount", 0)
     stamp = ""
     if new:
-        if disc >= STAMP_MIN:
-            stamp = f'<span class="stamp">평소보다 {disc}%↓</span>'
+        t = tier(d)
+        if t:
+            stamp = f'<span class="stamp {t}">평소보다 {disc}%↓</span>'
     else:
-        stamp = f'<span class="stamp">특가 {disc}%↓</span>'
+        stamp = f'<span class="stamp t1">특가 {disc}%↓</span>'
     date = f'{md(d["dep"])}~{md(d["ret"])}' if d.get("ret") else md(d["dep"])
     line = f'{d["when"]} {date}'
     if d.get("nights"):
         line += f' · {d["nights"]}'
     if new:
-        line += f' · <b class="tr">{transit(d)}</b>'
+        cls = "tr" if d["transfers"] == 0 else "tr sub"
+        line += f' · <b class="{cls}">{transit(d)}</b>'
     hook = "" if new else f'<div class="hook">{old_why(d)}</div>'
     badge = '<span class="pick">진짜 갈래말래?</span>' if hero else ""
     return f'''<div class="card">
@@ -79,8 +96,18 @@ def card(d, new, hero=False):
         <div class="price">{d["price"]:,}<small>원~</small></div>
         <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
         {hook}
-        <div class="tags">{"".join(f'<span class="tag">{t}</span>' for t in tags)}</div>
+        <div class="tags">{'<span class="bdg">직항</span>' if new and direct_badge(d) else ''}{"".join(f'<span class="tag">{t}</span>' for t in tags)}</div>
       </div></div>'''
+
+
+def tier_samples():
+    out = []
+    for lo, t in TIERS:                      # 35 → 25 → 15
+        hi = {"t3": 999, "t2": 35, "t1": 25}[t]
+        m = [x for x in D["deals"] if lo <= x.get("discount", 0) < hi]
+        n = len(m)
+        out.append((t, lo, hi, n, max(m, key=lambda a: a["discount"]) if m else None))
+    return out
 
 
 rows = pick()
@@ -91,11 +118,32 @@ n_stamp = sum(1 for x in D["deals"] if x.get("discount", 0) >= STAMP_MIN)
 n_direct = sum(1 for x in D["deals"] if x["transfers"] == 0)
 tot = len(D["deals"])
 
+# 도장 3단계 샘플 카드
+samples = tier_samples()                       # [(t3..),(t2..),(t1..)]
+LBL = {"t1": "T1 · 15~24%", "t2": "T2 · 25~34%", "t3": "T3 · 35%+"}
+ladder = "".join(
+    f'<div class="col"><p class="cap">{LBL[t]} — 오늘 {cnt}건</p>{card(d, True)}</div>'
+    for t, lo, hi, cnt, d in reversed(samples) if d)
+t1n, t2n, t3n = (dict((t, c) for t, lo, hi, c, d in samples)[k] for k in ("t1", "t2", "t3"))
+nonen = tot - (t1n + t2n + t3n)
+
+ml = [x for x in D["deals"] if x["haul"] != "short"]
+ml_direct = sum(1 for x in ml if x["transfers"] == 0)
+ml_pct = round(100 * ml_direct / tot)
+s_direct = sum(1 for x in D["deals"] if x["haul"] == "short" and x["transfers"] == 0)
+n_layover = sum(1 for x in D["deals"] if x["transfers"] > 0)
+
+def _badges(x):
+    return (1 if x.get("discount", 0) >= STAMP_MIN else 0) + (1 if direct_badge(x) else 0)
+b0 = round(100 * sum(1 for x in D["deals"] if _badges(x) == 0) / tot)
+b1 = round(100 * sum(1 for x in D["deals"] if _badges(x) == 1) / tot)
+b2 = round(100 * sum(1 for x in D["deals"] if _badges(x) == 2) / tot)
+
 HTML = f'''<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>갈래말래 — 카드 구조 확정</title><style>
 :root{{--accent:#F2603F;--accent2:#C6472A;--ink:#20353A;--sub:#5E7A7C;--sea:#EDF4F3;
---line:#E6EDEC;--soft:#F0F5F4;--card:#FFF;--bg:#F4F8F7}}
+--line:#E6EDEC;--soft:#F0F5F4;--card:#FFF;--bg:#F4F8F7;--coast:#33534F}}
 *{{box-sizing:border-box}}
 body{{margin:0;background:var(--bg);color:var(--ink);
  font-family:Pretendard,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;line-height:1.6}}
@@ -121,8 +169,27 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 .city{{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}}
 .when{{font-size:.68rem;color:var(--sub);font-weight:700;margin-top:1px}}
 .when .tr{{color:var(--ink)}}
-.stamp{{flex:none;transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
- font-weight:900;font-size:.54rem;padding:1px 5px;border-radius:4px;white-space:nowrap}}
+.when .tr.sub{{color:var(--sub);font-weight:700}}
+.stamp{{flex:none;font-weight:900;white-space:nowrap;border-radius:4px;position:relative}}
+/* T1 — 테두리 */
+.stamp.t1{{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}}
+/* T2 — 채움 */
+.stamp.t2{{transform:rotate(-8deg);background:var(--accent);color:#fff;border:0;
+ font-size:.6rem;padding:2px 7px;box-shadow:0 2px 6px rgba(242,96,63,.34)}}
+/* T3 — 채움 + 그라디언트 + 흰 링 + 후광 + 광택, 썸네일 위로 걸침 */
+.stamp.t3{{transform:rotate(-9deg) translateY(-16px) scale(1.06);
+ background:linear-gradient(135deg,#F2603F 0%,#FF8A63 42%,#C6472A 100%);color:#fff;border:0;
+ font-size:.66rem;padding:3px 9px;overflow:hidden;
+ box-shadow:0 0 0 2px #fff, 0 0 0 5px rgba(242,96,63,.20), 0 5px 14px rgba(198,71,42,.36)}}
+.stamp.t3::after{{content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.72) 50%,transparent 62%);
+ transform:translateX(-130%);animation:sheen 2.8s ease-in-out infinite}}
+@keyframes sheen{{0%,62%{{transform:translateX(-130%)}}100%{{transform:translateX(130%)}}}}
+@media (prefers-reduced-motion:reduce){{.stamp.t3::after{{animation:none;opacity:0}}}}
+/* 직항 배지 — 도장과 다른 종류. 기울기 없음, 중립색 */
+.bdg{{font-size:.58rem;font-weight:800;border-radius:99px;padding:2px 8px;
+ background:var(--soft);color:var(--coast);border:1px solid #d8e4e2}}
 .price{{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:7px}}
 .price small{{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}}
 .lab{{font-size:.66rem;color:var(--sub);font-weight:500;margin-top:2px}}
@@ -153,7 +220,36 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
 날짜 줄 끝에 <b>직항/경유</b>가 새로 붙었다. 태그도 필터로 고를 수 있는 6종만.</p>
 <div class="row">{new_html}</div>
 
-<h2><span class="n">03</span>무엇이 어디로 갔나</h2>
+<h2><span class="n">03</span>도장 3단계 — 희소할수록 무거워진다</h2>
+<p class="note">할인율이 높을수록 도장이 <b>커지고, 채워지고, 떠오른다.</b>
+무지개를 쓰지 않는다 — 우리 시그니처는 코랄 하나다(<code>DESIGN.md</code>).
+계단은 <b>색을 늘려서가 아니라 채도·크기·무게·레이어로</b> 만든다.</p>
+<div class="row">{ladder}</div>
+<div class="panel" style="margin-top:16px"><table>
+<thead><tr><th style="width:12%">단계</th><th style="width:16%">조건</th><th style="width:14%">오늘</th><th>시각</th></tr></thead>
+<tbody>
+<tr><td><b>T1</b></td><td><code>15~24%</code></td><td>{t1n}건</td><td>코랄 <b>테두리</b> · 흰 배경 · -7°</td></tr>
+<tr><td><b>T2</b></td><td><code>25~34%</code></td><td>{t2n}건</td><td><b>채움</b>(코랄 배경 + 흰 글자) · 더 큼 · -8° · 그림자</td></tr>
+<tr><td><b>T3</b></td><td><code>35%+</code></td><td>{t3n}건</td><td><b>그라디언트 + 흰 링 + 후광 + 광택</b> · 가장 큼 · -9° · <b>썸네일 위로 떠오름</b></td></tr>
+<tr><td>없음</td><td><code>&lt;15%</code></td><td>{nonen}건</td><td>도장 없음. 카드 우상단이 비는 게 정상</td></tr>
+</tbody></table>
+<p class="note" style="margin:14px 0 0"><b>T3는 매일 나오지 않는다.</b> 오늘은 서울 36%·부산 43%가 있지만
+제주는 최고가 11%라 도장이 하나도 없다. <b>그게 희소성이 작동한다는 뜻</b>이다 —
+매일 뜨는 배지는 배지가 아니다.</p></div>
+
+<h2><span class="n">04</span>직항 배지 — 드문 것만 자랑한다</h2>
+<p class="note">교통은 모든 딜에 있는 사실이라 전부 배지로 만들면 100%가 배지를 달고 배지가 죽는다.
+그래서 <b>드문 경우에만</b> 배지로 올린다.</p>
+<div class="panel"><table>
+<thead><tr><th style="width:24%">경우</th><th style="width:20%">오늘</th><th>표시</th></tr></thead><tbody>
+<tr><td><b>중·장거리 직항</b></td><td>{ml_direct}건 ({ml_pct}%)</td><td><span class="bdg">직항</span> <b>배지</b> — 중거리 36%·장거리 14%만 직항이라 드물다</td></tr>
+<tr><td>근거리 직항</td><td>{s_direct}건</td><td>날짜 줄에 <b>직항</b> 텍스트만. <b>근거리는 75%가 직항이라 당연하다</b></td></tr>
+<tr><td>경유</td><td>{n_layover}건</td><td>날짜 줄에 <span style="color:var(--sub)">경유 N회</span> — <b>배지 아님.</b> 장점이 아닌 걸 자랑처럼 달지 않는다</td></tr>
+</tbody></table>
+<p class="note" style="margin:14px 0 0"><b>규칙 한 줄: 배지는 드문 좋은 소식에만. 모두가 가진 것은 배지가 아니다.</b><br>
+결과적으로 배지 0개 {b0}% · 1개 {b1}% · 2개 {b2}% — 배지가 붙은 카드가 실제로 눈에 띈다.</p></div>
+
+<h2><span class="n">05</span>무엇이 어디로 갔나</h2>
 <div class="panel"><table>
 <thead><tr><th style="width:34%">예전 훅이 말하던 것</th><th>지금</th></tr></thead><tbody>
 <tr><td><code>평소보다 N%↓</code></td><td><b>도장</b> — <code>discount ≥ 15%</code>일 때만 ({n_stamp}/{tot}건 = {round(100*n_stamp/tot)}%)</td></tr>
@@ -163,7 +259,7 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
 <tr><td>—</td><td class="ok">＋ <b>직항 / 경유 N회</b>가 날짜 줄에 새로 추가 ({n_direct}/{tot}건이 직항)</td></tr>
 </tbody></table></div>
 
-<h2><span class="n">04</span>왜 문구가 아니라 자리를 없앴나</h2>
+<h2><span class="n">06</span>왜 문구가 아니라 자리를 없앴나</h2>
 <div class="panel"><ul class="k">
 <li><b>훅의 목적("왜 지금")에 답할 수 있는 건 할인율뿐이고, 딜의 {round(100*n_stamp/tot)}%에만 있다.</b>
     나머지를 위해 자리를 유지하는 한 계속 지어내게 된다.</li>
