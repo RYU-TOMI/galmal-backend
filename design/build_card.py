@@ -20,6 +20,9 @@ GRAD = {"해변": "linear-gradient(135deg,#8fd0e0,#2a6f8f)", "도시": "linear-g
         "미식": "linear-gradient(135deg,#f2603f,#7a2e18)", "자연": "linear-gradient(135deg,#a8e0c0,#2a8f6c)",
         "문화": "linear-gradient(135deg,#ffcf9a,#c6652a)", "온천": "linear-gradient(135deg,#ffc07a,#e0782f)"}
 CHIPS = ["해변", "도시", "미식", "자연", "문화", "온천"]
+SUBTAG = ["리조트", "스노클링", "서핑", "섬", "야경", "쇼핑", "마천루", "골목",
+          "야시장", "길거리음식", "화산", "트레킹", "사막", "폭포",
+          "사원", "유적", "고성", "미술관"]
 
 
 def md(iso):
@@ -76,7 +79,12 @@ def pick(o="SEL"):
 
 
 def card(d, new, hero=False):
-    tags = [t for t in d.get("tags", []) if t in CHIPS][:2] if new else d.get("tags", [])[:3]
+    if new:
+        subs = [t for t in d.get("tags", []) if t in SUBTAG]
+        tops = [t for t in d.get("tags", []) if t in CHIPS]
+        tags = (subs + tops[:1] if subs else tops[:2])[:4]
+    else:
+        tags = d.get("tags", [])[:3]
     g = next((GRAD[t] for t in d.get("tags", []) if t in GRAD), "linear-gradient(135deg,#ffb89a,#c6502a)")
     disc = d.get("discount", 0)
     stamp = ""
@@ -90,9 +98,12 @@ def card(d, new, hero=False):
     line = f'{d["when"]} {date}'
     if d.get("nights"):
         line += f' · {d["nights"]}'
+    trans = ""
     if new:
-        cls = "tr" if d["transfers"] == 0 else "tr sub"
-        line += f' · <b class="{cls}">{transit(d)}</b>'
+        if direct_badge(d):
+            trans = '<span class="bdg"><span class="pl">✈</span>직항</span>'
+        else:
+            trans = f'<span class="trtxt">{transit(d)}</span>'
     hook = "" if new else f'<div class="hook">{old_why(d)}</div>'
     badge = '<span class="pick">진짜 갈래말래?</span>' if hero else ""
     return f'''<div class="card">
@@ -100,10 +111,10 @@ def card(d, new, hero=False):
       <div class="body">
         <div class="top"><div><div class="city">{d["ko"]}</div>
           <div class="when">{line}</div></div>{stamp}</div>
-        <div class="price">{d["price"]:,}<small>원~</small></div>
+        <div class="prow"><div class="price">{d["price"]:,}<small>원~</small></div>{trans}</div>
         <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
         {hook}
-        <div class="tags">{'<span class="bdg"><span class="pl">✈</span>직항</span>' if new and direct_badge(d) else ''}{"".join(f'<span class="tag">{t}</span>' for t in tags)}</div>
+        <div class="tags">{"".join(f'<span class="tag">{t}</span>' for t in tags)}</div>
       </div></div>'''
 
 
@@ -244,7 +255,9 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 .vcell .vs{{display:flex;align-items:center;justify-content:center;margin:20px 0 14px;height:40px;overflow:visible}}
 .vcell .vn{{font-size:.7rem;font-weight:800;color:var(--sub)}}
 .vcell .vd{{font-size:.66rem;color:var(--sub);margin-top:3px;line-height:1.45}}
-.price{{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:7px}}
+.prow{{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px}}
+.trtxt{{font-size:.64rem;font-weight:700;color:var(--sub);white-space:nowrap}}
+.price{{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}}
 .price small{{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}}
 .lab{{font-size:.66rem;color:var(--sub);font-weight:500;margin-top:2px}}
 .lab .sep{{opacity:.45}}.lab .fr{{color:var(--sub)}}
@@ -379,6 +392,32 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
   <div class="vcell"><span class="vn">기각 · B4 테두리</span>
     <span class="vs"><span class="bdg b4">직항</span></span>
     <span class="vd">굵은 테두리<br>도장과 형태가 비슷</span></div>
+</div>
+
+<h2><span class="n">09</span>직항/경유를 어디에 둘까 <span style="font-size:.8rem;font-weight:700;color:var(--sub)">(2026-08-22 재배치)</span></h2>
+<p class="note">태그 줄에 섞여 있던 걸 옮겼다. <b>정보 종류가 다르다</b> —
+태그는 <b>"어떤 곳인가"</b>, 직항/경유는 <b>"어떻게 가는가"</b>다.
+게다가 날짜 줄과 태그 줄에 <b>중복으로 두 번</b> 나오고 있었다(내 스펙 오류).</p>
+<div class="panel"><table>
+<thead><tr><th style="width:14%">후보</th><th style="width:40%">모양</th><th>판단</th></tr></thead><tbody>
+<tr><td><b>A</b> 날짜 줄 끝</td>
+<td><code>다음 달 9/12(토)~9/15(화) · 3박4일 · 직항</code></td>
+<td>여정 정보끼리 묶이는 건 맞지만 <b>줄이 너무 길어진다</b>(카드 폭 340px). 눈에도 안 띈다</td></tr>
+<tr><td><b>B</b> 가격 줄 우측 <span class="badge">채택</span></td>
+<td><div style="display:flex;align-items:center;justify-content:space-between;max-width:190px">
+<span class="price" style="margin:0">218,400<small>원~</small></span>
+<span class="bdg"><span class="pl">✈</span>직항</span></div></td>
+<td><b>가격과 교통은 실제로 같이 저울질하는 쌍</b>이다 — "이 값에 직항이냐". 그 자리가 비어 있었고, 가격 옆이라 반드시 읽힌다</td></tr>
+<tr><td><b>C</b> 태그 줄</td>
+<td><div style="display:flex;gap:4px"><span class="bdg"><span class="pl">✈</span>직항</span>
+<span class="tag">야경</span><span class="tag">골목</span></div></td>
+<td class="bad">기각 — <b>"어떤 곳인가"와 "어떻게 가는가"가 섞인다.</b> 배지가 태그처럼 보여 성격이 흐려진다</td></tr>
+</tbody></table>
+<p class="note" style="margin:14px 0 0"><b>자리는 하나, 무게는 셋.</b>
+같은 위치에 두되 <b>드문 것만 배지</b>로 올린다 —
+<span class="bdg" style="vertical-align:middle"><span class="pl">✈</span>직항</span> 중·장거리 직항(드묾) ·
+<span class="trtxt">직항</span> 근거리 직항(75%라 당연) ·
+<span class="trtxt">경유 1회</span> 경유(장점 아님).</p>
 </div>
 
 <p class="foot">확정 스펙 <b>../SPEC.md</b> §CH3 · 근거·기각안 <b>../DECISIONS.md</b> · 문구 <b>../COPY.md</b><br>
