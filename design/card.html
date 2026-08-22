@@ -1,0 +1,142 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>갈래말래 — 카드 구조 확정</title><style>
+:root{--accent:#F2603F;--accent2:#C6472A;--ink:#20353A;--sub:#5E7A7C;--sea:#EDF4F3;
+--line:#E6EDEC;--soft:#F0F5F4;--card:#FFF;--bg:#F4F8F7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+ font-family:Pretendard,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:44px 22px 90px}
+h1{font-weight:900;letter-spacing:-.035em;font-size:2.2rem;margin:0 0 8px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--sub);max-width:64ch;margin:0 0 10px}
+h2{font-weight:900;font-size:1.24rem;margin:48px 0 6px;letter-spacing:-.02em}
+h2 .n{color:var(--accent);margin-right:8px}
+.note{color:var(--sub);font-size:.9rem;margin:0 0 16px;max-width:72ch}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.row{display:grid;gap:16px}
+@media(min-width:820px){.row{grid-template-columns:repeat(3,1fr)}}
+.cap{font-size:.72rem;font-weight:800;color:var(--sub);margin:0 0 7px}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:13px;overflow:hidden}
+.thumb{height:78px;position:relative}
+.ph{position:absolute;right:7px;top:7px;font-size:.54rem;color:#fff9;background:#0004;
+ border-radius:5px;padding:1px 5px}
+.pick{position:absolute;left:8px;top:8px;background:#fff;color:var(--accent);font-weight:900;
+ font-size:.6rem;padding:2px 7px;border-radius:99px;box-shadow:0 2px 6px #0002}
+.body{padding:10px 12px 12px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:7px}
+.city{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}
+.when{font-size:.68rem;color:var(--sub);font-weight:700;margin-top:1px}
+.when .tr{color:var(--ink)}
+.stamp{flex:none;transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-weight:900;font-size:.54rem;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:7px}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.lab{font-size:.66rem;color:var(--sub);font-weight:500;margin-top:2px}
+.lab .sep{opacity:.45}.lab .fr{color:var(--sub)}
+.hook{font-size:.72rem;color:var(--sub);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.tag{font-size:.58rem;background:var(--soft);border-radius:99px;padding:2px 7px;color:var(--sub);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{text-align:left;font-weight:700;font-size:.76rem;color:var(--sub);padding:0 10px 9px;border-bottom:1px solid var(--line)}
+td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
+.bad{color:var(--accent2);font-weight:800}.ok{color:#1E7A50;font-weight:800}
+ul.k{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}ul.k li{margin:6px 0}ul.k b{color:var(--ink)}
+.foot{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
+</style></head><body><div class="wrap">
+
+<h1>카드 구조 — <em>확정</em></h1>
+<p class="lede">"왜 지금" 훅이 <b>피드의 54%</b>에서 근거 없는 인과를 주장하고 있었다.
+문구를 고치는 대신 <b>자리를 없앴다.</b> 서울 출발 실제 딜로 그렸다.</p>
+
+<h2><span class="n">01</span>지금</h2>
+<p class="note">훅 줄이 있고, 도장이 <b>모든 카드에</b> 붙는다. 직항 여부는 <b>어디에도 없다.</b></p>
+<div class="row"><div class="col"><p class="cap">할인 있음 · 직항</p><div class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#f2603f,#7a2e18)"><span class="ph">사진 준비중</span></div>
+      <div class="body">
+        <div class="top"><div><div class="city">가오슝</div>
+          <div class="when">다음 달 9/1(화)~9/10(목) · 9박10일</div></div><span class="stamp">특가 36%↓</span></div>
+        <div class="price">220,257<small>원~</small></div>
+        <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
+        <div class="hook">평소보다 36%↓</div>
+        <div class="tags"><span class="tag">미식</span><span class="tag">도시</span></div>
+      </div></div></div><div class="col"><p class="cap">할인 없음 · 직항</p><div class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#f2603f,#7a2e18)"><span class="ph">사진 준비중</span></div>
+      <div class="body">
+        <div class="top"><div><div class="city">후쿠오카</div>
+          <div class="when">다음 달 9/7(월)~9/9(수) · 2박3일</div></div><span class="stamp">특가 1%↓</span></div>
+        <div class="price">143,386<small>원~</small></div>
+        <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
+        <div class="hook">최근 1%↓ · 다음 달</div>
+        <div class="tags"><span class="tag">미식</span><span class="tag">온천</span><span class="tag">도시</span></div>
+      </div></div></div><div class="col"><p class="cap">할인 없음 · 경유</p><div class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#8fd0e0,#2a6f8f)"><span class="ph">사진 준비중</span></div>
+      <div class="body">
+        <div class="top"><div><div class="city">세부</div>
+          <div class="when">10월 10/22(목)~10/26(월) · 4박5일</div></div><span class="stamp">특가 0%↓</span></div>
+        <div class="price">298,617<small>원~</small></div>
+        <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
+        <div class="hook">경유로 확 싸진 특가</div>
+        <div class="tags"><span class="tag">해변</span><span class="tag">휴양</span><span class="tag">액티비티</span></div>
+      </div></div></div></div>
+
+<h2><span class="n">02</span>확정</h2>
+<p class="note">훅 줄이 사라지고, 도장은 <code>≥15%</code>일 때만.
+날짜 줄 끝에 <b>직항/경유</b>가 새로 붙었다. 태그도 필터로 고를 수 있는 6종만.</p>
+<div class="row"><div class="col"><p class="cap">할인 있음 · 직항</p><div class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#f2603f,#7a2e18)"><span class="ph">사진 준비중</span></div>
+      <div class="body">
+        <div class="top"><div><div class="city">가오슝</div>
+          <div class="when">다음 달 9/1(화)~9/10(목) · 9박10일 · <b class="tr">직항</b></div></div><span class="stamp">평소보다 36%↓</span></div>
+        <div class="price">220,257<small>원~</small></div>
+        <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
+        
+        <div class="tags"><span class="tag">미식</span><span class="tag">도시</span></div>
+      </div></div></div><div class="col"><p class="cap">할인 없음 · 직항</p><div class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#f2603f,#7a2e18)"><span class="ph">사진 준비중</span></div>
+      <div class="body">
+        <div class="top"><div><div class="city">후쿠오카</div>
+          <div class="when">다음 달 9/7(월)~9/9(수) · 2박3일 · <b class="tr">직항</b></div></div></div>
+        <div class="price">143,386<small>원~</small></div>
+        <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
+        
+        <div class="tags"><span class="tag">미식</span><span class="tag">온천</span></div>
+      </div></div></div><div class="col"><p class="cap">할인 없음 · 경유</p><div class="card">
+      <div class="thumb" style="background:linear-gradient(135deg,#8fd0e0,#2a6f8f)"><span class="ph">사진 준비중</span></div>
+      <div class="body">
+        <div class="top"><div><div class="city">세부</div>
+          <div class="when">10월 10/22(목)~10/26(월) · 4박5일 · <b class="tr">경유 1회</b></div></div></div>
+        <div class="price">298,617<small>원~</small></div>
+        <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
+        
+        <div class="tags"><span class="tag">해변</span></div>
+      </div></div></div></div>
+
+<h2><span class="n">03</span>무엇이 어디로 갔나</h2>
+<div class="panel"><table>
+<thead><tr><th style="width:34%">예전 훅이 말하던 것</th><th>지금</th></tr></thead><tbody>
+<tr><td><code>평소보다 N%↓</code></td><td><b>도장</b> — <code>discount ≥ 15%</code>일 때만 (15/104건 = 14%)</td></tr>
+<tr><td><code>경유로 확 싸진 특가</code></td><td class="bad">삭제 — 직항 대비 가격이 없어 <b>할 수 없는 주장</b>이었다</td></tr>
+<tr><td><code>이번 주말 바로 출발</code></td><td>날짜 줄이 이미 말한다</td></tr>
+<tr><td><code>{when} 최저가</code></td><td>날짜 줄이 이미 말한다</td></tr>
+<tr><td>—</td><td class="ok">＋ <b>직항 / 경유 N회</b>가 날짜 줄에 새로 추가 (45/104건이 직항)</td></tr>
+</tbody></table></div>
+
+<h2><span class="n">04</span>왜 문구가 아니라 자리를 없앴나</h2>
+<div class="panel"><ul class="k">
+<li><b>훅의 목적("왜 지금")에 답할 수 있는 건 할인율뿐이고, 딜의 14%에만 있다.</b>
+    나머지를 위해 자리를 유지하는 한 계속 지어내게 된다.</li>
+<li>실제로 대안으로 <code>3시간이면 도착</code>을 떠올렸다가 — <b><code>deals.json</code>에 소요시간 필드가 없다</b>는 걸
+    프론트 세션이 잡아냈다. <b>같은 실수를 반복할 뻔했다.</b></li>
+<li>임계값만 올리는 안도 버렸다. 근거 약한 딜을 <code>{when} 최저가</code>로 몰면
+    <b>절반이 같은 문구</b>가 되어 "정보 나열형 회피" 원칙과 충돌한다.</li>
+<li><b>부수 효과가 크다</b> — 카드에 <b>직항 여부</b>가 처음 생긴다.
+    <code>경유로 확 싸진 특가</code>가 경유를 근거 없이 칭찬하는 동안
+    <b>45건의 직항이라는 진짜 장점은 한 번도 언급되지 않았다.</b></li>
+</ul></div>
+
+<p class="foot">확정 스펙 <b>../SPEC.md</b> §CH3 · 근거·기각안 <b>../DECISIONS.md</b> · 문구 <b>../COPY.md</b><br>
+재생성 <code>python design/build_card.py</code> · 커밋된 <code>deals.json</code>의 실제 딜만 사용</p>
+</div></body></html>

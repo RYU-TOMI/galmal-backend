@@ -11,6 +11,8 @@
 - **stages.html** ⭐ (PH1 진행 중) — 거리 단계 후보안 비교. `＋유럽·미주`에 미주가 없는 원인을
   투영 범위·LOD 규칙·라벨 겹침 세 가지로 분해하고, 후보 4안을 실제 해안선·실제 딜 좌표로 나란히 렌더한다.
   `python design/build_stages.py`로 재생성.
+- **card.html** ⭐ (PH3) — 카드 구조 변경 전/후. "왜 지금" 훅이 왜 폐기됐고 무엇이 어디로 갔는지.
+  서울 출발 실제 딜로 렌더. `python design/build_card.py`로 재생성.
 - **build_*.py** — 위 HTML 생성기. 도시·뷰·LOD 임계값을 바꿔 다시 뽑으려면:
   ```
   python design/build_feed_map.py     # 홈 레이아웃
