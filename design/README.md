@@ -13,6 +13,8 @@
   `python design/build_stages.py`로 재생성.
 - **card.html** ⭐ (PH3) — 카드 구조 변경 전/후. "왜 지금" 훅이 왜 폐기됐고 무엇이 어디로 갔는지.
   서울 출발 실제 딜로 렌더. `python design/build_card.py`로 재생성.
+- **build_tags.py** → `../TAGS.md` (목업 아님) — 목적지 84곳 태그 재배정안.
+  배정을 들고 있으면서 **불변식(하위는 상위를 동반)을 검증**하고 표를 뽑는다. 어기면 실패한다.
 - **build_*.py** — 위 HTML 생성기. 도시·뷰·LOD 임계값을 바꿔 다시 뽑으려면:
   ```
   python design/build_feed_map.py     # 홈 레이아웃
