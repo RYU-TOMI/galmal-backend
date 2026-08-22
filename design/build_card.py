@@ -20,6 +20,9 @@ GRAD = {"해변": "linear-gradient(135deg,#8fd0e0,#2a6f8f)", "도시": "linear-g
         "미식": "linear-gradient(135deg,#f2603f,#7a2e18)", "자연": "linear-gradient(135deg,#a8e0c0,#2a8f6c)",
         "문화": "linear-gradient(135deg,#ffcf9a,#c6652a)", "온천": "linear-gradient(135deg,#ffc07a,#e0782f)"}
 CHIPS = ["해변", "도시", "미식", "자연", "문화", "온천"]
+SUBTAG = ["리조트", "스노클링", "서핑", "섬", "야경", "쇼핑", "마천루", "골목",
+          "야시장", "길거리음식", "화산", "트레킹", "사막", "폭포",
+          "사원", "유적", "고성", "미술관"]
 
 
 def md(iso):
@@ -76,7 +79,12 @@ def pick(o="SEL"):
 
 
 def card(d, new, hero=False):
-    tags = [t for t in d.get("tags", []) if t in CHIPS][:2] if new else d.get("tags", [])[:3]
+    if new:
+        subs = [t for t in d.get("tags", []) if t in SUBTAG]
+        tops = [t for t in d.get("tags", []) if t in CHIPS]
+        tags = (subs + tops[:1] if subs else tops[:2])[:4]
+    else:
+        tags = d.get("tags", [])[:3]
     g = next((GRAD[t] for t in d.get("tags", []) if t in GRAD), "linear-gradient(135deg,#ffb89a,#c6502a)")
     disc = d.get("discount", 0)
     stamp = ""
@@ -87,12 +95,20 @@ def card(d, new, hero=False):
     else:
         stamp = f'<span class="stamp t1">특가 {disc}%↓</span>'
     date = f'{md(d["dep"])}~{md(d["ret"])}' if d.get("ret") else md(d["dep"])
-    line = f'{d["when"]} {date}'
-    if d.get("nights"):
-        line += f' · {d["nights"]}'
+    nights = d.get("nights", "")
     if new:
-        cls = "tr" if d["transfers"] == 0 else "tr sub"
-        line += f' · <b class="{cls}">{transit(d)}</b>'
+        line = (f'<span class="wpill n">{d["when"]}</span>'
+                f'<span class="dmain">{nights}</span>'
+                f'<span class="dsub">{date}</span>')
+    else:
+        line = f'<span class="wpill">{d["when"]}</span><span class="dline">{date}'
+        line += f' · {nights}</span>' if nights else '</span>'
+    trans = ""
+    if new:
+        if direct_badge(d):
+            trans = '<span class="bdg"><span class="pl">✈</span>직항</span>'
+        else:
+            trans = f'<span class="trtxt">{transit(d)}</span>'
     hook = "" if new else f'<div class="hook">{old_why(d)}</div>'
     badge = '<span class="pick">진짜 갈래말래?</span>' if hero else ""
     return f'''<div class="card">
@@ -100,10 +116,10 @@ def card(d, new, hero=False):
       <div class="body">
         <div class="top"><div><div class="city">{d["ko"]}</div>
           <div class="when">{line}</div></div>{stamp}</div>
-        <div class="price">{d["price"]:,}<small>원~</small></div>
+        <div class="prow"><div class="price">{d["price"]:,}<small>원~</small></div>{trans}</div>
         <div class="lab">발견가 <span class="sep">·</span> <span class="fr">어제 확인</span></div>
         {hook}
-        <div class="tags">{'<span class="bdg"><span class="pl">✈</span>직항</span>' if new and direct_badge(d) else ''}{"".join(f'<span class="tag">{t}</span>' for t in tags)}</div>
+        <div class="tags">{"".join(f'<span class="tag">{t}</span>' for t in tags)}</div>
       </div></div>'''
 
 
@@ -174,9 +190,23 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 .body{{padding:10px 12px 12px}}
 .top{{display:flex;justify-content:space-between;align-items:flex-start;gap:7px}}
 .city{{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}}
-.when{{font-size:.68rem;color:var(--sub);font-weight:700;margin-top:1px}}
-.when .tr{{color:var(--ink)}}
-.when .tr.sub{{color:var(--sub);font-weight:700}}
+.when{{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px;
+ font-size:.7rem;font-weight:800;color:var(--ink)}}
+.wpill{{background:var(--accent);color:#fff;font-weight:800;font-size:.6rem;padding:2px 8px;border-radius:99px}}
+/* 후보 */
+.wpill.n{{background:var(--accent);color:#fff}}          /* 코랄 복귀 (사용자 선택) */
+.wpill.t{{background:#FCEAE4;color:var(--accent2)}}       /* 후보: 코랄 틴트 */
+/* 태그 후보 — 배지와 형태를 가르기 위한 것 */
+.tag.s1{{border-radius:99px;background:var(--soft);border:0}}   /* 기각된 현행 */
+.tag.s2{{border-radius:5px;background:var(--soft);border:0}}
+.tag.s4{{background:transparent;padding:0;color:var(--sub);font-weight:700}}
+.tags.plain{{gap:0}}
+.tags.plain .sep2{{color:var(--sub);opacity:.5;margin:0 5px;font-size:.58rem}}
+.dline{{font-variant-numeric:tabular-nums}}
+.dsub{{display:block;font-size:.64rem;font-weight:700;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums}}
+.dmain{{font-size:.72rem;font-weight:800;color:var(--ink)}}
+.wk{{color:var(--sub);font-weight:700}}
+
 .stamp{{flex:none;font-weight:900;white-space:nowrap;border-radius:4px;position:relative}}
 /* T1 — 테두리 */
 .stamp.t1{{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
@@ -244,13 +274,16 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 .vcell .vs{{display:flex;align-items:center;justify-content:center;margin:20px 0 14px;height:40px;overflow:visible}}
 .vcell .vn{{font-size:.7rem;font-weight:800;color:var(--sub)}}
 .vcell .vd{{font-size:.66rem;color:var(--sub);margin-top:3px;line-height:1.45}}
-.price{{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:7px}}
+.prow{{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px}}
+.trtxt{{font-size:.64rem;font-weight:700;color:var(--sub);white-space:nowrap}}
+.price{{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}}
 .price small{{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}}
 .lab{{font-size:.66rem;color:var(--sub);font-weight:500;margin-top:2px}}
 .lab .sep{{opacity:.45}}.lab .fr{{color:var(--sub)}}
 .hook{{font-size:.72rem;color:var(--sub);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}}
 .tags{{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}}
-.tag{{font-size:.58rem;background:var(--soft);border-radius:99px;padding:2px 7px;color:var(--sub);font-weight:700}}
+.tag{{font-size:.58rem;background:transparent;border:1px solid var(--line);border-radius:5px;
+ padding:2px 7px;color:var(--sub);font-weight:700}}   /* S3 확정: 테두리만 + 각진 모서리 */
 table{{width:100%;border-collapse:collapse;font-size:.88rem}}
 th{{text-align:left;font-weight:700;font-size:.76rem;color:var(--sub);padding:0 10px 9px;border-bottom:1px solid var(--line)}}
 td{{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}}
@@ -379,6 +412,113 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
   <div class="vcell"><span class="vn">기각 · B4 테두리</span>
     <span class="vs"><span class="bdg b4">직항</span></span>
     <span class="vd">굵은 테두리<br>도장과 형태가 비슷</span></div>
+</div>
+
+<h2><span class="n">09</span>직항/경유를 어디에 둘까 <span style="font-size:.8rem;font-weight:700;color:var(--sub)">(2026-08-22 재배치)</span></h2>
+<p class="note">태그 줄에 섞여 있던 걸 옮겼다. <b>정보 종류가 다르다</b> —
+태그는 <b>"어떤 곳인가"</b>, 직항/경유는 <b>"어떻게 가는가"</b>다.
+게다가 날짜 줄과 태그 줄에 <b>중복으로 두 번</b> 나오고 있었다(내 스펙 오류).</p>
+<div class="panel"><table>
+<thead><tr><th style="width:14%">후보</th><th style="width:40%">모양</th><th>판단</th></tr></thead><tbody>
+<tr><td><b>A</b> 날짜 줄 끝</td>
+<td><code>다음 달 9/12(토)~9/15(화) · 3박4일 · 직항</code></td>
+<td>여정 정보끼리 묶이는 건 맞지만 <b>줄이 너무 길어진다</b>(카드 폭 340px). 눈에도 안 띈다</td></tr>
+<tr><td><b>B</b> 가격 줄 우측 <span class="badge">채택</span></td>
+<td><div style="display:flex;align-items:center;justify-content:space-between;max-width:190px">
+<span class="price" style="margin:0">218,400<small>원~</small></span>
+<span class="bdg"><span class="pl">✈</span>직항</span></div></td>
+<td><b>가격과 교통은 실제로 같이 저울질하는 쌍</b>이다 — "이 값에 직항이냐". 그 자리가 비어 있었고, 가격 옆이라 반드시 읽힌다</td></tr>
+<tr><td><b>C</b> 태그 줄</td>
+<td><div style="display:flex;gap:4px"><span class="bdg"><span class="pl">✈</span>직항</span>
+<span class="tag">야경</span><span class="tag">골목</span></div></td>
+<td class="bad">기각 — <b>"어떤 곳인가"와 "어떻게 가는가"가 섞인다.</b> 배지가 태그처럼 보여 성격이 흐려진다</td></tr>
+</tbody></table>
+<p class="note" style="margin:14px 0 0"><b>자리는 하나, 무게는 셋.</b>
+같은 위치에 두되 <b>드문 것만 배지</b>로 올린다 —
+<span class="bdg" style="vertical-align:middle"><span class="pl">✈</span>직항</span> 중·장거리 직항(드묾) ·
+<span class="trtxt">직항</span> 근거리 직항(75%라 당연) ·
+<span class="trtxt">경유 1회</span> 경유(장점 아님).</p>
+</div>
+
+<h2><span class="n">10</span>날짜 줄 — 읽기 쉽게</h2>
+<p class="note">"날짜랑 몇 박 며칠이 다 글로 되어 있어 가독성이 별로"라는 지적.
+파 보니 <b>문제가 둘</b>이었다.</p>
+<div class="panel">
+<p class="note" style="margin:0 0 14px"><b>① 코랄이 카드에 세 곳에서 경쟁한다.</b>
+실제 앱은 <code>다음 달</code> 배지가 <b>코랄 배경</b>이고 가격도 <b>코랄 글자</b>다.
+여기에 새로 넣은 <b>할인 도장까지 코랄</b>이라 셋이 싸운다.
+<b>날짜 배지는 100% 카드에 붙는데 코랄이면 강조가 아니다</b> — 도장을 100%에서 14%로 줄인 것과 같은 논리다.</p>
+<p class="note" style="margin:0 0 16px"><b>② 한 줄에 다 밀어 넣었다.</b>
+<code>9/12(토)~9/15(화) · 3박4일</code>는 숫자·괄호·물결·가운뎃점이 뒤섞여 시끄럽다.
+스캔할 땐 <b>"언제쯤, 며칠"</b>만 필요하고 정확한 날짜는 확인 단계에서 본다.</p>
+<div class="vrow" style="gap:40px">
+  <div class="vcell" style="min-width:190px"><span class="vn">A · 현행(실제 앱)</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill">다음 달</span><span class="dline">9/12(토)~9/15(화) · 3박4일</span></span>
+    </span>
+    <span class="vd">코랄 배지 + 한 줄<br>가격·도장과 코랄 경쟁</span></div>
+  <div class="vcell" style="min-width:190px"><span class="vn" style="color:var(--accent)">B · 두 단 위계</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span>
+      <span class="dsub">9/12(토)~9/15(화)</span></span>
+    </span>
+    <span class="vd"><b>스캔용</b>(언제쯤·며칠)과<br><b>확인용</b>(정확한 날짜)을 분리<br>배지는 중립색</span></div>
+  <div class="vcell" style="min-width:190px"><span class="vn">C · 화살표</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span>
+      <span class="dsub">9/12 <span class="wk">토</span> → 9/15 <span class="wk">화</span></span></span>
+    </span>
+    <span class="vd">괄호를 없애고<br>요일을 옅게<br>여정 느낌</span></div>
+</div>
+<p class="note" style="margin:16px 0 0"><b>B를 권한다.</b> 스캔 단계에서 필요한 건
+<code>다음 달 · 3박4일</code>이고, <code>9/12(토)</code>는 마음이 기운 뒤에 본다.
+줄이 하나 늘지만 <b>각 줄이 짧아져 실제로는 더 빨리 읽힌다.</b>
+C는 더 깔끔하지만 <code>→</code>가 편도로 오해될 여지가 있다.</p>
+</div>
+
+<h2><span class="n">11</span>배지와 태그를 형태로 가르기</h2>
+<p class="note">"태그랑 도형이 같아서 구분이 안 된다"는 지적. 맞다 —
+<b>날짜 배지·직항 배지·태그가 전부 같은 알약</b>(radius 99)이고 색도 비슷했다.
+<code>다음 달</code>은 요청대로 <b>코랄로 되돌렸다.</b></p>
+<div class="panel">
+<p class="note" style="margin:0 0 14px"><b>역할이 다르다.</b>
+배지는 <b>"이 딜의 상태"</b>(언제·어떻게 가나), 태그는 <b>"목적지가 어떤 곳인가"</b>다.
+배지는 알약으로 두고 <b>태그의 형태를 바꾼다.</b></p>
+<div class="vrow" style="gap:36px">
+  <div class="vcell" style="min-width:200px"><span class="vn">기각 · 알약(현행)</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span style="display:flex;gap:4px;margin-top:8px">
+      <span class="tag s1">야경</span><span class="tag s1">골목</span><span class="tag s1">쇼핑</span></span>
+    </span>
+    <span class="vd">배지와 <b>같은 모양</b><br>구분이 안 된다</span></div>
+  <div class="vcell" style="min-width:200px"><span class="vn">기각 · S2 각진+채움</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span style="display:flex;gap:4px;margin-top:8px">
+      <span class="tag s2">야경</span><span class="tag s2">골목</span><span class="tag s2">쇼핑</span></span>
+    </span>
+    <span class="vd">태그만 <b>모서리를 각지게</b><br>알약=배지, 사각=태그</span></div>
+  <div class="vcell" style="min-width:200px"><span class="vn" style="color:var(--accent)">✅ S3 · 테두리만</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span style="display:flex;gap:4px;margin-top:8px">
+      <span class="tag s3">야경</span><span class="tag s3">골목</span><span class="tag s3">쇼핑</span></span>
+    </span>
+    <span class="vd">배경을 비워<br>무게를 낮춤</span></div>
+  <div class="vcell" style="min-width:200px"><span class="vn">기각 · S4 텍스트만</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span></span>
+      <span class="tags plain" style="margin-top:8px">
+      <span class="tag s4">야경</span><span class="sep2">·</span><span class="tag s4">골목</span>
+      <span class="sep2">·</span><span class="tag s4">쇼핑</span></span>
+    </span>
+    <span class="vd">가장 가볍다<br>칩 느낌은 사라짐</span></div>
+</div>
+<p class="note" style="margin:16px 0 0"><b>S3 확정.</b>
+<b>모양(각진 사각)과 채움(테두리만) 둘 다</b> 배지와 다르다 — 한 축만 바꾼 S2보다 확실히 갈린다.
+배경을 비워 <b>무게도 낮아져</b> 카드 맨 아래 보조 정보라는 위계와 맞는다.
+테두리가 남아 있어 <b>"고를 수 있는 것"이라는 신호는 유지</b>된다(S4는 그게 사라진다).</p>
 </div>
 
 <p class="foot">확정 스펙 <b>../SPEC.md</b> §CH3 · 근거·기각안 <b>../DECISIONS.md</b> · 문구 <b>../COPY.md</b><br>
