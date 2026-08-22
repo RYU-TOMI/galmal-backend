@@ -190,6 +190,42 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 /* 직항 배지 — 도장과 다른 종류. 기울기 없음, 중립색 */
 .bdg{{font-size:.58rem;font-weight:800;border-radius:99px;padding:2px 8px;
  background:var(--soft);color:var(--coast);border:1px solid #d8e4e2}}
+/* 직항 배지 후보 */
+.bdg.b2{{background:var(--coast);color:#fff;border-color:var(--coast)}}
+.bdg.b3{{background:var(--coast);color:#fff;border-color:var(--coast);font-size:.6rem;padding:2px 9px}}
+.bdg.b4{{background:#fff;color:var(--coast);border:1.5px solid var(--coast);font-weight:900}}
+.bdg .pl{{margin-right:3px;font-size:.9em;opacity:.9}}
+
+/* ── T3 무지개 실험 (사용자 요청, 2026-08-22) ── */
+/* R1 — 무지개 테두리(conic) + 코랄 채움 */
+.stamp.r1{{transform:rotate(-9deg) translateY(-16px) scale(1.06);
+ background:linear-gradient(135deg,#F2603F,#C6472A);color:#fff;border:0;
+ font-size:.66rem;padding:3px 9px;overflow:visible;isolation:isolate}}
+.stamp.r1::before{{content:"";position:absolute;inset:-3px;border-radius:6px;z-index:-1;
+ background:conic-gradient(from 0deg,#ff5f6d,#ffc371,#f7ff7a,#5efc8d,#5ec8fc,#a97bff,#ff5f6d);
+ animation:spin 4s linear infinite}}
+@keyframes spin{{to{{transform:rotate(360deg)}}}}
+/* R2 — 홀로그램 광택(무지개 sheen) + 코랄 채움 */
+.stamp.r2{{transform:rotate(-9deg) translateY(-16px) scale(1.06);
+ background:linear-gradient(135deg,#F2603F,#C6472A);color:#fff;border:0;
+ font-size:.66rem;padding:3px 9px;overflow:hidden;
+ box-shadow:0 0 0 2px #fff,0 5px 14px rgba(198,71,42,.36)}}
+.stamp.r2::after{{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+ background:linear-gradient(105deg,transparent 30%,rgba(255,95,109,.55) 40%,rgba(255,195,113,.55) 46%,
+ rgba(94,252,141,.55) 52%,rgba(94,200,252,.55) 58%,rgba(169,123,255,.55) 64%,transparent 74%);
+ transform:translateX(-130%);animation:sheen 2.8s ease-in-out infinite}}
+/* R3 — 전면 무지개 */
+.stamp.r3{{transform:rotate(-9deg) translateY(-16px) scale(1.06);color:#fff;border:0;
+ font-size:.66rem;padding:3px 9px;overflow:hidden;text-shadow:0 1px 2px rgba(0,0,0,.45);
+ background:linear-gradient(105deg,#ff5f6d,#ffc371,#5efc8d,#5ec8fc,#a97bff);
+ box-shadow:0 0 0 2px #fff,0 5px 14px rgba(0,0,0,.22)}}
+@media (prefers-reduced-motion:reduce){{.stamp.r1::before,.stamp.r2::after{{animation:none}}}}
+.vrow{{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;padding:26px 20px 34px;
+ background:var(--sea);border:1px solid var(--line);border-radius:16px}}
+.vcell{{text-align:center;min-width:118px}}
+.vcell .vs{{display:block;margin:16px 0 10px;height:26px}}
+.vcell .vn{{font-size:.7rem;font-weight:800;color:var(--sub)}}
+.vcell .vd{{font-size:.66rem;color:var(--sub);margin-top:3px;line-height:1.45}}
 .price{{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-top:7px}}
 .price small{{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}}
 .lab{{font-size:.66rem;color:var(--sub);font-weight:500;margin-top:2px}}
@@ -271,6 +307,52 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
     <code>경유로 확 싸진 특가</code>가 경유를 근거 없이 칭찬하는 동안
     <b>{n_direct}건의 직항이라는 진짜 장점은 한 번도 언급되지 않았다.</b></li>
 </ul></div>
+
+<h2><span class="n">07</span>실험 — 무지개, 한 번 보고 정하기</h2>
+<p class="note">사용자 요청으로 <b>이번 한 번만</b> 만들어 본다. 일부러 못생기게 만들지 않았다 —
+비교가 되려면 각 안의 가장 좋은 버전이어야 한다. 전부 T3(35%+)에만 적용되는 시안이다.</p>
+<div class="vrow">
+  <div class="vcell"><span class="vn">현행 · 코랄</span>
+    <span class="vs"><span class="stamp t3" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
+    <span class="vd">코랄 그라디언트<br>흰 링 + 흰 광택</span></div>
+  <div class="vcell"><span class="vn">R1 · 무지개 테두리</span>
+    <span class="vs"><span class="stamp r1" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
+    <span class="vd">회전하는 conic 링<br>채움은 코랄 유지</span></div>
+  <div class="vcell"><span class="vn">R2 · 홀로그램</span>
+    <span class="vs"><span class="stamp r2" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
+    <span class="vd">코랄 채움 위로<br>무지개 <b>광택만</b> 흐름</span></div>
+  <div class="vcell"><span class="vn">R3 · 전면 무지개</span>
+    <span class="vs"><span class="stamp r3" style="transform:rotate(-9deg)">평소보다 43%↓</span></span>
+    <span class="vd">배경 전체가 무지개<br>코랄이 사라짐</span></div>
+</div>
+<div class="panel" style="margin-top:16px"><ul class="k">
+<li><b>R2(홀로그램)가 실물 트레이딩 카드에 가장 가깝다.</b> 진짜 SSR·포일 카드는
+    배경이 무지개가 아니라 <b>바탕색 위로 무지개 광택이 흐르는</b> 구조다.
+    <b>코랄 시그니처가 살아 있으면서</b> 화려함은 다 얻는다.</li>
+<li><b>R1</b>은 눈에 확 띄지만 링이 계속 돌아 <b>시선을 잡아둔다.</b> 카드가 여러 장 있는 피드에서
+    T3가 두 장 뜨면 서로 싸운다.</li>
+<li><b>R3</b>는 <b>코랄이 완전히 사라진다.</b> 이 도장만 보면 다른 서비스 같다.
+    색각이상에서도 무지개는 구분이 안 되므로 <b>계단 정보가 통째로 사라진다</b>(T2와 구별 불가).</li>
+<li>어느 안이든 <b>T3에만</b> 쓴다. 오늘 기준 <b>{t3n}건(1.9%)</b>이라 화면 전체가 요란해지지는 않는다.</li>
+</ul></div>
+
+<h2><span class="n">08</span>직항 배지 — 더 잘 보이게</h2>
+<p class="note">현행은 너무 조용하다는 지적. 도장(코랄)과 <b>색이 겹치지 않으면서</b> 또렷한 후보들이다.
+전부 <code>--coast</code>(청록) 계열이라 두 번째 강조색을 만들지 않는다.</p>
+<div class="vrow">
+  <div class="vcell"><span class="vn">현행</span>
+    <span class="vs"><span class="bdg">직항</span></span>
+    <span class="vd">연한 배경<br>거의 안 보임</span></div>
+  <div class="vcell"><span class="vn">B2 · 채움</span>
+    <span class="vs"><span class="bdg b2">직항</span></span>
+    <span class="vd">청록 채움<br>흰 글자</span></div>
+  <div class="vcell"><span class="vn">B3 · 채움 + 비행기</span>
+    <span class="vs"><span class="bdg b3"><span class="pl">✈</span>직항</span></span>
+    <span class="vd">기호 하나로<br>스캔 속도 ↑</span></div>
+  <div class="vcell"><span class="vn">B4 · 테두리</span>
+    <span class="vs"><span class="bdg b4">직항</span></span>
+    <span class="vd">굵은 테두리<br>도장과 형태가 비슷</span></div>
+</div>
 
 <p class="foot">확정 스펙 <b>../SPEC.md</b> §CH3 · 근거·기각안 <b>../DECISIONS.md</b> · 문구 <b>../COPY.md</b><br>
 재생성 <code>python design/build_card.py</code> · 커밋된 <code>deals.json</code>의 실제 딜만 사용</p>
