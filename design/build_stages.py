@@ -23,14 +23,14 @@ deals = (ROOT / "docs/data/deals.json").read_text(encoding="utf-8")
 PANELS = [
     ("p1", "현행", "center 78°E · scale 230 · 현행 LOD", 78, 30, 230, "cur", 2),
     ("p2", "A안 — 중심만 이동", "center 122°E · scale 200 · 현행 LOD", 122, 30, 200, "cur", 2),
-    ("p3", "B안 — 중심 이동 + LOD 개편", "center 122°E · scale 190 · 새 LOD", 122, 14, 190, "new", 2),
+    ("p3", "B안 — 중심 이동 + LOD 개편", "center 122°E · scale 190 · 새 LOD  ✅ 채택", 122, 14, 190, "new", 2),
     ("p4", "C안 — 더 축소", "center 122°E · scale 165 · 새 LOD", 122, 14, 165, "new", 2),
 ]
 
 STAGES3 = [
     ("s0", "가까운 곳", "center 132°E · scale 1500", 132, 35.5, 1500, "new", 0),
-    ("s1", "＋동남아", "center 117°E · scale 720", 117, 19, 720, "new", 1),
-    ("s2", "＋유럽·미주", "center 122°E · scale 190", 122, 14, 190, "new", 2),
+    ("s1", "조금 더 멀리", "center 117°E · scale 720", 117, 19, 720, "new", 1),
+    ("s2", "아주 멀리", "center 122°E · scale 190", 122, 14, 190, "new", 2),
 ]
 
 HTML = """<!doctype html>
@@ -133,7 +133,7 @@ ul.k li{margin:6px 0}ul.k b{color:var(--ink)}
   <span>얇은 선 = 서울에서의 항로</span>
 </div>
 
-<h2><span class="n">03</span>권장 — B안</h2>
+<h2><span class="n">03</span>확정 — B안 <span style="font-size:.8rem;font-weight:700;color:var(--sub)">(2026-08-22)</span></h2>
 <p class="note">A안은 미주를 되찾지만 <b>장거리 딜 20건 중 8건만</b> 그린다(②를 안 고쳤으므로).
 C안은 여유가 크지만 한국이 작아지고 아시아가 더 뭉친다. <b>B안이 전부 담으면서 축척 손해가 가장 적다.</b></p>
 <div class="panel">
@@ -141,8 +141,8 @@ C안은 여유가 크지만 한국이 작아지고 아시아가 더 뭉친다. <
 <tbody id="cmp"></tbody></table>
 </div>
 
-<h2><span class="n">04</span>B안으로 본 3단계 전체</h2>
-<p class="note">단계가 바뀌면 무엇이 새로 열리는지. 새 LOD 규칙 적용.</p>
+<h2><span class="n">04</span>확정된 3단계</h2>
+<p class="note">단계 라벨도 <b>지리 이름에서 거리 표현으로</b> 바꿨다 — 지리 이름은 데이터가 바뀌면 계속 약속을 어긴다. 새 LOD 규칙 적용.</p>
 <div class="grid g3" id="stages"></div>
 
 <h2><span class="n">05</span>B안을 골라도 남는 것</h2>
@@ -246,7 +246,7 @@ var res={};
 PANELS.forEach(function(c,i){
   var card=document.createElement("div"); card.className="card"+(c.id==="p3"?" win":"");
   var h=document.createElement("h3"); h.textContent=c.title;
-  if(c.id==="p3"){var b=document.createElement("span");b.className="badge";b.textContent="권장";h.appendChild(b);}
+  if(c.id==="p3"){var b=document.createElement("span");b.className="badge";b.textContent="확정";h.appendChild(b);}
   if(c.id==="p1"){var b2=document.createElement("span");b2.className="badge bad";b2.textContent="현행";h.appendChild(b2);}
   card.appendChild(h);
   var s=document.createElement("div"); s.className="sub"; s.textContent=c.sub; card.appendChild(s);
