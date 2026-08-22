@@ -95,9 +95,14 @@ def card(d, new, hero=False):
     else:
         stamp = f'<span class="stamp t1">특가 {disc}%↓</span>'
     date = f'{md(d["dep"])}~{md(d["ret"])}' if d.get("ret") else md(d["dep"])
-    line = f'{d["when"]} {date}'
-    if d.get("nights"):
-        line += f' · {d["nights"]}'
+    nights = d.get("nights", "")
+    if new:
+        line = (f'<span class="wpill n">{d["when"]}</span>'
+                f'<span class="dmain">{nights}</span>'
+                f'<span class="dsub">{date}</span>')
+    else:
+        line = f'<span class="wpill">{d["when"]}</span><span class="dline">{date}'
+        line += f' · {nights}</span>' if nights else '</span>'
     trans = ""
     if new:
         if direct_badge(d):
@@ -185,9 +190,16 @@ h2 .n{{color:var(--accent);margin-right:8px}}
 .body{{padding:10px 12px 12px}}
 .top{{display:flex;justify-content:space-between;align-items:flex-start;gap:7px}}
 .city{{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}}
-.when{{font-size:.68rem;color:var(--sub);font-weight:700;margin-top:1px}}
-.when .tr{{color:var(--ink)}}
-.when .tr.sub{{color:var(--sub);font-weight:700}}
+.when{{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px;
+ font-size:.7rem;font-weight:800;color:var(--ink)}}
+.wpill{{background:var(--accent);color:#fff;font-weight:800;font-size:.6rem;padding:2px 8px;border-radius:99px}}
+/* 후보 */
+.wpill.n{{background:var(--soft);color:var(--sub);border:1px solid var(--line)}}
+.dline{{font-variant-numeric:tabular-nums}}
+.dsub{{display:block;font-size:.64rem;font-weight:700;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums}}
+.dmain{{font-size:.72rem;font-weight:800;color:var(--ink)}}
+.wk{{color:var(--sub);font-weight:700}}
+
 .stamp{{flex:none;font-weight:900;white-space:nowrap;border-radius:4px;position:relative}}
 /* T1 — 테두리 */
 .stamp.t1{{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
@@ -418,6 +430,42 @@ ul.k{{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}}ul.k l
 <span class="bdg" style="vertical-align:middle"><span class="pl">✈</span>직항</span> 중·장거리 직항(드묾) ·
 <span class="trtxt">직항</span> 근거리 직항(75%라 당연) ·
 <span class="trtxt">경유 1회</span> 경유(장점 아님).</p>
+</div>
+
+<h2><span class="n">10</span>날짜 줄 — 읽기 쉽게</h2>
+<p class="note">"날짜랑 몇 박 며칠이 다 글로 되어 있어 가독성이 별로"라는 지적.
+파 보니 <b>문제가 둘</b>이었다.</p>
+<div class="panel">
+<p class="note" style="margin:0 0 14px"><b>① 코랄이 카드에 세 곳에서 경쟁한다.</b>
+실제 앱은 <code>다음 달</code> 배지가 <b>코랄 배경</b>이고 가격도 <b>코랄 글자</b>다.
+여기에 새로 넣은 <b>할인 도장까지 코랄</b>이라 셋이 싸운다.
+<b>날짜 배지는 100% 카드에 붙는데 코랄이면 강조가 아니다</b> — 도장을 100%에서 14%로 줄인 것과 같은 논리다.</p>
+<p class="note" style="margin:0 0 16px"><b>② 한 줄에 다 밀어 넣었다.</b>
+<code>9/12(토)~9/15(화) · 3박4일</code>는 숫자·괄호·물결·가운뎃점이 뒤섞여 시끄럽다.
+스캔할 땐 <b>"언제쯤, 며칠"</b>만 필요하고 정확한 날짜는 확인 단계에서 본다.</p>
+<div class="vrow" style="gap:40px">
+  <div class="vcell" style="min-width:190px"><span class="vn">A · 현행(실제 앱)</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill">다음 달</span><span class="dline">9/12(토)~9/15(화) · 3박4일</span></span>
+    </span>
+    <span class="vd">코랄 배지 + 한 줄<br>가격·도장과 코랄 경쟁</span></div>
+  <div class="vcell" style="min-width:190px"><span class="vn" style="color:var(--accent)">B · 두 단 위계</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span>
+      <span class="dsub">9/12(토)~9/15(화)</span></span>
+    </span>
+    <span class="vd"><b>스캔용</b>(언제쯤·며칠)과<br><b>확인용</b>(정확한 날짜)을 분리<br>배지는 중립색</span></div>
+  <div class="vcell" style="min-width:190px"><span class="vn">C · 화살표</span>
+    <span class="vs" style="height:auto;display:block;text-align:left">
+      <span class="when"><span class="wpill n">다음 달</span><span class="dmain">3박4일</span>
+      <span class="dsub">9/12 <span class="wk">토</span> → 9/15 <span class="wk">화</span></span></span>
+    </span>
+    <span class="vd">괄호를 없애고<br>요일을 옅게<br>여정 느낌</span></div>
+</div>
+<p class="note" style="margin:16px 0 0"><b>B를 권한다.</b> 스캔 단계에서 필요한 건
+<code>다음 달 · 3박4일</code>이고, <code>9/12(토)</code>는 마음이 기운 뒤에 본다.
+줄이 하나 늘지만 <b>각 줄이 짧아져 실제로는 더 빨리 읽힌다.</b>
+C는 더 깔끔하지만 <code>→</code>가 편도로 오해될 여지가 있다.</p>
 </div>
 
 <p class="foot">확정 스펙 <b>../SPEC.md</b> §CH3 · 근거·기각안 <b>../DECISIONS.md</b> · 문구 <b>../COPY.md</b><br>
