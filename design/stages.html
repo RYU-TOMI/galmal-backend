@@ -113,9 +113,10 @@ C안은 여유가 크지만 한국이 작아지고 아시아가 더 뭉친다. <
 <h2><span class="n">05</span>B안을 골라도 남는 것</h2>
 <div class="panel">
 <ul class="k">
-<li><b>라벨 겹침(③)은 그대로 남는다.</b> 홍콩·선전·마카오·광저우는 어떤 배율에서도 붙는다.
-    <b>겹침 회피 규칙을 따로 정해야 한다</b> — 그게 B3/B15다.</li>
-<li><b>가장자리 클램프</b>도 필요하다. 바르셀로나·호놀룰루가 가장자리 가까이 오므로 라벨이 잘린다.</li>
+<li>✅ <b>라벨 겹침(③) 규칙 확정.</b> 위 지도에 이미 적용돼 있다 — 후보 4자리(아래→위→오른쪽→왼쪽)를
+    차례로 시도하고, 무대를 벗어나거나 이미 놓인 라벨과 겹치면 다음 자리로, 넷 다 실패하면 라벨만 생략한다(핀은 남는다).
+    <b>아래 한 자리만 쓸 때 24/42였던 것이 4방향에서 37/42로</b> 올랐다.
+    끝내 숨는 건 홍콩·선전·마카오처럼 <b>핀 자체가 1~2px 안에 겹치는</b> 경우뿐이다.</li>
 <li><b>필터 도크가 우측 하단 핀을 가린다</b>(B16). B안에서는 그 자리가 오세아니아·뉴질랜드다.</li>
 <li><b>단계 이름</b>: 지금 <code>＋유럽·미주</code>인데 실제로는 중동·오세아니아도 들어온다.
     이름을 데이터에 맞출지 결정해야 한다(문구는 <code>COPY.md</code>).</li>
@@ -168,20 +169,46 @@ function build(cfg,host,showStats){
 
   var list=shown(cfg), col=colorOf(list.length?list:SEL);
   var O=proj([ORG.lon,ORG.lat]);
-  var inside=0, out=[];
+  var inside=0, out=[], pins=[];
   list.forEach(function(d){
     var p=proj([d.lon,d.lat]);
-    var vis=p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H;
-    if(!vis){out.push(d.ko);return;}
-    inside++;
-    var g=el("g",{class:"pin"});
-    g.appendChild(el("circle",{class:"halo",cx:p[0],cy:p[1],r:7,fill:col(d.price)}));
-    g.appendChild(el("circle",{class:"core",cx:p[0],cy:p[1],r:4.4,fill:col(d.price)}));
-    var t=el("text",{class:"plabel"+(d.tier==="minor"?" minor":""),x:p[0],y:p[1]+13,"text-anchor":"middle"});
-    t.textContent=d.ko; g.appendChild(t); svg.appendChild(g);
+    if(!(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)){out.push(d.ko);return;}
+    inside++; pins.push({d:d,x:p[0],y:p[1]});
     if(O){var mx=(O[0]+p[0])/2,my=(O[1]+p[1])/2-Math.abs(p[0]-O[0])*0.14;
       svg.appendChild(el("path",{class:"arc",d:"M"+O[0]+","+O[1]+" Q"+mx+","+my+" "+p[0]+","+p[1]}));}
   });
+  pins.forEach(function(q){
+    var g=el("g",{class:"pin"});
+    g.appendChild(el("circle",{class:"halo",cx:q.x,cy:q.y,r:7,fill:col(q.d.price)}));
+    g.appendChild(el("circle",{class:"core",cx:q.x,cy:q.y,r:4.4,fill:col(q.d.price)}));
+    svg.appendChild(g);
+  });
+  // ---- 라벨 배치: 4방향 후보 + 겹침 회피 + 가장자리 배제 ----
+  var R=4.4, boxes=[], placed=0;
+  pins.slice().sort(function(a,b){
+    var t=(a.d.tier==="major"?0:1)-(b.d.tier==="major"?0:1);
+    return t||(a.d.price-b.d.price);
+  }).forEach(function(q){
+    var fs=q.d.tier==="minor"?8:9, w=q.d.ko.length*fs*0.95;
+    var cand=[["middle",q.x,q.y+R+2+fs,q.x-w/2,q.y+R+2],
+              ["middle",q.x,q.y-R-3,q.x-w/2,q.y-R-3-fs],
+              ["start", q.x+R+3,q.y+fs*0.35,q.x+R+3,q.y-fs*0.6],
+              ["end",   q.x-R-3,q.y+fs*0.35,q.x-R-3-w,q.y-fs*0.6]];
+    for(var i=0;i<cand.length;i++){
+      var a=cand[i], bx=a[3], by=a[4], b=[bx,by,bx+w,by+fs];
+      if(b[0]<2||b[2]>W-2) continue;
+      var hit=false;
+      for(var j=0;j<boxes.length;j++){var o=boxes[j];
+        if(!(b[2]<o[0]||b[0]>o[2]||b[3]<o[1]||b[1]>o[3])){hit=true;break;}}
+      if(hit) continue;
+      boxes.push(b); placed++;
+      var t=el("text",{class:"plabel"+(q.d.tier==="minor"?" minor":""),
+                       x:a[1],y:a[2],"text-anchor":a[0]});
+      t.textContent=q.d.ko; svg.appendChild(t);
+      return;
+    }
+  });
+  var hidden=pins.length-placed;
   if(O){var g2=el("g",{class:"org"});
     g2.appendChild(el("circle",{class:"ring",cx:O[0],cy:O[1],r:6}));
     g2.appendChild(el("circle",{class:"dot",cx:O[0],cy:O[1],r:2.6}));
@@ -203,7 +230,8 @@ function build(cfg,host,showStats){
     var st=document.createElement("div"); st.className="stat";
     st.innerHTML='<span>그리는 딜 <b>'+list.length+'</b>/'+up.length+'</span>'+
       '<span>장거리 <b class="'+(lo.length===loAll.length?"ok":"bad")+'">'+lo.length+'/'+loAll.length+'</b></span>'+
-      '<span>화면 밖 <b class="'+(out.length?"bad":"ok")+'">'+out.length+'</b></span>';
+      '<span>화면 밖 <b class="'+(out.length?"bad":"ok")+'">'+out.length+'</b></span>'+
+      '<span>라벨 <b>'+placed+'</b>/'+pins.length+' <span style="color:var(--sub);font-weight:400">(겹치면 숨김)</span></span>';
     host.appendChild(st);
     if(out.length){var m=document.createElement("div");m.className="miss";
       m.textContent="✗ 화면 밖: "+out.join(", ");host.appendChild(m);}
