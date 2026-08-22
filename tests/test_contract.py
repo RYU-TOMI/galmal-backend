@@ -43,21 +43,39 @@ REQUIRED = ("o", "d", "ko", "country", "region", "haul", "tier", "tags",
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 UPDATED_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
 IATA_RE = re.compile(r"^[A-Z]{3}$")
-TAG_ROW_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*\d+\s*\|", re.M)
+# | **`해변`** | 24 | — | `리조트` · ... |   ← 상위는 굵게, 3열이 부모
+# | `리조트`   | 13 | **`해변`** |          |   ← 하위는 부모를 가리킴
+TAG_ROW_RE = re.compile(
+    r"^\|\s*\*{0,2}`([^`]+)`\*{0,2}\s*\|\s*\d+\s*\|"
+    r"\s*(?:\*{0,2}`([^`]+)`\*{0,2}|[—-]+)\s*\|", re.M)
 KST_OFFSET = timedelta(hours=9)
 
 
-def contract_tags():
-    """`CONTRACT.md`의 통제 어휘 표에서 태그 목록을 읽는다."""
+def contract_vocab():
+    """계약서 어휘 표를 읽어 `(어휘 집합, {하위: 상위})`를 돌려준다.
+
+    표 형식이 바뀌면(2026-08-22에 열이 2개 늘었다) 여기가 먼저 깨져야 한다.
+    조용히 빈 집합을 돌려주면 검사가 통과해 버려 아무 의미가 없어진다.
+    """
     parts = CONTRACT.read_text(encoding="utf-8").split("### `tags` 통제 어휘")
     if len(parts) < 2:
         raise AssertionError(
             "CONTRACT.md에서 '### `tags` 통제 어휘' 절을 찾지 못했다. "
             "계약 문서가 재편됐다면 이 파서도 함께 고쳐야 한다.")
-    tags = set(TAG_ROW_RE.findall(parts[1]))
-    if not tags:
+    rows = TAG_ROW_RE.findall(parts[1])
+    vocab = {tag for tag, _ in rows}
+    parent = {tag: up for tag, up in rows if up}
+    if not vocab:
         raise AssertionError("어휘 절은 찾았으나 태그를 하나도 못 읽었다. 표 형식 변경 의심.")
-    return tags
+    stray = sorted(set(parent.values()) - vocab)
+    if stray:
+        raise AssertionError(f"상위로 지목됐으나 어휘 표에 행이 없는 태그: {stray}")
+    return vocab, parent
+
+
+def contract_tags():
+    """어휘 집합만 필요할 때."""
+    return contract_vocab()[0]
 
 
 def _num(v):
@@ -65,8 +83,9 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def validate(payload, vocab):
+def validate(payload, vocab, parent=None):
     """계약 위반 목록을 문자열 리스트로 돌려준다. 비어 있으면 통과."""
+    parent = parent or {}
     errs = []
 
     for key in ("updated", "origins", "deals"):
@@ -125,6 +144,13 @@ def validate(payload, vocab):
             if outside:
                 errs.append(f"{at}.tags 통제 어휘 밖: {outside} "
                             "(CONTRACT.md 어휘 표를 먼저 갱신해야 한다)")
+            # 하위 태그는 반드시 자기 상위를 데리고 다녀야 한다. 깨지면 그 태그가
+            # 카드에는 보이는데 필터로는 안 잡힌다(프론트 C-10과 같은 증상).
+            orphan = sorted(f"{x}→{parent[x]}" for x in dl["tags"]
+                            if x in parent and parent[x] not in dl["tags"])
+            if orphan:
+                errs.append(f"{at}.tags 하위 태그에 상위가 없다: {orphan} "
+                            "(카드에는 보이는데 필터로 안 잡힌다)")
 
         if not (_num(dl["lat"]) and -90 <= dl["lat"] <= 90):
             errs.append(f"{at}.lat 범위 이탈: {dl['lat']!r}")
@@ -195,6 +221,20 @@ class ContractParsingTest(unittest.TestCase):
         outside = sorted({t for v in dests.DEST.values() for t in v[4]} - contract_tags())
         self.assertEqual(outside, [], f"CONTRACT.md 어휘 표에 없는 태그: {outside}")
 
+    def test_every_subtag_carries_its_parent(self):
+        """⭐ 계약의 핵심 불변식 — 하위 태그를 단 목적지는 상위도 함께 갖는다.
+
+        깨지면 `야시장`이 카드에 보이는데 `미식` 필터로 안 잡힌다.
+        기획의 `design/build_tags.py`도 같은 규칙을 검사하지만, 그건 배정안을
+        만들 때만 돈다. 여기서 보는 건 **실제 `dests.py`에 들어간 값**이다.
+        """
+        _, parent = contract_vocab()
+        broken = sorted(
+            f"{iata}: {sub}→{parent[sub]} 없음"
+            for iata, v in dests.DEST.items()
+            for sub in v[4] if sub in parent and parent[sub] not in v[4])
+        self.assertEqual(broken, [], f"상위 태그가 빠진 목적지: {broken}")
+
 
 class GeneratedOutputTest(unittest.TestCase):
     """생산 로직이 계약을 지키는가 — 인메모리 DB로 실제 생성해 검사."""
@@ -202,7 +242,7 @@ class GeneratedOutputTest(unittest.TestCase):
     def setUp(self):
         self.conn = sqlite3.connect(":memory:")
         self.conn.executescript(db.SCHEMA)
-        self.vocab = contract_tags()
+        self.vocab, self.parent = contract_vocab()
         self.today = date.today()
 
     def add(self, origin, dest, price, shift=0, ret=True):
@@ -224,7 +264,7 @@ class GeneratedOutputTest(unittest.TestCase):
         return json.loads(raw)
 
     def assertValid(self, payload):
-        errs = validate(payload, self.vocab)
+        errs = validate(payload, self.vocab, self.parent)
         self.assertEqual(errs, [], "계약 위반:\n  " + "\n  ".join(errs))
 
     def test_typical_output_satisfies_the_contract(self):
@@ -271,7 +311,7 @@ class CommittedArtifactTest(unittest.TestCase):
         if not ARTIFACT.exists():
             self.skipTest("docs/data/deals.json이 없다 (아직 생성 전)")
         payload = json.loads(ARTIFACT.read_text(encoding="utf-8"))
-        errs = validate(payload, contract_tags())
+        errs = validate(payload, *contract_vocab())
         self.assertEqual(errs, [], "커밋된 산출물의 계약 위반:\n  " + "\n  ".join(errs))
 
 
