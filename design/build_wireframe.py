@@ -116,6 +116,28 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:#EEF
 .hscroll .fcard{flex:0 0 132px;margin:0}
 .tabbar{border-top:1.5px solid var(--w3);height:44px;display:flex;align-items:center;
  justify-content:center;gap:8px;background:var(--w1);font-weight:800;color:var(--sub);font-size:.68rem}
+/* 제안 구조 */
+.ovwrap{position:relative;height:520px;border:1.5px solid var(--w3);border-radius:10px;overflow:hidden;background:#F7FAFA}
+.ovmap{position:absolute;inset:0}
+.ovmap svg{width:100%;height:100%;display:block}
+.panel-ov{position:absolute;left:12px;top:12px;bottom:12px;width:300px;background:#fff;
+ border:1.5px solid var(--w3);border-radius:12px;box-shadow:0 8px 26px rgba(20,40,40,.18);
+ padding:10px;overflow:hidden;z-index:4}
+.hdrbar{position:absolute;left:0;right:0;top:0;height:38px;background:var(--w1);
+ border-bottom:1.5px solid var(--w3);display:flex;align-items:center;gap:8px;padding:0 12px;
+ font-weight:800;color:var(--sub);z-index:6}
+.exp{border:2px solid var(--ink);border-radius:8px;padding:7px;margin-bottom:8px;background:#fff;position:relative}
+.exp .cap2{position:absolute;right:6px;top:-9px;font-size:.58rem;font-weight:900;color:#fff;
+ background:var(--ink);padding:1px 6px;border-radius:4px}
+.phones{display:flex;gap:16px;flex-wrap:wrap}
+.ph{width:200px}
+.ph .fr{width:200px;height:400px;border:1.5px solid var(--w3);border-radius:12px;overflow:hidden;
+ position:relative;background:#F7FAFA}
+.ph .fr .m{position:absolute;inset:0}
+.ph .fr .m svg{width:100%;height:100%;display:block}
+.ph .sh{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1.5px solid var(--w3);
+ border-radius:12px 12px 0 0;box-shadow:0 -5px 14px rgba(20,40,40,.13);padding:0 8px 8px;z-index:3}
+.ph .cap3{font-size:.66rem;font-weight:800;color:var(--sub);text-align:center;margin-top:7px}
 .two{display:grid;gap:20px}
 @media(min-width:900px){.two{grid-template-columns:1fr 1fr}}
 ul.q{margin:8px 0 0;padding-left:18px;font-size:.88rem;color:var(--sub)}
@@ -135,8 +157,8 @@ ul.q li{margin:7px 0}ul.q b{color:var(--ink)}
 <thead><tr><th style="width:26%">구조 요소</th><th style="width:10%">상태</th><th style="width:10%">언제</th><th>메모</th></tr></thead>
 <tbody>__AUDIT__</tbody></table></div>
 
-<h2><span class="n">02</span>데스크톱 — 지금 구조 그대로 그리면</h2>
-<p class="note">1440 기준. <b>바꾸자는 안이 아니라 현재 구조를 회색조로 옮긴 것</b>이다. 여기서 무엇이 어색한지 본다.</p>
+<h2><span class="n">02</span>지금 구조 — 무엇이 어색한가</h2>
+<p class="note">1440 기준. 현재 구조를 회색조로 옮긴 것이다.</p>
 __DESKTOP__
 <div class="panel" style="margin-top:16px">
 <p class="note" style="margin:0 0 8px"><b>이렇게 그려 보니 걸리는 것</b></p>
@@ -149,23 +171,60 @@ __DESKTOP__
 <li><b>화면0이 전체를 덮을 이유가 있나.</b> 출발지는 헤더 pill로도 바꿀 수 있다.</li>
 </ul></div>
 
-<h2><span class="n">03</span>모바일 — 처음 그린다</h2>
-<p class="note">390 기준. <b>스펙이 없던 유일한 영역</b>이라 후보를 두 개 그렸다.</p>
+<h2><span class="n">03</span>제안 — 지도가 바탕, 패널이 도구</h2>
+<p class="note"><b>핵심은 하나다.</b> 지금은 데스크톱이 <b>칼럼 분할</b>, 모바일이 <b>오버레이</b>라 구조가 두 벌이다.
+→ 둘 다 <b>"지도 전체 + 그 위에 뜨는 패널"</b>로 통일한다. <b>데스크톱은 패널이 왼쪽, 모바일은 아래.</b>
+방향만 다르고 같은 것이다.</p>
+<p class="note"><b>솔직히 시각적 차이는 크지 않다</b> — 패널이 불투명하면 칼럼과 거의 같아 보인다.
+이득은 <b>개념이 하나로 줄어드는 것</b>이고, 모바일 스펙이 통째로 미정인 지금 그게 크다.</p>
+
 <div class="two">
-  <div><p class="note" style="margin:0 0 8px"><b>M1 · 고정 분할</b> — 지도 44% + 하단 피드 가로 스크롤</p>__MOB1__</div>
-  <div><p class="note" style="margin:0 0 8px"><b>M2 · 드래그 시트</b> — 지도 위, 시트를 끌어 3단계로</p>__MOB2__</div>
+<div>
+<p class="note" style="margin:0 0 8px"><b>평소</b> — 카드를 훑는 상태</p>
+__PROP1__
 </div>
+<div>
+<p class="note" style="margin:0 0 8px"><b>확장</b> — 카드가 <b>패널 안에서</b> 펼쳐진다</p>
+__PROP2__
+</div>
+</div>
+
 <div class="panel" style="margin-top:16px">
-<ul class="q">
-<li><b>M1</b>은 단순하다. 다만 <b>가로 스크롤 카드는 정보가 적게 들어간다</b> — 오늘 카드에 넣은
-    도장·직항·2단 날짜·태그가 132px 폭에 다 들어가지 않는다. 카드를 모바일용으로 따로 설계해야 한다.</li>
-<li><b>M2</b>는 지도앱 관행이고 <b>세로 카드를 그대로 쓸 수 있다.</b>
-    시트를 내리면 지도가 커지고, 올리면 목록이 된다 — <b>lean-back(목록)과 lean-forward(지도)를 사용자가 고른다.</b>
-    대신 제스처가 하나 늘고, 지도 드래그와 충돌하지 않게 해야 한다(자유 줌이 없어 충돌 여지는 작다).</li>
-<li>둘 다 <b>필터는 하단 시트</b>, <b>확장 상세도 하단 시트</b>다. 데스크톱의 플로팅 카드가 모바일에선 시트가 된다.</li>
+<p class="note" style="margin:0 0 8px"><b>무엇이 달라지나</b></p>
+<table><thead><tr><th style="width:22%">항목</th><th style="width:26%">현재</th><th style="width:26%">제안</th><th>왜</th></tr></thead><tbody>
+<tr><td><b>확장 상세</b></td><td>지도 위 플로팅 238px</td><td><b>패널 안 380px</b></td>
+<td>폭·스크롤 확보. <b>모바일(시트 안 펼침)과 같은 구조</b></td></tr>
+<tr><td><b>패널 폭</b></td><td>340 칼럼</td><td><b>380 오버레이</b></td>
+<td>확장 상세가 들어오니 넓혀야. 지도는 <b>3.6%만</b> 준다</td></tr>
+<tr><td><b>hover 컴팩트</b></td><td>지도 위</td><td><b>지도 위 (유지)</b></td>
+<td>"여기가 어디고 얼마"는 지도가, "진짜 싼가"는 패널이</td></tr>
+<tr><td><b>단계바</b></td><td>하단 중앙</td><td><b>하단 중앙 (유지)</b></td>
+<td>핀이 화면 <b>중단에 몰려</b>(58중 49) 위아래는 비어 있다. 붐비던 원인(확장 상세)이 빠지면 해결</td></tr>
+<tr><td><b>화면0</b></td><td>전체 오버레이</td><td><b>유지</b></td>
+<td>제품이 던지는 첫 질문이다. 작게 만들면 그 순간이 약해진다</td></tr>
+</tbody></table></div>
+
+<h2><span class="n">04</span>모바일 — 같은 구조, 방향만 아래로</h2>
+<p class="note"><b>M2 드래그 시트.</b> 시트를 끌어 3단으로. <b>사용자가 지도(탐색)와 목록(훑기) 비중을 직접 고른다</b> —
+lean-forward/lean-back을 우리가 정하지 않고 넘기는 것이다.</p>
+<div class="phones">__PHONES__</div>
+<div class="panel" style="margin-top:16px"><ul class="q">
+<li><b>M1(고정 분할·가로 스크롤)을 버린 이유</b>: 카드 폭이 132px라
+    <b>오늘 넣은 도장·직항 배지·2단 날짜·태그 4개가 안 들어간다.</b> 모바일용 카드를 따로 설계해야 하는데,
+    카드가 두 벌이 되면 <b>스펙도 두 벌</b>이다.</li>
+<li>M2는 <b>세로 카드를 그대로</b> 쓴다. 데스크톱 패널과 카드가 같다.</li>
+<li>확장 상세도 <b>시트 안에서</b> 펼쳐진다 — 데스크톱 패널과 같은 동작.</li>
+<li>제스처가 하나 늘지만 <b>자유 줌이 없어</b> 지도 드래그와 충돌할 여지가 작다.</li>
 </ul></div>
 
-<h2><span class="n">04</span>이 와이어에서 정해야 할 것</h2>
+<h2><span class="n">05</span>참고 — 지금 구조</h2>
+<p class="note">390 기준. <b>스펙이 없던 유일한 영역</b>이라 후보를 두 개 그렸다.</p>
+<div class="two">
+  <div><p class="note" style="margin:0 0 8px">기각 · <b>M1 고정 분할</b> — 카드가 132px라 정보가 안 들어간다</p>__MOB1__</div>
+  <div><p class="note" style="margin:0 0 8px">참고 · 지금 데스크톱을 그대로 줄이면</p>__MOB2__</div>
+</div>
+
+<h2><span class="n">06</span>이 와이어에서 정해야 할 것</h2>
 <div class="panel"><table>
 <thead><tr><th style="width:30%">질문</th><th>선택지</th></tr></thead><tbody>
 <tr><td><b>피드 폭</b></td><td>340px 유지 / 넓히기(380~400) / 카드를 낮추기</td></tr>
@@ -276,6 +335,73 @@ mob2 = f'''<div class="wf mob" style="display:flex;flex-direction:column;positio
   </div>
 </div>'''
 
+def prop(expanded=False):
+    """제안 구조 — 지도 전체 + 왼쪽에 뜨는 패널."""
+    inner = (f'<div style="margin-top:22px"><div class="ln m" style="height:10px"></div>'
+             '<div style="display:flex;gap:5px;margin:8px 0 10px">'
+             '<span class="chip on" style="font-size:.58rem;padding:3px 8px">가성비순</span>'
+             '<span class="chip" style="font-size:.58rem;padding:3px 8px">임박순</span>'
+             '<span class="chip" style="font-size:.58rem;padding:3px 8px">할인율순</span></div></div>')
+    if expanded:
+        body = (card(hero=True, stamp=True)
+                + '<div class="exp"><span class="cap2">확장 상세</span>'
+                  '<div class="thumb" style="height:44px"></div>'
+                  '<div class="ln m" style="height:9px"></div><div class="ln s"></div>'
+                  '<div class="ln l" style="margin-top:8px"></div><div class="ln l"></div>'
+                  '<div style="display:flex;gap:4px;margin-top:7px">'
+                  '<div class="ln" style="flex:1;height:12px;margin:0"></div>'
+                  '<div class="ln" style="flex:1;height:12px;margin:0"></div>'
+                  '<div class="ln" style="flex:1;height:12px;margin:0"></div>'
+                  '<div class="ln" style="flex:1;height:12px;margin:0"></div></div>'
+                  '<div class="ln" style="height:14px;background:var(--w4);margin-top:8px"></div>'
+                  '</div>' + card())
+    else:
+        body = card(hero=True, stamp=True) + card() + card(stamp=True, badge=False)
+    compact = ('' if expanded else
+               '<div style="position:absolute;left:56%;top:34%;width:120px;background:#fff;'
+               'border:1.5px solid var(--w3);border-radius:9px;padding:6px;z-index:3;'
+               'box-shadow:0 6px 16px rgba(20,40,40,.16)">'
+               '<div class="thumb" style="height:26px;margin-bottom:4px"></div>'
+               '<div class="ln s" style="height:7px"></div>'
+               '<span class="lbl" style="right:4px;top:-9px">컴팩트</span></div>')
+    return f'''<div class="ovwrap">
+  <div class="ovmap" data-map="820,520,122,14,190,3"></div>
+  <div class="hdrbar"><b style="color:var(--ink)">갈래말래</b><span>발견 · 노선별</span>
+    <span style="margin-left:auto;border:1.5px solid var(--w3);border-radius:99px;padding:2px 10px">서울 출발 ▾</span></div>
+  {compact}
+  <div class="panel-ov" style="top:50px">
+    <span class="lbl" style="left:8px;top:6px">패널 380 (떠 있음)</span>
+    {inner}{body}
+  </div>
+  <div class="step" style="top:50px">＋<div style="border-top:1.5px solid var(--w3)">－</div></div>
+  <div class="chipbar"><span class="chip on">가까운 곳</span><span class="chip">조금 더 멀리</span><span class="chip">아주 멀리</span></div>
+  <div class="dock"><div style="font-weight:800;color:var(--sub);font-size:.66rem">필터</div>
+    <div class="row"></div><div class="row" style="width:70%"></div></div>
+</div>'''
+
+
+def phone(sheet_h, cap, note, expanded=False):
+    body = (('<div class="exp" style="margin-bottom:6px"><span class="cap2">확장</span>'
+             '<div class="thumb" style="height:30px"></div><div class="ln m" style="height:8px"></div>'
+             '<div class="ln l" style="margin-top:6px"></div>'
+             '<div class="ln" style="height:12px;background:var(--w4);margin-top:6px"></div></div>')
+            if expanded else (card(hero=True, stamp=True) + card()))
+    return f'''<div class="ph"><div class="fr">
+  <div class="m" data-map="200,400,122,14,110,3"></div>
+  <div class="hdrbar" style="height:30px;font-size:.62rem"><b style="color:var(--ink)">갈래말래</b>
+    <span style="margin-left:auto;border:1.5px solid var(--w3);border-radius:99px;padding:1px 7px">서울 ▾</span></div>
+  <div class="chipbar" style="bottom:{sheet_h+8}px"><span class="chip on" style="font-size:.54rem;padding:2px 6px">가까운</span>
+    <span class="chip" style="font-size:.54rem;padding:2px 6px">＋</span><span class="chip" style="font-size:.54rem;padding:2px 6px">＋＋</span></div>
+  <div class="sh" style="height:{sheet_h}px"><div class="grab"></div>
+    <div style="padding:0 2px 4px"><div class="ln m" style="height:8px"></div></div>{body}</div>
+</div><div class="cap3">{cap}</div>
+<div class="note" style="font-size:.72rem;text-align:center;margin:2px 0 0">{note}</div></div>'''
+
+
+phones = (phone(96, "접힘", "지도 최대<br>카드 한 장 살짝")
+          + phone(210, "중간 (기본)", "지도 + 카드 2장")
+          + phone(300, "펼침", "목록처럼<br>확장도 여기서", expanded=True))
+
 rows = "".join(
     f'<tr><td>{a}</td><td><span class="k {"fix" if b=="확정" else ("non" if b=="미정" else "inh")}">{b}</span></td>'
     f'<td style="color:var(--sub);font-size:.8rem">{c}</td><td style="color:var(--sub)">{d}</td></tr>'
@@ -283,6 +409,8 @@ rows = "".join(
 
 out = (HTML.replace("__AUDIT__", rows).replace("__DESKTOP__", desktop)
        .replace("__MOB1__", mob1).replace("__MOB2__", mob2)
+       .replace("__PROP1__", prop()).replace("__PROP2__", prop(True))
+       .replace("__PHONES__", phones)
        .replace("__N__", str(n_sel))
        .replace("__D3A__", d3a).replace("__D3G__", d3g)
        .replace("__WORLD__", world).replace("__DEALS__", json.dumps(D, ensure_ascii=False)))
