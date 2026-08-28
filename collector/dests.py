@@ -178,6 +178,32 @@ DEST_COORD = {
     "CJU": (33.51, 126.49),
 }
 
+# 광역 수집 API(v2/prices/latest)는 공항이 아니라 **IATA 도시 코드**를 돌려준다.
+# TYO(도쿄)·OSA(오사카)·PAR(파리)처럼 우리 사전의 공항 코드와 다르면 못 알아보고
+# 버려진다 — 2026-08-28까지 도쿄·오사카가 발견 피드에 한 번도 못 올라온 이유다(BB15).
+#
+# 값 출처: https://api.travelpayouts.com/data/en/airports.json 의 `city_code`
+#          (같은 벤더의 공식 참조 데이터, 2026-08-28 기준). 추측이 아니다.
+# 여기 없는 도시 코드는 공항 코드와 같아서(BKK·FUK·CJU·SHA·JKT 등 67개) 그대로 통과한다.
+#
+# ⚠️ 한 도시에 우리 공항이 둘인 경우(도쿄·오사카·뉴욕)는 **주 국제공항**을 대표로 쓴다.
+#    기획 지침(2026-08-22)에 따른 것이며, 그 딜이 실제로 그 공항이라는 뜻은 아니다 —
+#    광역 수집은 도시 단위라 공항을 알 수 없다. 예약 링크를 걸 대표값일 뿐이다.
+CITY_TO_AIRPORT = {
+    "BJS": "PEK",   # 베이징
+    "LON": "LHR",   # 런던
+    "NHA": "CXR",   # 나트랑
+    "NYC": "JFK",   # 뉴욕   (EWR/JFK 중 주 국제공항)
+    "OSA": "KIX",   # 오사카 (ITM/KIX 중 주 국제공항)
+    "PAR": "CDG",   # 파리
+    "ROM": "FCO",   # 로마
+    "SAI": "REP",   # 씨엠립
+    "SPK": "CTS",   # 삿포로
+    "TYO": "NRT",   # 도쿄   (HND/NRT 중 주 국제공항)
+    "YTO": "YYZ",   # 토론토
+}
+
+
 # LOD 등급: 여기 있으면 major(축소에도 노출), 없으면 minor(확대 시 노출).
 MAJOR = {
     "NRT", "HND", "KIX", "ITM", "FUK", "OKA", "CTS", "NGO",
@@ -207,6 +233,17 @@ HAUL_NAME = {"short": "가까운 곳", "mid": "중거리", "long": "먼 곳"}
 def dest_name(iata):
     d = DEST.get(iata)
     return d[0] if d else iata
+
+
+def canonical(code):
+    """수집 응답의 목적지 코드를 우리 사전 키로 정규화한다.
+
+    도시 코드면 대표 공항 코드로 바꾸고, 이미 사전에 있으면 그대로 둔다.
+    모르는 코드는 그대로 돌려주므로 `is_destination()`이 걸러 낸다.
+    """
+    if code in DEST:
+        return code
+    return CITY_TO_AIRPORT.get(code, code)
 
 
 def is_destination(iata):

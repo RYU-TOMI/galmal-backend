@@ -103,6 +103,52 @@ class DestDictionaryTest(unittest.TestCase):
         self.assertEqual(dests.tier("ZZZ"), "minor")
 
 
+class CityCodeTest(unittest.TestCase):
+    """도시 코드 → 대표 공항 정규화 (BB15).
+
+    광역 수집 API가 공항이 아니라 도시 코드를 준다. 이 매핑이 깨지면
+    도쿄·오사카·파리가 **조용히 사라진다** — 에러 없이 딜만 없어지므로
+    화면을 봐도 모른다. 실제로 2026-08-28까지 그 상태였다.
+    """
+
+    def test_every_mapping_lands_in_the_dictionary(self):
+        """대표 공항이 사전에 없으면 정규화해도 여전히 버려진다."""
+        stray = sorted(f"{c}→{a}" for c, a in dests.CITY_TO_AIRPORT.items()
+                       if a not in dests.DEST)
+        self.assertEqual(stray, [], f"사전에 없는 대표 공항: {stray}")
+
+    def test_city_codes_do_not_shadow_airport_codes(self):
+        """도시 코드가 사전 키와 겹치면 `canonical()`이 원본을 덮어쓴다.
+
+        겹치는 코드(BKK·SHA·JKT처럼 도시=공항인 것)는 애초에 매핑이 필요 없다.
+        """
+        overlap = sorted(set(dests.CITY_TO_AIRPORT) & set(dests.DEST))
+        self.assertEqual(overlap, [], f"사전 키와 겹치는 도시 코드: {overlap}")
+
+    def test_canonical_passes_known_airports_through(self):
+        self.assertEqual(dests.canonical("FUK"), "FUK")
+        self.assertEqual(dests.canonical("BKK"), "BKK")
+
+    def test_canonical_maps_city_codes(self):
+        self.assertEqual(dests.canonical("TYO"), "NRT")
+        self.assertEqual(dests.canonical("OSA"), "KIX")
+        self.assertEqual(dests.canonical("PAR"), "CDG")
+
+    def test_canonical_leaves_unknown_codes_alone(self):
+        """모르는 코드는 그대로 흘려보내고 `is_destination()`이 거른다."""
+        self.assertEqual(dests.canonical("ZZZ"), "ZZZ")
+        self.assertFalse(dests.is_destination(dests.canonical("ZZZ")))
+
+    def test_the_big_cities_are_reachable(self):
+        """회귀 방지 — 이 도시들이 다시 사라지면 발견 피드의 핵심 상품이 빠진다."""
+        for city, ko in (("TYO", "도쿄"), ("OSA", "오사카"), ("PAR", "파리"),
+                         ("LON", "런던"), ("NYC", "뉴욕"), ("SPK", "삿포로")):
+            with self.subTest(city=city):
+                code = dests.canonical(city)
+                self.assertTrue(dests.is_destination(code), f"{city} 정규화 실패")
+                self.assertEqual(dests.DEST[code][0], ko)
+
+
 class OriginTest(unittest.TestCase):
     """출발 공항(한국) 쪽 사전. 여기가 어긋나면 그 공항 딜이 통째로 사라진다."""
 

@@ -8,6 +8,10 @@
 v2/prices/latest는 origin 하나로 수백 목적지를 한 번에 준다. 5개 공항 = 5회 호출.
 결과는 broad_offers 테이블에 (수집일, 출발, 목적지, 최저가, 신선도...) 저장.
 
+⚠️ 응답의 destination은 공항 코드가 아니라 **IATA 도시 코드**다(TYO·OSA·PAR).
+   `dests.canonical()`로 대표 공항 코드로 정규화한 뒤 사전과 대조한다. 이걸 빠뜨리면
+   도쿄·오사카·파리·런던·뉴욕이 조용히 버려진다(2026-08-28까지 실제로 그랬다, BB15).
+
 사용: python collector/fetch_breadth.py
 """
 import json
@@ -21,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
-from dests import ORIGINS, is_destination
+from dests import ORIGINS, canonical, is_destination
 
 API = "https://api.travelpayouts.com/v2/prices/latest"
 MAX_AGE_DAYS = 3   # 발견 피드 신선도 기준
@@ -61,7 +65,9 @@ def main():
             continue
         n_origin = 0
         for r in rows:
-            dest = r.get("destination")
+            # 응답은 공항이 아니라 **도시 코드**로 온다(TYO=도쿄, OSA=오사카).
+            # 정규화 없이 사전과 대조하면 도쿄·오사카·파리가 통째로 버려진다(BB15).
+            dest = canonical(r.get("destination"))
             if not is_destination(dest):        # 품질 필터: 사전에 있는 목적지만
                 continue
             found = r.get("found_at", "")
