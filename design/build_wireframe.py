@@ -178,16 +178,15 @@ __DESKTOP__
 <p class="note"><b>솔직히 시각적 차이는 크지 않다</b> — 패널이 불투명하면 칼럼과 거의 같아 보인다.
 이득은 <b>개념이 하나로 줄어드는 것</b>이고, 모바일 스펙이 통째로 미정인 지금 그게 크다.</p>
 
-<div class="two">
-<div>
-<p class="note" style="margin:0 0 8px"><b>평소</b> — 카드를 훑는 상태</p>
+<p class="note"><b>비율 주의</b> — 아래는 <b>1440px 화면 비율 그대로</b>다.
+패널 380 + 여백 = 화면의 <b>28%</b>, 지도가 <b>72%</b>다.
+(처음엔 두 상태를 좌우로 나란히 놓았다가 캔버스가 반으로 잘려
+<b>지도가 43%로 보이는 오류</b>가 있었다 — 세로로 쌓아 고쳤다.)</p>
+
+<p class="note" style="margin:0 0 8px"><b>평소</b> — 카드를 훑는 상태. 지도가 화면의 72%.</p>
 __PROP1__
-</div>
-<div>
-<p class="note" style="margin:0 0 8px"><b>확장</b> — 카드가 <b>패널 안에서</b> 펼쳐진다</p>
+<p class="note" style="margin:22px 0 8px"><b>확장</b> — 카드가 <b>패널 안에서</b> 펼쳐진다. <b>지도 면적은 그대로.</b></p>
 __PROP2__
-</div>
-</div>
 
 <div class="panel" style="margin-top:16px">
 <p class="note" style="margin:0 0 8px"><b>무엇이 달라지나</b></p>
@@ -365,7 +364,7 @@ def prop(expanded=False):
                '<div class="ln s" style="height:7px"></div>'
                '<span class="lbl" style="right:4px;top:-9px">컴팩트</span></div>')
     return f'''<div class="ovwrap">
-  <div class="ovmap" data-map="820,520,122,14,190,3"></div>
+  <div class="ovmap" data-map="1120,520,122,14,200,3"></div>
   <div class="hdrbar"><b style="color:var(--ink)">갈래말래</b><span>발견 · 노선별</span>
     <span style="margin-left:auto;border:1.5px solid var(--w3);border-radius:99px;padding:2px 10px">서울 출발 ▾</span></div>
   {compact}
