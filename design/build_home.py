@@ -5,38 +5,12 @@
 확정된 것은 번호를 달고 아래 표에서 설명한다. 아직 안 정한 것은 현행대로 두고 표시한다.
 소유: 기획 세션. 산출물 design/home.html
 """
-import json, io, os, math
+import json, io, os, sys, math
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE)
+from _fmt import tier, direct, card_tags, money, daterange, datesub, DATE_CSS, TOP, SUB
 D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
-
-TOP = ["해변", "도시", "미식", "자연", "문화", "온천"]
-SUB = {"리조트", "스노클링", "서핑", "섬", "야경", "쇼핑", "마천루", "골목",
-       "야시장", "길거리음식", "화산", "트레킹", "사막", "폭포", "사원", "유적", "고성", "미술관"}
-TIERS = [(35, "t3"), (25, "t2"), (15, "t1")]
-
-
-def tier(d):
-    v = d.get("discount", 0)
-    for lo, t in TIERS:
-        if v >= lo:
-            return t
-    return None
-
-
-def direct(d):
-    return d["transfers"] == 0 and d["haul"] != "short"
-
-
-def card_tags(tags):
-    s = [t for t in tags if t in SUB]
-    tp = [t for t in tags if t in TOP]
-    return (s + tp[:1] if s else tp[:2])[:4]
-
-
-def money(v):
-    return "{:,}".format(v)
-
 
 ALL = sorted([x for x in D["deals"] if x["o"] == "SEL"], key=lambda x: x["price"])
 SEOUL = D["origins"]["SEL"]
@@ -186,8 +160,8 @@ svg.arcs{position:absolute;inset:0;pointer-events:none}
 .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
 .price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
-.dmain{font-size:.72rem;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
-.dsub{font-size:.64rem;font-weight:700;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums}
+.dmain{font-size:.76rem;margin-top:5px}
+.dsub{font-size:.64rem;margin-top:2px}""" + DATE_CSS + """
 .wk{color:var(--sub);font-weight:700}
 .bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
  background:var(--coast);color:#fff;white-space:nowrap}
@@ -238,10 +212,10 @@ def small_card(d, on=False):
     return ('<div class="fcard%s"><div class="thumb"></div><div class="fbody">'
             '<div class="frow"><span class="fcity">%s</span>%s</div>'
             '<div class="prow"><span class="price">%s<small>원</small></span>%s</div>'
-            '<div class="dmain">%s</div><div class="dsub">%s &middot; %s</div>'
+            '<div class="dmain">%s</div><div class="dsub">%s</div>'
             '</div></div>'
             % (" on" if on else "", d["ko"], stamp_of(d), money(d["price"]), bdg,
-               d["dep"], d.get("nights", ""), d["when"]))
+               daterange(d.get("dep"), d.get("ret")), datesub(d)))
 
 
 def hero_card(d):
@@ -253,10 +227,10 @@ def hero_card(d):
             '<span class="cityover">%s</span></div>'
             '<div class="hb"><div class="prow" style="margin-top:0">'
             '<span class="price">%s<small>원</small></span>%s</div>'
-            '<div class="dmain">%s</div><div class="dsub">%s &middot; %s</div>'
+            '<div class="dmain">%s</div><div class="dsub">%s</div>'
             '<div style="margin-top:7px">%s</div></div></div>'
             % (tags, d["ko"], money(d["price"]), stamp_of(d),
-               d["dep"], d.get("nights", ""), d["when"], bdg))
+               daterange(d.get("dep"), d.get("ret")), datesub(d), bdg))
 
 
 def detail(d):
@@ -275,7 +249,8 @@ def detail(d):
             '<div class="prow" style="margin-top:0">'
             '<span class="price" style="font-size:1.08rem">%s<small>원</small></span>%s</div>'
             '<div class="prow" style="margin-top:3px">'
-            '<span class="dmain" style="margin-top:0">%s <span class="wk">&middot; %s</span></span>%s</div>'
+            '<span class="dmain" style="margin-top:0">%s</span>%s</div>'
+            '<div class="dsub" style="margin-top:3px">%s</div>'
             '<div class="dsec">평소 시세와 비교</div>'
             '<div class="cmp"><span style="width:36px;color:var(--sub)">평소</span>'
             '<span class="bar mut"><i style="width:100%%"></i></span><b>%s원</b></div>'
@@ -286,7 +261,8 @@ def detail(d):
             '<div class="ad">위 가격은 발견가(스캔 시점) · 실시간 최저가는 각 사이트에서 확인하세요<br>'
             '일부는 예약 시 수수료 (광고)</div></div></div>'
             % (tags, d["ko"], money(d["price"]), stamp_of(d),
-               d["dep"], d.get("nights", ""), bdg, money(med), ratio, money(d["price"]), lnk))
+               daterange(d.get("dep"), d.get("ret")), bdg, datesub(d),
+               money(med), ratio, money(d["price"]), lnk))
 
 
 # ── 지도 요소 ──────────────────────────────────────────────────
