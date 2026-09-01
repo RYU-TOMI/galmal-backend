@@ -84,8 +84,8 @@ def _when_label(dep, today):
 
 
 def build_deals_json(conn):
-    today = date.today()
-    now = datetime.now(KST)
+    now = timeutil.now_kst()
+    today = now.date()          # 제품용 '오늘'은 KST — 사용자 기준이다(BB17)
     seen_floor = now - timedelta(days=SEEN_MAX_DAYS)
     cutoff = (today - timedelta(days=STALE_DAYS)).isoformat()
     rows = conn.execute(

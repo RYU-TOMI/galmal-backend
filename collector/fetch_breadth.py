@@ -60,7 +60,7 @@ def fetch_origin(token, origin):
 def main():
     token = load_token()
     conn = db.connect()
-    today = date.today().isoformat()
+    today = timeutil.today_utc().isoformat()   # 기계용 라벨 — 환경 무관(BB17)
     now = timeutil.now_kst()      # aware — naive와 섞어 빼지 않는다
     kept = 0
     failed = []

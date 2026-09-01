@@ -35,6 +35,33 @@ class SingleSourceTest(unittest.TestCase):
         self.assertAlmostEqual(timeutil.age_hours(raw, now), 9.0, places=6)
 
 
+class DateLabelTest(unittest.TestCase):
+    """날짜를 두 종류로 가른다 — 기계용 UTC, 제품용 KST (BB13·BB17).
+
+    `date.today()`를 그냥 쓰면 크론(UTC 러너)과 로컬(KST)이 서로 다른 라벨을
+    남긴다. 같은 명령이 환경에 따라 다른 데이터를 만드는 셈이라, 로컬에서
+    재현·디버깅할 때 운영과 다른 결과를 본다.
+    """
+
+    def test_machine_date_is_utc(self):
+        """`fetched_date` 같은 수집 라벨 — 어디서 돌리든 같아야 한다."""
+        self.assertEqual(timeutil.today_utc(), datetime.now(UTC).date())
+
+    def test_product_date_is_kst(self):
+        """"오늘 이후 출발" 같은 사용자 기준 — 한국 전용 서비스다."""
+        self.assertEqual(timeutil.today_kst(), datetime.now(timeutil.KST).date())
+
+    def test_the_two_can_differ_and_that_is_the_point(self):
+        """UTC 15:00~23:59 구간에서 두 날짜가 갈린다 — 그래서 구분해 쓴다.
+
+        이 시간대에 `date.today()`를 쓰면 실행 환경에 따라 라벨이 하루 달라진다.
+        """
+        moment = datetime(2026, 9, 1, 18, 0, tzinfo=UTC)      # KST로는 9/2 새벽 3시
+        self.assertEqual(moment.date(), datetime(2026, 9, 1).date())
+        self.assertEqual(moment.astimezone(timeutil.KST).date(),
+                         datetime(2026, 9, 2).date())
+
+
 class ParseTest(unittest.TestCase):
     """경계에서 aware로 만든다 — naive인 채 흘려보내지 않는다."""
 

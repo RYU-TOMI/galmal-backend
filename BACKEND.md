@@ -124,7 +124,12 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 > 작업 중 발견했지만 **스코프가 아니라서 안 고친 것.** 해결되면 지우지 말고 `~~취소선~~ → 해결(커밋)`.
 
 ### BE1 — 파이프라인 신뢰성
-- **BB18. `continue-on-error` 스텝의 실패를 알 방법이 없다.** ⚠️ **T4 이후 중요도가 올랐다** —
+- ~~**BB18. `continue-on-error` 스텝의 실패를 알 방법이 없다.**~~ → **해결(2026-09-01, BE1 T5)**:
+  `collect.yml` 마지막에 **상태 점검** 스텝을 뒀다. 커밋 *뒤*에 두어 데이터는 먼저 남기고,
+  세 스텝 중 하나라도 실패했거나 `deals.json`이 보존됐으면 **잡을 실패로 표시**한다
+  → GitHub가 저장소 소유자에게 메일을 보낸다. 요약은 `$GITHUB_STEP_SUMMARY`에 남는다.
+  보존 신호는 `build_site.py`가 `GITHUB_OUTPUT`으로 넘기며, 로컬 실행에는 영향이 없다.
+  (원문)  ⚠️ **T4 이후 중요도가 올랐다** —
   하한선 방어(BB1)가 들어가면서 수집 실패가 **화면상 조용해졌다**(어제 데이터가 오늘 얼굴로
   나온다). 기획이 화면 쪽은 갱신 시각 상시 노출로 받기로 했지만(C-15), **운영자가 알 방법**은
   여전히 없다. 사이트가 안 비는 대신 아무도 모르는 상태가 오래갈 수 있다. `collect.yml`의 메일 수집·
@@ -290,7 +295,10 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 참고: `discount=0`인 딜 23건 중 22건은 표본 4건 이상으로 **시세가 제대로 계산된**
     정직한 0이다(프론트 B24는 도장 문구 문제이지 데이터 문제가 아님을 실측으로 확인).
 
-- **BB13. `fetched_date`와 collect 커밋 라벨이 UTC 날짜라 하루 밀려 보인다.**
+- ~~**BB13. `fetched_date`와 collect 커밋 라벨이 UTC 날짜라 하루 밀려 보인다.**~~
+  → **해결(2026-09-01, BE1 T5)**: 커밋 라벨을 `TZ=Asia/Seoul`로 바꿔 KST로 찍는다.
+  `fetched_date`는 UTC 유지이며 그 사실을 계약에 명시하도록 기획에 요청했다.
+  (원문) 
   크론이 22:10 UTC에 돌아 `date.today()`(러너 UTC)로 `fetched_date`를 찍고,
   커밋 메시지도 `date -u`를 쓴다. 그래서 **KST 08-21 아침 7시에 성공한 수집이
   `2026-08-20`으로 기록**된다. 한국 전용 서비스라 읽는 사람은 전부 KST로 해석한다.
@@ -307,7 +315,10 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
       산다. UTC/KST 사고 3건 중 첫 번째가 정확히 이 라벨을 KST로 읽어서 났다.
     - 기존 행은 건드리지 않는다(되돌릴 수 없는 데이터).
 
-- **BB17. `fetched_date`·`date.today()`가 아직 naive다.** T2에서 `found_at` 쪽 시간대는
+- ~~**BB17. `fetched_date`·`date.today()`가 아직 naive다.**~~ → **해결(2026-09-01, BE1 T5)**:
+  `timeutil.today_utc()`(기계용)와 `today_kst()`(제품용)로 갈랐다. 수집 라벨은
+  UTC로 고정해 크론·로컬이 같은 값을 남기고, "오늘 이후 출발"은 KST로 판단한다.
+  (원문)  T2에서 `found_at` 쪽 시간대는
   `timeutil`로 단일화했지만, 날짜 라벨은 여전히 러너 로컬 날짜다(BB13과 같은 뿌리).
   `timeutil.now_kst()`가 생겼으니 BB13을 정할 때 함께 정리할 수 있다.
 

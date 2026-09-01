@@ -31,6 +31,25 @@ def now_kst():
     return datetime.now(KST)
 
 
+def today_utc():
+    """**기계용 날짜** — `fetched_date` 같은 수집 라벨에 쓴다.
+
+    `date.today()`는 실행 환경의 로컬 날짜라 크론(UTC 러너)과 로컬(KST)이
+    서로 다른 값을 남긴다. 같은 명령이 환경에 따라 다른 데이터를 만드는 셈이다.
+    UTC로 고정해 어디서 돌리든 같은 라벨이 나오게 한다.
+    """
+    return datetime.now(timezone.utc).date()
+
+
+def today_kst():
+    """**제품용 날짜** — "오늘 이후 출발"처럼 사용자 기준이 필요한 곳에 쓴다.
+
+    한국 전용 서비스라 사용자의 '오늘'은 KST다. 새벽 3시 KST(전날 18시 UTC)에
+    UTC 날짜로 거르면 한국 사용자에겐 이미 지난 항공편이 남는다.
+    """
+    return now_kst().date()
+
+
 def parse_found_at(raw):
     """API의 `found_at` 문자열 → KST aware datetime. 변환 불가면 None.
 
