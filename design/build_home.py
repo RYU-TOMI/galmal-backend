@@ -11,15 +11,15 @@ import json, io, os, sys
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 from _app import CSS, BOXES, OBS_FLOOR, DROP_FLOOR, record
-from _fmt import tier
+from _fmt import tier, TIERS
 from _scene import make_scene, covered, app
 
 D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
 ctx = make_scene(D)
 ALL, STAGE, OPEN, HERO = ctx["ALL"], ctx["STAGE"], ctx["OPEN"], ctx["HERO"]
 
-# 도크는 아직 미정이라 현행(F0)을 그린다
-DOCK = "F0"
+# 2026-09-01 확정: 검색 바 + 날짜·예산 알약
+DOCK = "FIN"
 
 BADGES = [
     (1, 16, 14, False),                                  # 단계바
@@ -30,8 +30,8 @@ BADGES = [
     (6, 1154, 268, False),                               # 도장 / 신기록
     (7, 1154, 330, False),                               # 직항 배지
     (8, 838, 330, False),                                # 날짜 두 단
-    (9, 16, 556, True),                                  # 필터 칩 문화
-    (10, 16, 620, True),                                 # 도크 위치 미정
+    (9, 26, 596, False),                                 # 검색 바
+    (10, 700, 596, False),                               # 날짜·예산 알약
 ]
 badges = "".join('<span class="b%s" style="left:%dpx;top:%dpx">%d</span>'
                  % (" q" if q else "", x, y, n) for n, x, y, q in BADGES)
@@ -54,7 +54,7 @@ ROWS = [
      "62px 썸네일은 태그를 담기엔 작다. 여기선 <b>어디·얼마·언제</b>만 읽으면 된다. "
      "카드가 <b>129px &rarr; 103px</b>이 되고 패널에 <b>+27%</b> 더 들어간다(<b>density.html</b>).", "09-01"),
     (6, False, "카드는 &lsquo;왜 싼가&rsquo;를 한 번만 말한다",
-     "도장 3티어(<code>15/25/35%</code>) <b>우선</b>, 도장이 없고 신기록이면 <code>N일 최저</code>. "
+     "도장 3티어(<code>15/28/42%</code>) <b>우선</b>, 도장이 없고 신기록이면 <code>N일 최저</code>. "
      "<b>둘을 동시에 달지 않는다</b> &mdash; 재는 자가 달라도 사용자는 같은 말을 두 번 하는 걸로 읽는다. "
      "<b>상세에서는 둘 다</b> 보인다.", "09-01"),
     (7, False, "직항 배지는 가격 줄 우측",
@@ -63,12 +63,14 @@ ROWS = [
     (8, False, "날짜는 두 단 · 출발 &rarr; 도착",
      "<code>9/8(화) &rarr; 9/16(수)</code>가 주 라인, <code>8박9일 · 이번 주</code>가 보조 라인. "
      "<b>요일을 넣는다</b> &mdash; 여행은 요일로 정한다. 편도면 <code>9/8(화) 편도</code>.", "09-01"),
-    (9, True, "필터 칩에 <code>문화</code>를 넣는다",
-     "상위 어휘 6종이 곧 칩이다. <b>현행 마크업엔 <code>문화</code>가 빠져 있다</b> &mdash; "
-     "52건짜리 2위 어휘다(C-14, 프론트 CH2).", "미반영"),
-    (10, True, "필터 도크 &mdash; <b>고르는 중</b>",
-     "지금 그림은 현행(F0)이고 핀 <b>%d곳</b>을 가린다. "
-     "네 안을 풀사이즈로 그려 뒀다 &rarr; <b>dock.html</b>." % covered(ctx, BOXES["F0"]), "미정"),
+    (9, False, "검색 한 줄 &mdash; 분위기 <b>와</b> 목적지",
+     "누르면 <b>어휘가 다 펼쳐지고</b>(모르는 사람은 고른다), 치면 걸러진다(아는 사람은 친다). "
+     "<b>도시 이름도 같은 칸에서</b> 찾는다 &mdash; 분위기는 <b>필터</b>, 목적지는 <b>이동</b>. "
+     "상태 다섯은 <b>search.html</b>.", "09-01"),
+    (10, False, "날짜 &middot; 예산은 알약 + 팝오버",
+     "값이 <b>범위</b>라 타이핑으로 고르기 나빠 검색창에 안 넣었다. "
+     "날짜는 <b>언제 &times; 며칠</b> 두 축(<b>filters.html</b>), "
+     "예산은 <b>히스토그램 + 바로가기 칩</b>(<b>budget.html</b>).", "09-01"),
 ]
 
 trs = "".join('<tr><td class="k"><span class="num2%s">%d</span>%s</td><td>%s</td>'
@@ -89,8 +91,7 @@ html = (
     "<p class=lede>빈 상자가 아니라 <b>실제 딜</b>로 채웠다. 서울 출발 " + str(len(ALL)) + "건 중 "
     "&lsquo;조금 더 멀리&rsquo; 단계에 드는 " + str(len(STAGE)) + "곳을 실제 좌표로 그렸다. "
     "움직임은 없다 &mdash; 전환은 <b>open.html</b>에서 눌러볼 수 있다.<br>"
-    "<b style='color:#17201F'>검은 번호</b>는 확정, "
-    "<b style='color:#17201F'>흰 번호</b>는 아직 안 정했거나 코드에 미반영이다.</p>"
+    "<b>번호 열 개가 전부 확정</b>이고, 아직 안 정한 것은 &sect;03에 따로 모았다.</p>"
     + app(ctx, DOCK, badges) +
     "<h2><span class=n>01</span>번호 설명</h2>"
     "<table><tr><th style='width:250px'>무엇을</th><th>내용</th>"
@@ -99,7 +100,9 @@ html = (
     "<table><tr><th style='width:180px'>표시</th><th style='text-align:right;width:70px'>건수</th>"
     "<th>조건</th></tr>"
     "<tr><td><b>도장</b> 3티어</td><td class=num>" + str(n_stamp) + "건</td>"
-    "<td><code>discount &ge; 15%</code> &mdash; <b>평소 시세</b> 대비</td></tr>"
+    "<td><code>discount &ge; " + str(TIERS[-1][0]) + "%</code> "
+    "(T1 " + str(TIERS[-1][0]) + " · T2 " + str(TIERS[1][0]) + " · T3 " + str(TIERS[0][0]) + ") "
+    "&mdash; <b>평소 시세</b> 대비</td></tr>"
     "<tr><td><b>신기록</b> <code>N일 최저</code></td><td class=num>" + str(n_rec) + "건</td>"
     "<td><code>obs_days &ge; " + str(OBS_FLOOR) + "</code> &middot; <code>price &lt; low</code> &middot; "
     "<b>낙폭 &ge; " + str(int(DROP_FLOOR * 100)) + "%</b> &mdash; <b>이전 최저</b> 대비. "
@@ -109,9 +112,7 @@ html = (
     "한 번 빠뜨렸다가 백엔드가 잡아줬다.</p>"
     "<h2><span class=n>03</span>아직 안 정한 것</h2>"
     "<table><tr><th style='width:170px'>안건</th><th>메모</th></tr>"
-    "<tr><td class=k>필터 도크</td><td><b>고르는 중</b> &mdash; 네 안을 풀사이즈로 그려 뒀다"
-    "(<b>dock.html</b>). 현행은 핀 " + str(covered(ctx, BOXES["F0"])) + "곳을 가린다.</td></tr>"
-    "<tr><td class=k>패널 폭</td><td>지금 <b>380px</b>. 넓히면 카드가 여유롭지만 "
+    "<tr><td class=k>패널 폭 &mdash; <b>다음</b></td><td>지금 <b>380px</b>. 넓히면 카드가 여유롭지만 "
     "<b>지도가 좁아져 지구가 작아진다</b> &mdash; 미주까지 담아야 해서(호 286.7&deg;) 무대 폭이 곧 배율이다. "
     "다만 <b>&lsquo;스르륵 이동&rsquo;이 확정돼</b> 처음부터 다 보일 필요는 줄었다.</td></tr>"
     "<tr><td class=k>화면0</td><td>출발지를 고르는 첫 화면을 지금처럼 <b>따로</b> 둘지, "
