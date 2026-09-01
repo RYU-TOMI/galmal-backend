@@ -78,7 +78,30 @@ jobs:
           # 라벨은 KST — 읽는 사람이 전부 한국 시간으로 산다(BB13).
           # 데이터 필드(fetched_date)는 기계가 빼는 값이라 UTC 그대로다.
           git commit -m "collect: $(TZ=Asia/Seoul date '+%Y-%m-%d')" || echo "변경 없음"
-          git push
+
+          # push 전에 원격을 당긴다(BB20). 세 세션이 main에 push하므로 체크아웃과
+          # push 사이에 원격이 움직일 수 있고, 그러면 push가 거부돼 **그날 수집분이
+          # 통째로 버려진다**. 2026-09-01에 실제로 발생했다.
+          #
+          # rebase를 쓰는 이유: 생성물(prices.db·docs/)은 우리가 방금 만든 게 최신이므로
+          # 원격 커밋 위에 얹으면 된다. 충돌은 생성물에서만 날 수 있고, 그때는
+          # 우리 것을 취한다 — 다음 크론이 어차피 다시 만든다.
+          for attempt in 1 2 3; do
+            git push && exit 0
+            echo "push 거부됨 (시도 $attempt) — 원격을 당겨 다시 얹는다"
+            git fetch origin main
+            git rebase origin/main || {
+              # ⚠️ rebase에서는 --ours/--theirs가 merge와 **반대**다.
+              #    --ours  = 얹히는 대상(origin/main)
+              #    --theirs = 지금 얹고 있는 내 커밋  ← 방금 만든 산출물
+              # 여기서 --ours를 쓰면 오늘 수집분을 버린다.
+              git checkout --theirs data/ docs/ 2>/dev/null || true
+              git add data/ docs/
+              git -c core.editor=true rebase --continue || git rebase --abort
+            }
+          done
+          echo "::error::3회 시도 후에도 push 실패 — 오늘 수집분이 커밋되지 않았다"
+          exit 1
 
       # 커밋 **뒤**에 둔다 — 데이터는 먼저 남기고, 그다음에 잡을 실패로 표시한다.
       # continue-on-error 스텝은 실패해도 잡이 초록불이라 몇 주째 죽어 있어도
