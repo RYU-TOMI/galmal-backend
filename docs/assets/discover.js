@@ -152,6 +152,7 @@
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
+    syncStepper();
   }
 
   // ---- 항로 + 플로팅/확장 카드 ----
@@ -236,6 +237,23 @@
   function setStage(idx) { stageIdx = idx; collapse(); render(); var bs = document.querySelectorAll(".stagebar .pill"); for (var k = 0; k < bs.length; k++) bs[k].classList.toggle("on", k === idx); }
   var sbs = document.querySelectorAll(".stagebar .pill");
   for (var b = 0; b < sbs.length; b++) (function (el, idx) { el.addEventListener("click", function () { setStage(idx); }); })(sbs[b], b);
+  // 단계 스테퍼 — 줌이 아니라 한 단계씩 넘기는 버튼. 양 끝에서는 비활성. (SPEC §CH1)
+  var stepEls = document.querySelectorAll(".stepper button");
+  function stepDelta(el) { return el.getAttribute("data-step") === "out" ? 1 : -1; }
+  function syncStepper() {
+    for (var k = 0; k < stepEls.length; k++) {
+      var n = stageIdx + stepDelta(stepEls[k]);
+      stepEls[k].disabled = (n < 0 || n >= STAGES.length);
+    }
+  }
+  for (var z = 0; z < stepEls.length; z++) (function (el) {
+    el.addEventListener("click", function () {
+      var n = stageIdx + stepDelta(el);
+      if (n < 0 || n >= STAGES.length) return;
+      setStage(n);
+    });
+  })(stepEls[z]);
+  syncStepper();
   stageEl.addEventListener("mouseleave", function () { if (matchMedia("(hover:hover)").matches) clearHi(); });
   svg.addEventListener("click", function (e) { if (e.target === svg || e.target.classList.contains("land")) collapse(); });
 

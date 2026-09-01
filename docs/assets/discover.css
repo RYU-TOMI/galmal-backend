@@ -55,8 +55,14 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .plabel{font-size:13px;font-weight:800;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3px;pointer-events:none}
 .plabel.minor{font-size:11px;font-weight:700;fill:#4a6a66}
 .stagebar{position:absolute;left:18px;bottom:18px;display:flex;gap:6px}
-.zoom{position:absolute;right:16px;top:16px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,40,.12)}
-.zoom button{width:38px;height:38px;border:0;background:none;font-size:1.2rem;color:var(--ink);cursor:pointer}.zoom button+button{border-top:1px solid var(--line)}
+/* 거리 단계 스테퍼 — 줌이 아니다. ＋=한 단계 멀리, －=한 단계 가까이 (SPEC §CH1) */
+.stepper{position:absolute;right:16px;top:16px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,40,.12)}
+.stepper button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:52px;height:44px;border:0;background:none;color:var(--ink);cursor:pointer;font:inherit;padding:0}
+.stepper button+button{border-top:1px solid var(--line)}
+.stepper i{font-style:normal;font-size:1.05rem;line-height:1}
+.stepper em{font-style:normal;font-size:.56rem;font-weight:700;color:var(--sub);line-height:1;letter-spacing:-.02em}
+.stepper button:hover:not(:disabled){background:var(--soft)}
+.stepper button:disabled{cursor:default;opacity:.32}
 /* 오른쪽 아래 필터 도크 */
 .filterdock{position:absolute;right:16px;bottom:18px;width:270px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(20,40,40,.18);overflow:hidden;z-index:7}
 .fdtoggle{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:#fff;font-weight:800;font-size:.9rem;color:var(--ink);padding:12px 15px;cursor:pointer}
@@ -127,7 +133,7 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
   .gorow{display:none}
   /* 지도 위 요소 정리 */
   .prompt{display:none}
-  .zoom{top:10px;right:10px}
+  .stepper{top:10px;right:10px}
   .stagebar{left:10px;bottom:10px}
   .filterdock{left:10px;right:10px;bottom:10px;width:auto}
   /* 플로팅/확장 카드 = 하단 시트 */

@@ -102,7 +102,10 @@ def render_home(data, deals_json, world_json, route_index):
     </svg>
     <div class="prompt"><b>카드에 올리면</b> 지도에 항로가 · <b>핀 클릭</b>하면 상세가 열려요</div>
     <div class="stagebar"><span class="pill on">가까운 곳</span><span class="pill">조금 더 멀리</span><span class="pill">아주 멀리</span></div>
-    <div class="zoom"><button type="button">＋</button><button type="button">－</button></div>{FILTER_DOCK}
+    <div class="stepper" id="stepper">
+      <button type="button" data-step="out" aria-label="더 멀리" title="더 멀리"><i>＋</i><em>더 멀리</em></button>
+      <button type="button" data-step="in" aria-label="가까이" title="가까이"><i>－</i><em>가까이</em></button>
+    </div>{FILTER_DOCK}
     <div class="hovercard" id="hc"></div>
   </div>
 </div>
