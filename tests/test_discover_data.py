@@ -62,28 +62,38 @@ class WhenLabelTest(unittest.TestCase):
     def label(self, y, m, d):
         return _when_label(date(y, m, d), self.TODAY)
 
-    def test_today_on_a_weekend_is_weekend(self):
-        """당일 출발이라도 금·토·일이면 '이번 주말'."""
-        self.assertEqual(self.label(2026, 8, 22), "이번 주말")   # 토
+    def test_this_weekend_is_this_calendar_week(self):
+        """`이번 주말` = **이번 주(월~일)의 금·토·일.** 기준일 8/22는 토요일이다."""
+        self.assertEqual(self.label(2026, 8, 21), "이번 주말")   # 금 (어제)
+        self.assertEqual(self.label(2026, 8, 22), "이번 주말")   # 토 (오늘)
+        self.assertEqual(self.label(2026, 8, 23), "이번 주말")   # 일
 
-    def test_sunday_within_nine_days_is_weekend(self):
-        self.assertEqual(self.label(2026, 8, 23), "이번 주말")   # 일, +1
+    def test_next_weekend_has_its_own_label(self):
+        """BB21 해결: 다음 주 금·토·일은 `다음 주말`이다.
 
-    def test_weekday_within_a_week_is_this_week(self):
-        """주말 조건에 걸리지 않는 평일은 7일 이내면 '이번 주'."""
-        self.assertEqual(self.label(2026, 8, 27), "이번 주")     # 목, +5
+        예전엔 "9일 이내 + 금·토·일"이라 이것들이 전부 `이번 주말`로 나갔다.
+        금·토·일에 접속하면 다음 주말 3일이 통째로 오라벨됐고, 임박 신호라
+        사용자 행동에 직접 영향을 줬다.
+        """
+        self.assertEqual(self.label(2026, 8, 28), "다음 주말")   # 금, +6
+        self.assertEqual(self.label(2026, 8, 29), "다음 주말")   # 토, +7
+        self.assertEqual(self.label(2026, 8, 30), "다음 주말")   # 일, +8
 
-    def test_weekend_rule_wins_over_this_week(self):
-        """+7일이라 '이번 주'에도 해당하지만, 주말 조건이 먼저라 '이번 주말'."""
-        self.assertEqual(self.label(2026, 8, 29), "이번 주말")   # 토, +7
+    def test_this_week_excludes_next_week(self):
+        """`이번 주`도 달력 기준이다 — 다음 주 평일은 `이번 달`로 떨어진다."""
+        self.assertEqual(self.label(2026, 8, 31), "이번 달")     # 월, 다음 주·같은 달
+        self.assertEqual(self.label(2026, 9, 1), "다음 달")      # 화, 다음 주·다음 달
 
-    def test_weekend_window_extends_to_nine_days(self):
-        """주말 조건의 창은 9일이라 '이번 주'(7일)보다 넓다."""
-        self.assertEqual(self.label(2026, 8, 30), "이번 주말")   # 일, +8
+    def test_weekday_in_this_week_is_this_week(self):
+        """기준일이 토요일이라 이번 주 평일은 이미 지났다 — 과거도 이번 주다."""
+        self.assertEqual(self.label(2026, 8, 19), "이번 주")     # 수 (지난)
 
-    def test_weekend_window_stops_after_nine_days(self):
-        """+10일은 금요일이어도 주말 라벨이 아니다(상한 9일)."""
-        self.assertEqual(_when_label(date(2026, 9, 4), date(2026, 8, 25)), "다음 달")
+    def test_a_week_can_cross_a_month(self):
+        """달을 넘어도 이번 주면 이번 주다 — 1·2가 4·5보다 먼저다."""
+        self.assertEqual(_when_label(date(2026, 10, 3), date(2026, 9, 30)),
+                         "이번 주말")                             # 수 기준 토
+        self.assertEqual(_when_label(date(2026, 10, 1), date(2026, 9, 30)),
+                         "이번 주")                               # 수 기준 목
 
     def test_next_month(self):
         self.assertEqual(self.label(2026, 9, 1), "다음 달")      # 화, +10
@@ -110,11 +120,11 @@ class WhenLabelTest(unittest.TestCase):
 
         예전엔 '8월'로 나왔다. 오늘이 8월인데 '8월'은 아무 말도 아니고,
         월초에는 딜의 3분의 1이 이 상태였다(2026-09-01 실측 44/126).
-        '이번 주'(7일)와 '다음 달' 사이가 비어 있던 것이 원인이다.
         """
-        self.assertEqual(self.label(2026, 8, 31), "이번 달")      # 월, +9
-        # 같은 달이어도 7일 이내면 '이번 주'가 먼저다 — 더 구체적인 쪽을 쓴다.
-        self.assertEqual(self.label(2026, 8, 25), "이번 주")      # 화, +3
+        # 기준일 8/22(토)의 '이번 주'는 8/17~8/23이므로 8/25·8/31은 다음 주다.
+        # 다음 주 **평일**은 주말만큼 특별하지 않아 `이번 달`로 떨어진다(기획 판단).
+        self.assertEqual(self.label(2026, 8, 25), "이번 달")      # 화, 다음 주
+        self.assertEqual(self.label(2026, 8, 31), "이번 달")      # 월, 다다음 주
 
     def test_next_year_is_marked_as_such(self):
         """BB8 해결: 이듬해 출발은 '내년 N월'.
