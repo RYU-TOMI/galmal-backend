@@ -405,3 +405,4 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 - 다음 챕터 첫 태스크: (다음 세션이 바로 시작할 수 있게)
 - 프론트/기획에 전달: (계약 변경·결정 요청)
 ```
+
