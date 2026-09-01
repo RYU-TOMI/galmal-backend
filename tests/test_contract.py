@@ -202,9 +202,20 @@ def validate(payload, vocab, parent=None, fields=None):
             errs.append(f"{at}.lat 범위 이탈: {dl['lat']!r}")
         if not (_num(dl["lon"]) and -180 <= dl["lon"] <= 180):
             errs.append(f"{at}.lon 범위 이탈: {dl['lon']!r}")
+        if dl["low"] is not None and not (_num(dl["low"]) and dl["low"] > 0):
+            errs.append(f"{at}.low가 양수가 아니다: {dl['low']!r}")
+        if not (_num(dl["obs_days"]) and dl["obs_days"] >= 0):
+            errs.append(f"{at}.obs_days가 0 이상이 아니다: {dl['obs_days']!r}")
+        # 계약: 이력이 없으면 low=null, obs_days=0. 둘이 어긋나면 한쪽이 거짓말이다.
+        if (dl["low"] is None) != (dl["obs_days"] == 0):
+            errs.append(f"{at}.low와 obs_days가 어긋난다: "
+                        f"low={dl['low']!r}, obs_days={dl['obs_days']!r}")
+
         if not (_num(dl["price"]) and dl["price"] > 0):
             errs.append(f"{at}.price가 양수가 아니다: {dl['price']!r}")
-        if not (_num(dl["median"]) and dl["median"] > 0):
+        # nullable 필드는 null이면 검사를 건너뛴다 — 계약이 허용한 값이다.
+        # null 자체의 적법성은 위 `wrongly_null` 검사가 계약 표를 보고 판단한다.
+        if dl["median"] is not None and not (_num(dl["median"]) and dl["median"] > 0):
             errs.append(f"{at}.median이 양수가 아니다: {dl['median']!r}")
         if not (_num(dl["transfers"]) and dl["transfers"] >= 0):
             errs.append(f"{at}.transfers가 0 이상이 아니다: {dl['transfers']!r}")
