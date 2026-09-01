@@ -1,0 +1,288 @@
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>갈래말래 — 모바일</title><style>
+:root{--ink:#17201F;--sub:#6C7B78;--line:#E3EAE8;--soft:#F2F6F5;
+ --accent:#F2603F;--coast:#2E7D74;--sea:#EAF1F0;--land:#DCE6E3;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+ color:var(--ink);background:#E4EDEB}
+.wrap{max-width:1320px;margin:0 auto;padding:44px 26px 90px}
+h1{font-size:1.9rem;letter-spacing:-.03em;margin:0 0 6px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--sub);margin:0 0 26px;max-width:860px;line-height:1.75}
+h2{font-size:1.12rem;margin:56px 0 10px;display:flex;align-items:center;gap:10px}
+h2 .n{font-size:.68rem;background:var(--ink);color:#fff;border-radius:5px;padding:2px 7px;font-weight:800}
+.note{color:var(--sub);font-size:.88rem;line-height:1.75;margin:0 0 18px;max-width:900px}
+.app{width:1200px;border:1px solid #cfdad7;border-radius:16px;overflow:hidden;
+ background:var(--card);box-shadow:0 14px 40px rgba(20,50,45,.14);position:relative}
+.hdr{display:flex;align-items:center;gap:20px;height:56px;padding:0 18px;
+ background:var(--card);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}
+.logo i{font-style:normal;color:var(--accent)}
+.nav{display:flex;gap:15px;font-size:.82rem;font-weight:800}
+.nav .a{color:var(--ink);border-bottom:2px solid var(--accent);padding-bottom:2px}
+.nav .m{color:var(--sub)}
+.origin{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:5px 13px;font-size:.8rem;font-weight:800}
+.body{display:flex;height:640px}
+.stage{width:820px;flex:none;position:relative;background:var(--sea);overflow:hidden}
+.land{position:absolute;background:var(--land);border-radius:44% 56% 38% 62%/52% 42% 58% 48%}
+svg.arcs{position:absolute;inset:0;pointer-events:none;z-index:1}
+.pin{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18);z-index:2}
+.pin.on{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;box-shadow:0 0 0 7px rgba(242,96,63,.28);z-index:4}
+.pin.hid{background:#B9A9A4;box-shadow:0 0 0 3px rgba(120,100,95,.14)}
+.pin.orig{background:var(--coast);box-shadow:0 0 0 4px rgba(46,125,116,.2);
+ width:13px;height:13px;margin:-6.5px 0 0 -6.5px}
+.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+ background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;z-index:3}
+.plab.orig{background:var(--coast);color:#fff}
+.stagebar{position:absolute;left:16px;top:14px;display:flex;gap:6px;z-index:7}
+.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.74rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 도크 공통 */
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--sub)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip.new{border-color:var(--accent);color:var(--accent);background:#FFF4F1}
+.brange{flex:1;height:4px;border-radius:99px;background:var(--line);position:relative}
+.brange i{position:absolute;left:0;top:0;bottom:0;width:74%;border-radius:99px;background:var(--accent)}
+/* F0 */
+.dock0{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:9px 13px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1)}
+.fdrow{display:flex;align-items:center;gap:9px;margin:4px 0}
+.fdlabel{font-size:.66rem;font-weight:800;color:var(--sub);width:36px;flex:none}
+.bval{font-size:.66rem;font-weight:800}
+/* F1 */
+.f1bar{position:absolute;right:12px;top:12px;display:flex;gap:6px;z-index:8}
+.fbtn{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.fbtn.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbtn .x{opacity:.7;margin-left:4px}
+.pop1{position:absolute;right:12px;top:50px;width:262px;background:#fff;border:1px solid var(--line);
+ border-radius:13px;padding:11px 12px;box-shadow:0 14px 34px rgba(16,44,38,.24);z-index:9}
+.pop1 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* F3 */
+.rail{position:absolute;left:12px;top:54px;bottom:54px;width:104px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:10px 9px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1);overflow:hidden}
+.rail .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:7px 0 4px}
+.rail .fchip{display:block;text-align:center;margin:3px 0;padding:3px 4px}
+/* ── 아래 바 재설계 ── */
+.bar{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff5;
+ border:1px solid var(--line);border-radius:12px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.12);display:flex;align-items:center;gap:8px;padding:0 12px}
+.bar.h44{height:44px}.bar.h52{height:52px}
+.bar .sep{width:1px;height:20px;background:var(--line);flex:none}
+.bar .cnt{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.srch{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);
+ border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:0}
+.srch .mag{color:var(--sub);font-size:.82rem;flex:none}
+.srch .ph{font-size:.74rem;color:var(--sub);font-weight:600;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.srch .cur{width:1px;height:14px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;
+ font-size:.66rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:4px}
+.ac{position:absolute;left:16px;bottom:72px;width:290px;background:#fff;
+ border:1px solid var(--line);border-radius:12px;padding:9px 10px;z-index:9;
+ box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.ac .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:2px 0 7px}
+.ac .row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;font-size:.72rem}
+.ac .row.on{background:var(--soft)}
+.ac .row b{font-weight:800}
+.ac .row .n{margin-left:auto;font-size:.62rem;color:var(--sub);font-weight:700}
+.pop2{position:absolute;bottom:70px;width:250px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:11px 12px;z-index:9;box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.pop2 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* 상세 */
+.pop{position:absolute;width:224px;z-index:10;transform:translate(-50%,-100%)}
+.pop:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;
+ border:8px solid transparent;border-top-color:#fff}
+.det{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 16px 40px rgba(16,44,38,.3)}
+.det .ph{height:94px;position:relative;background:linear-gradient(140deg,#b9d1cc,#dce8e5)}
+.phtags{position:absolute;left:7px;right:7px;bottom:7px;display:flex;gap:3px;flex-wrap:wrap}
+.phtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.52);
+ border-radius:4px;padding:1px 6px;white-space:nowrap}
+.cityover{position:absolute;left:9px;bottom:24px;color:#fff;font-weight:900;font-size:.98rem;
+ text-shadow:0 1px 7px #0009;letter-spacing:-.02em}
+.closex{position:absolute;right:7px;top:7px;width:20px;height:20px;border-radius:99px;
+ background:rgba(6,20,18,.45);color:#fff;font-size:.66rem;font-weight:900;
+ display:flex;align-items:center;justify-content:center}
+.db{padding:10px}
+.dsec{font-size:.55rem;font-weight:800;color:var(--sub);margin:9px 0 5px;padding-top:8px;
+ border-top:1px dashed var(--line)}
+.cmp{display:flex;align-items:center;gap:6px;font-size:.57rem;margin:3px 0}
+.cmp .bar{flex:1;height:6px;border-radius:99px;background:var(--soft);overflow:hidden}
+.cmp .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.cmp .bar.mut i{background:#c3cfcc}
+.cmp b{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.59rem}
+.rec2{font-size:.58rem;font-weight:800;color:var(--accent);margin-top:5px}
+.lnk{display:flex;justify-content:space-between;background:var(--soft);border-radius:7px;
+ padding:5px 8px;font-size:.58rem;font-weight:800;margin-top:4px}
+.lnk .p{font-variant-numeric:tabular-nums}
+.go{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;
+ font-size:.66rem;border-radius:8px;padding:8px 0}
+.ad{font-size:.48rem;color:var(--sub);line-height:1.5;margin-top:6px;text-align:center}
+/* 패널 */
+.panel{width:380px;flex:none;background:var(--sea);border-left:1px solid var(--line);
+ padding:0 10px;position:relative;overflow:hidden}
+.pfilter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-top:10px}
+.pfhead{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;font-weight:800}
+.pfhead span{font-size:.64rem;color:var(--sub);font-weight:700}
+.fhead{padding:12px 2px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.fhead b{font-size:.98rem;letter-spacing:-.02em}
+.fhead span{font-size:.66rem;color:var(--sub);font-weight:700}
+.sortbar{display:flex;gap:5px;padding-bottom:9px}
+.spill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 11px;
+ font-size:.66rem;font-weight:800;color:var(--sub)}
+.spill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.feed{display:flex;flex-direction:column;gap:9px}
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px;overflow:hidden}
+.fcard.on{border-color:var(--accent);box-shadow:0 5px 16px rgba(242,96,63,.2)}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.76rem;margin-top:5px}
+.dsub{font-size:.64rem;margin-top:2px}
+.bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px;
+ box-shadow:0 2px 6px rgba(242,96,63,.34)}
+.stamp.t3{transform:rotate(-9deg) scale(1.04);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.64rem;padding:2px 8px;
+ box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(242,96,63,.2),0 4px 12px rgba(198,71,42,.34)}
+/* 신기록 — 도장과 형태를 가른다: 기울기·테두리 없음 */
+.rec{flex:none;font-size:.6rem;font-weight:900;color:var(--accent);white-space:nowrap}
+.hero{flex-direction:column;gap:0;padding:0}
+.hero .ph{width:100%;height:104px;position:relative;background:linear-gradient(140deg,#c6dbd6,#e4edea)}
+.hero .hb{padding:10px}
+.pick{position:absolute;left:9px;top:9px;background:#fff;color:var(--accent);font-weight:900;
+ font-size:.6rem;padding:2px 8px;border-radius:99px;box-shadow:0 2px 6px #0002}
+.cut{position:absolute;left:0;right:0;bottom:0;height:74px;pointer-events:none;
+ background:linear-gradient(transparent,var(--sea) 66%)}
+.b{position:absolute;width:21px;height:21px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.64rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+ box-shadow:0 2px 8px #0004;z-index:20}
+.b.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
+ border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;font-weight:700;font-size:.74rem;color:var(--sub);padding:11px 12px;
+ border-bottom:1px solid var(--line);background:var(--soft)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.win{color:var(--accent);font-weight:900}
+.num2{display:inline-flex;width:20px;height:20px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.62rem;font-weight:900;align-items:center;justify-content:center;margin-right:7px}
+.num2.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.callout{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);
+ border-radius:10px;padding:16px 18px;margin:18px 0;font-size:.92rem;line-height:1.8;max-width:900px}
+.callout b{color:var(--accent)}
+ul.k{margin:12px 0 0;padding-left:19px;color:var(--sub);font-size:.89rem;max-width:900px}
+ul.k li{margin:8px 0}ul.k b{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
+
+.dmain{font-variant-numeric:tabular-nums;font-weight:800}
+.dmain .wd{font-weight:700;color:var(--sub)}
+.dmain .arw{color:var(--sub);margin:0 1px;font-weight:700}
+.dsub{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sub)}
+
+.wrapM{max-width:1180px;margin:0 auto;padding:44px 26px 90px}
+.mrow{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin:16px 0 34px}
+.mc{width:390px}
+.mhd{display:flex;align-items:baseline;gap:8px}
+.mid{font-size:.64rem;font-weight:900;background:var(--ink);color:#fff;border-radius:4px;padding:2px 7px}
+.mnm{font-weight:800;font-size:.9rem}
+.rec{font-size:.55rem;font-weight:900;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.no{font-size:.55rem;font-weight:900;background:var(--sub);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.mdesc{color:var(--sub);font-size:.77rem;line-height:1.6;min-height:70px;margin:5px 0 10px}
+.vp{width:390px;height:740px;border:1px solid #cfdad7;border-radius:22px;overflow:hidden;
+ position:relative;background:var(--sea)}
+.mh{height:46px;background:#fff;border-bottom:1px solid var(--line);display:flex;
+ align-items:center;padding:0 13px;gap:10px;position:relative;z-index:8}
+.mlogo{font-weight:900;font-size:.92rem;letter-spacing:-.03em}
+.mlogo i{font-style:normal;color:var(--accent)}
+.mpill{margin-left:auto;background:#fff;border:1.5px solid var(--accent);color:var(--accent);
+ border-radius:99px;padding:4px 12px;font-size:.74rem;font-weight:900}
+.mmap{position:absolute;left:0;right:0;background:
+ radial-gradient(120px 90px at 24% 22%,var(--land),transparent 70%),
+ radial-gradient(96px 70px at 70% 40%,var(--land),transparent 70%),
+ radial-gradient(80px 60px at 40% 62%,var(--land),transparent 70%),var(--sea)}
+.mpin{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18)}
+.mbar{position:absolute;left:10px;right:10px;height:44px;background:#fff;border:1px solid var(--line);
+ border-radius:11px;display:flex;align-items:center;gap:7px;padding:0 11px;z-index:7;
+ box-shadow:0 3px 12px rgba(20,50,45,.1)}
+.mmag{color:var(--sub);font-size:.84rem}
+.mph{font-size:.76rem;color:var(--sub);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msep{width:1px;height:20px;background:var(--line);flex:none}
+.mfb{background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:3px 9px;
+ font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap;flex:none}
+.mstage{position:absolute;left:10px;display:flex;gap:5px;z-index:7}
+.mspill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:5px 11px;
+ font-size:.68rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.mspill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 시트 */
+.msheet{position:absolute;left:0;right:0;bottom:0;background:var(--sea);
+ border-radius:18px 18px 0 0;box-shadow:0 -10px 28px rgba(16,44,38,.18);
+ border-top:1px solid var(--line);z-index:6;overflow:hidden}
+.mgrab{width:38px;height:4px;border-radius:99px;background:#c3cfcc;margin:9px auto 6px}
+.msort{display:flex;gap:5px;padding:0 10px 8px}
+.mspl{background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 10px;
+ font-size:.64rem;font-weight:800;color:var(--sub)}
+.mspl.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mfeed{display:flex;flex-direction:column;gap:9px;padding:0 10px}
+/* 가로 스크롤(현행) */
+.hfeed{position:absolute;left:0;right:0;bottom:0;background:var(--sea);border-top:1px solid var(--line);
+ display:flex;gap:9px;padding:10px;overflow:hidden;z-index:6}
+.hcard{flex:0 0 208px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:10px}
+.hcard .ph{width:100%;height:96px;border-radius:9px;margin-bottom:8px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+/* 카드 */
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.14rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.74rem;margin-top:5px}
+.dsub{font-size:.63rem;margin-top:2px}
+.bdg{font-size:.58rem;font-weight:800;border-radius:99px;padding:2px 8px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.52rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.58rem;padding:2px 7px}
+.stamp.t3{transform:rotate(-9deg);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.6rem;padding:2px 8px;box-shadow:0 0 0 2px #fff}
+.tabs{position:absolute;left:0;right:0;top:46px;height:40px;background:#fff;
+ border-bottom:1px solid var(--line);display:flex;z-index:7}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;font-size:.8rem;
+ font-weight:800;color:var(--sub)}
+.tab.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.mt3{display:flex;gap:7px;margin-top:9px}
+.mt3 div{flex:1;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 8px;
+ text-align:center;font-size:.62rem;color:var(--sub);font-weight:700;line-height:1.4}
+.mt3 b{display:block;font-size:1.0rem;letter-spacing:-.02em;color:var(--ink)}
+.mt3 .g b{color:#1E7A50}.mt3 .r b{color:var(--accent)}
+.steps{display:flex;gap:9px;margin:10px 0 0;flex-wrap:wrap}
+.step{flex:1;min-width:110px;background:#fff;border:1px solid var(--line);border-radius:10px;
+ padding:8px 9px;font-size:.68rem;line-height:1.5;color:var(--sub);font-weight:700}
+.step b{display:block;color:var(--ink);font-size:.76rem;margin-bottom:2px}
+</style></head><body><div class=wrapM><h1>모바일 &mdash; <em>지도와 카드를 어떻게 나누나</em></h1><p class=lede><b>390&times;740</b> 뷰포트에 서울 출발 실제 딜로 그렸다. 데스크톱은 <b>좌우</b>로 나눴지만 모바일은 <b>위아래</b>라 저울이 통째로 다르다 &mdash; 패널 폭에서 얻은 결론이 여기선 안 통한다.</p><div class=callout><b>현행의 진짜 문제는 비중이 아니라 방향이다.</b><br>지도 56%는 나쁘지 않은데, 카드가 <b>가로로</b> 흘러서 <b>1.8장</b>밖에 안 보인다. 발견 서비스에서 <b>비교가 안 되는</b> 게 치명적이고, 세로로 읽는 화면에서 <b>손가락 방향이 바뀌는</b> 것도 부담이다.</div><div class=mrow><div class="mc"><div class="mhd"><span class="mid">N0</span><span class="mnm">지도 56% + 가로 스크롤</span><span class="no">현행</span></div><div class="mdesc">카드가 <b>가로로</b> 흐른다. 390px에 <b>208px 카드</b>라 <b>1.8장</b>밖에 안 보인다 &mdash; <b>비교가 안 된다.</b><br>가로 스크롤은 <b>훑기도 어렵다</b>. 세로로 읽는 화면에서 손가락 방향이 바뀐다.</div><div class="vp"><div class="mh"><span class="mlogo">갈래<i>말래</i></span><span class="mpill">서울 출발 &#9662;</span></div><div class="mmap" style="top:46px;height:388px"><span class="mpin" style="left:22%;top:20%"></span><span class="mpin" style="left:40%;top:14%"></span><span class="mpin" style="left:58%;top:34%"></span><span class="mpin" style="left:30%;top:50%"></span><span class="mpin" style="left:70%;top:56%"></span><span class="mpin" style="left:46%;top:68%"></span><span class="mpin" style="left:76%;top:26%"></span><span class="mpin" style="left:34%;top:78%"></span><span class="mpin" style="left:62%;top:84%"></span></div><div class="mbar" style="top:56px"><span class="mmag">&#9906;</span><span class="mph">어디로 갈까요?</span><span class="msep"></span><span class="mfb">아무때</span><span class="mfb">예산</span></div><div class="mstage" style="top:394px"><span class="mspill">가까운 곳</span><span class="mspill on">조금 더 멀리</span><span class="mspill">아주 멀리</span></div><div class="hfeed" style="height:306px"><div class="hcard"><div class="ph"></div><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div></div><div class="hcard"><div class="ph"></div><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div></div><div class="hcard"><div class="ph"></div><div class="frow"><span class="fcity">오사카</span></div><div class="prow"><span class="price">139,230<small>원</small></span></div><div class="dmain">9/16<span class="wd">(수)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div></div></div></div><div class="mt3"><div class=""><b>1.8장</b>보이는 카드</div><div class=""><b>388px</b>지도</div><div class="r"><b>고정</b>비중</div></div></div><div class="mc"><div class="mhd"><span class="mid">N1</span><span class="mnm">지도 배경 + 3단 시트</span><span class="rec">추천</span></div><div class="mdesc">지도가 <b>화면 전체</b>를 채우고 카드 시트가 위로 올라온다. <b>peek / half / full</b> 세 높이를 <b>사용자가 끌어서</b> 정한다.<br>우리가 비중을 못 정하는 게 아니라 <b>상황마다 다르다</b> &mdash; 훑을 땐 넓히고, 지도를 볼 땐 내린다.</div><div class="vp"><div class="mh"><span class="mlogo">갈래<i>말래</i></span><span class="mpill">서울 출발 &#9662;</span></div><div class="mmap" style="top:46px;bottom:0"><span class="mpin" style="left:22%;top:20%"></span><span class="mpin" style="left:40%;top:14%"></span><span class="mpin" style="left:58%;top:34%"></span><span class="mpin" style="left:30%;top:50%"></span><span class="mpin" style="left:70%;top:56%"></span><span class="mpin" style="left:46%;top:68%"></span><span class="mpin" style="left:76%;top:26%"></span><span class="mpin" style="left:34%;top:78%"></span><span class="mpin" style="left:62%;top:84%"></span></div><div class="mbar" style="top:56px"><span class="mmag">&#9906;</span><span class="mph">어디로 갈까요?</span><span class="msep"></span><span class="mfb">아무때</span><span class="mfb">예산</span></div><div class="mstage" style="bottom:350px"><span class="mspill">가까운 곳</span><span class="mspill on">조금 더 멀리</span><span class="mspill">아주 멀리</span></div><div class="msheet" style="height:340px"><div class="mgrab"></div><div class="msort"><span class="mspl on">가성비순</span><span class="mspl">임박순</span><span class="mspl">할인율순</span></div><div class="mfeed"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">오사카</span></div><div class="prow"><span class="price">139,230<small>원</small></span></div><div class="dmain">9/16<span class="wd">(수)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">도쿄</span><span class="stamp t3">51%&darr;</span></div><div class="prow"><span class="price">140,579<small>원</small></span></div><div class="dmain">9/17<span class="wd">(목)</span> <span class="arw">&rarr;</span> 9/25<span class="wd">(금)</span></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div></div></div></div><div class="mt3"><div class="g"><b>2.6장</b>보이는 카드</div><div class="g"><b>가변</b>지도</div><div class="g"><b>사용자</b>비중</div></div></div><div class="mc"><div class="mhd"><span class="mid">N2</span><span class="mnm">탭 전환</span></div><div class="mdesc"><code>지도</code>와 <code>목록</code>을 탭으로 가른다. 각각 <b>전체 화면</b>을 쓴다.<br>가장 많이 보이지만 <b>둘을 동시에 못 본다</b> &mdash; 지도에서 핀을 누르고 카드를 보려면 탭을 옮겨야 한다.</div><div class="vp"><div class="mh"><span class="mlogo">갈래<i>말래</i></span><span class="mpill">서울 출발 &#9662;</span></div><div class="tabs"><span class="tab">지도</span><span class="tab on">목록</span></div><div style="position:absolute;left:0;right:0;top:86px;bottom:0;background:var(--sea);padding:10px"><div class="mbar" style="position:static;margin-bottom:9px"><span class="mmag">&#9906;</span><span class="mph">어디로 갈까요?</span><span class="msep"></span><span class="mfb">아무때</span><span class="mfb">예산</span></div><div class="mfeed" style="padding:0"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">오사카</span></div><div class="prow"><span class="price">139,230<small>원</small></span></div><div class="dmain">9/16<span class="wd">(수)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">도쿄</span><span class="stamp t3">51%&darr;</span></div><div class="prow"><span class="price">140,579<small>원</small></span></div><div class="dmain">9/17<span class="wd">(목)</span> <span class="arw">&rarr;</span> 9/25<span class="wd">(금)</span></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">히로시마</span><span class="stamp t2">36%&darr;</span></div><div class="prow"><span class="price">148,280<small>원</small></span></div><div class="dmain">9/15<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/17<span class="wd">(목)</span></div><div class="dsub">2박3일 &middot; 이번 달</div></div></div></div></div></div><div class="mt3"><div class="g"><b>5.0장</b>보이는 카드</div><div class=""><b>전체(탭)</b>지도</div><div class="r"><b>고정</b>비중</div></div></div><div class="mc"><div class="mhd"><span class="mid">N3</span><span class="mnm">지도 40% 고정 + 세로 리스트</span></div><div class="mdesc">가로를 세로로 바꾸기만 했다. <b>현행보다 두 배 가까이 보인다.</b><br>단순하고 예측 가능하지만 <b>비중이 고정</b>이라 지도를 크게 볼 수 없다.</div><div class="vp"><div class="mh"><span class="mlogo">갈래<i>말래</i></span><span class="mpill">서울 출발 &#9662;</span></div><div class="mmap" style="top:46px;height:277px"><span class="mpin" style="left:22%;top:20%"></span><span class="mpin" style="left:40%;top:14%"></span><span class="mpin" style="left:58%;top:34%"></span><span class="mpin" style="left:30%;top:50%"></span><span class="mpin" style="left:70%;top:56%"></span><span class="mpin" style="left:46%;top:68%"></span><span class="mpin" style="left:76%;top:26%"></span><span class="mpin" style="left:34%;top:78%"></span><span class="mpin" style="left:62%;top:84%"></span></div><div class="mbar" style="top:56px"><span class="mmag">&#9906;</span><span class="mph">어디로 갈까요?</span><span class="msep"></span><span class="mfb">아무때</span><span class="mfb">예산</span></div><div class="mstage" style="top:283px"><span class="mspill">가까운 곳</span><span class="mspill on">조금 더 멀리</span><span class="mspill">아주 멀리</span></div><div class="msheet" style="height:417px;border-radius:0"><div class="msort" style="padding-top:9px"><span class="mspl on">가성비순</span><span class="mspl">임박순</span></div><div class="mfeed"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">오사카</span></div><div class="prow"><span class="price">139,230<small>원</small></span></div><div class="dmain">9/16<span class="wd">(수)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">도쿄</span><span class="stamp t3">51%&darr;</span></div><div class="prow"><span class="price">140,579<small>원</small></span></div><div class="dmain">9/17<span class="wd">(목)</span> <span class="arw">&rarr;</span> 9/25<span class="wd">(금)</span></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div></div></div></div><div class="mt3"><div class="g"><b>3.3장</b>보이는 카드</div><div class=""><b>277px</b>지도</div><div class="r"><b>고정</b>비중</div></div></div></div><h2><span class=n>N1</span>세 높이</h2><p class=note>위 그림은 <b>half</b> 상태다. 손잡이를 끌어 셋 사이를 오간다.</p><div class="steps"><div class="step"><b>peek &mdash; 160px</b>카드 1장. 지도가 최대로 보인다. 핀을 누르거나 지도를 볼 때</div><div class="step"><b>half &mdash; 340px</b>카드 2.6장. 기본값. 지도와 목록을 같이 본다</div><div class="step"><b>full &mdash; 화면 대부분</b>카드 5.2장. 훑고 비교할 때. 지도는 위에 살짝</div></div><h2><span class=n>왜</span>N1</h2><ul class=k><li><b>비중을 우리가 정할 문제가 아니다.</b> 지도를 볼 때와 목록을 훑을 때 필요한 비중이 다르다. <b>고정하면 둘 중 하나는 늘 답답하다</b>(N0·N3).</li><li><b>지도가 배경으로 살아 있다.</b> 탭(N2)은 카드를 가장 많이 보여주지만 <b>지도와 목록이 서로를 못 본다</b> &mdash; 핀을 누르고 카드를 보려면 탭을 옮겨야 한다. 지도가 본체인 제품에서 그 단절은 크다.</li><li><b>상세와 같은 은유다.</b> 확장 상세도 하단 시트로 확정했다(§CH4). 카드를 누르면 <b>같은 시트 안에서 상세로 밀려 들어가고</b> 뒤로가기로 돌아온다 &mdash; <b>시트 두 장이 겹치지 않는다.</b></li><li><b>단계바는 시트 바로 위에 띄운다.</b> 지도 조작이라 지도 가까이 두되, <b>엄지가 닿는 아래쪽</b>이어야 한다. 검색 바는 위에 둔다 &mdash; 자주 안 쓰고, 누르면 <b>전체 화면 검색</b>으로 열리므로 위치가 덜 중요하다.</li><li>⚠️ <b>드래그가 세 군데서 부딪힌다</b> &mdash; 시트 높이 조절, 시트 안 스크롤, 그리고 <b>예산 슬라이더</b>(§CH3). 슬라이더를 잡는 동안 시트 드래그를 막기로 한 것과 같은 처리가 필요하다.</li></ul><p class=note>&#9888; <b>지도는 자유 줌·팬이 없다</b>(§CH1 확정)는 게 여기서 도움이 된다. 지도에 드래그 제스처가 없으므로 <b>시트 끌기와 안 부딪힌다.</b> 자유 줌을 넣었다면 이 설계가 성립하지 않았다.</p><p class=note>&#9888; 이 세션엔 브라우저가 없어 실제 렌더를 못 본다. 특히 <b>시트 드래그 감각</b>은 손으로 만져봐야 안다.</p><p class=foot>생성 <b>design/build_mobile.py</b> &middot; 데이터 <b>docs/data/deals.json</b>(서울 69건) &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b></p></div></body></html>

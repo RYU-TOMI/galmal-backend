@@ -1,0 +1,240 @@
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>갈래말래 — 패널 폭</title><style>
+:root{--ink:#17201F;--sub:#6C7B78;--line:#E3EAE8;--soft:#F2F6F5;
+ --accent:#F2603F;--coast:#2E7D74;--sea:#EAF1F0;--land:#DCE6E3;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+ color:var(--ink);background:#E4EDEB}
+.wrap{max-width:1320px;margin:0 auto;padding:44px 26px 90px}
+h1{font-size:1.9rem;letter-spacing:-.03em;margin:0 0 6px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--sub);margin:0 0 26px;max-width:860px;line-height:1.75}
+h2{font-size:1.12rem;margin:56px 0 10px;display:flex;align-items:center;gap:10px}
+h2 .n{font-size:.68rem;background:var(--ink);color:#fff;border-radius:5px;padding:2px 7px;font-weight:800}
+.note{color:var(--sub);font-size:.88rem;line-height:1.75;margin:0 0 18px;max-width:900px}
+.app{width:1200px;border:1px solid #cfdad7;border-radius:16px;overflow:hidden;
+ background:var(--card);box-shadow:0 14px 40px rgba(20,50,45,.14);position:relative}
+.hdr{display:flex;align-items:center;gap:20px;height:56px;padding:0 18px;
+ background:var(--card);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}
+.logo i{font-style:normal;color:var(--accent)}
+.nav{display:flex;gap:15px;font-size:.82rem;font-weight:800}
+.nav .a{color:var(--ink);border-bottom:2px solid var(--accent);padding-bottom:2px}
+.nav .m{color:var(--sub)}
+.origin{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:5px 13px;font-size:.8rem;font-weight:800}
+.body{display:flex;height:640px}
+.stage{width:820px;flex:none;position:relative;background:var(--sea);overflow:hidden}
+.land{position:absolute;background:var(--land);border-radius:44% 56% 38% 62%/52% 42% 58% 48%}
+svg.arcs{position:absolute;inset:0;pointer-events:none;z-index:1}
+.pin{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18);z-index:2}
+.pin.on{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;box-shadow:0 0 0 7px rgba(242,96,63,.28);z-index:4}
+.pin.hid{background:#B9A9A4;box-shadow:0 0 0 3px rgba(120,100,95,.14)}
+.pin.orig{background:var(--coast);box-shadow:0 0 0 4px rgba(46,125,116,.2);
+ width:13px;height:13px;margin:-6.5px 0 0 -6.5px}
+.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+ background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;z-index:3}
+.plab.orig{background:var(--coast);color:#fff}
+.stagebar{position:absolute;left:16px;top:14px;display:flex;gap:6px;z-index:7}
+.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.74rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 도크 공통 */
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--sub)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip.new{border-color:var(--accent);color:var(--accent);background:#FFF4F1}
+.brange{flex:1;height:4px;border-radius:99px;background:var(--line);position:relative}
+.brange i{position:absolute;left:0;top:0;bottom:0;width:74%;border-radius:99px;background:var(--accent)}
+/* F0 */
+.dock0{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:9px 13px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1)}
+.fdrow{display:flex;align-items:center;gap:9px;margin:4px 0}
+.fdlabel{font-size:.66rem;font-weight:800;color:var(--sub);width:36px;flex:none}
+.bval{font-size:.66rem;font-weight:800}
+/* F1 */
+.f1bar{position:absolute;right:12px;top:12px;display:flex;gap:6px;z-index:8}
+.fbtn{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.fbtn.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbtn .x{opacity:.7;margin-left:4px}
+.pop1{position:absolute;right:12px;top:50px;width:262px;background:#fff;border:1px solid var(--line);
+ border-radius:13px;padding:11px 12px;box-shadow:0 14px 34px rgba(16,44,38,.24);z-index:9}
+.pop1 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* F3 */
+.rail{position:absolute;left:12px;top:54px;bottom:54px;width:104px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:10px 9px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1);overflow:hidden}
+.rail .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:7px 0 4px}
+.rail .fchip{display:block;text-align:center;margin:3px 0;padding:3px 4px}
+/* ── 아래 바 재설계 ── */
+.bar{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff5;
+ border:1px solid var(--line);border-radius:12px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.12);display:flex;align-items:center;gap:8px;padding:0 12px}
+.bar.h44{height:44px}.bar.h52{height:52px}
+.bar .sep{width:1px;height:20px;background:var(--line);flex:none}
+.bar .cnt{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.srch{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);
+ border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:0}
+.srch .mag{color:var(--sub);font-size:.82rem;flex:none}
+.srch .ph{font-size:.74rem;color:var(--sub);font-weight:600;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.srch .cur{width:1px;height:14px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;
+ font-size:.66rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:4px}
+.ac{position:absolute;left:16px;bottom:72px;width:290px;background:#fff;
+ border:1px solid var(--line);border-radius:12px;padding:9px 10px;z-index:9;
+ box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.ac .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:2px 0 7px}
+.ac .row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;font-size:.72rem}
+.ac .row.on{background:var(--soft)}
+.ac .row b{font-weight:800}
+.ac .row .n{margin-left:auto;font-size:.62rem;color:var(--sub);font-weight:700}
+.pop2{position:absolute;bottom:70px;width:250px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:11px 12px;z-index:9;box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.pop2 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* 상세 */
+.pop{position:absolute;width:224px;z-index:10;transform:translate(-50%,-100%)}
+.pop:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;
+ border:8px solid transparent;border-top-color:#fff}
+.det{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 16px 40px rgba(16,44,38,.3)}
+.det .ph{height:94px;position:relative;background:linear-gradient(140deg,#b9d1cc,#dce8e5)}
+.phtags{position:absolute;left:7px;right:7px;bottom:7px;display:flex;gap:3px;flex-wrap:wrap}
+.phtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.52);
+ border-radius:4px;padding:1px 6px;white-space:nowrap}
+.cityover{position:absolute;left:9px;bottom:24px;color:#fff;font-weight:900;font-size:.98rem;
+ text-shadow:0 1px 7px #0009;letter-spacing:-.02em}
+.closex{position:absolute;right:7px;top:7px;width:20px;height:20px;border-radius:99px;
+ background:rgba(6,20,18,.45);color:#fff;font-size:.66rem;font-weight:900;
+ display:flex;align-items:center;justify-content:center}
+.db{padding:10px}
+.dsec{font-size:.55rem;font-weight:800;color:var(--sub);margin:9px 0 5px;padding-top:8px;
+ border-top:1px dashed var(--line)}
+.cmp{display:flex;align-items:center;gap:6px;font-size:.57rem;margin:3px 0}
+.cmp .bar{flex:1;height:6px;border-radius:99px;background:var(--soft);overflow:hidden}
+.cmp .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.cmp .bar.mut i{background:#c3cfcc}
+.cmp b{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.59rem}
+.rec2{font-size:.58rem;font-weight:800;color:var(--accent);margin-top:5px}
+.lnk{display:flex;justify-content:space-between;background:var(--soft);border-radius:7px;
+ padding:5px 8px;font-size:.58rem;font-weight:800;margin-top:4px}
+.lnk .p{font-variant-numeric:tabular-nums}
+.go{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;
+ font-size:.66rem;border-radius:8px;padding:8px 0}
+.ad{font-size:.48rem;color:var(--sub);line-height:1.5;margin-top:6px;text-align:center}
+/* 패널 */
+.panel{width:380px;flex:none;background:var(--sea);border-left:1px solid var(--line);
+ padding:0 10px;position:relative;overflow:hidden}
+.pfilter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-top:10px}
+.pfhead{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;font-weight:800}
+.pfhead span{font-size:.64rem;color:var(--sub);font-weight:700}
+.fhead{padding:12px 2px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.fhead b{font-size:.98rem;letter-spacing:-.02em}
+.fhead span{font-size:.66rem;color:var(--sub);font-weight:700}
+.sortbar{display:flex;gap:5px;padding-bottom:9px}
+.spill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 11px;
+ font-size:.66rem;font-weight:800;color:var(--sub)}
+.spill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.feed{display:flex;flex-direction:column;gap:9px}
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px;overflow:hidden}
+.fcard.on{border-color:var(--accent);box-shadow:0 5px 16px rgba(242,96,63,.2)}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.76rem;margin-top:5px}
+.dsub{font-size:.64rem;margin-top:2px}
+.bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px;
+ box-shadow:0 2px 6px rgba(242,96,63,.34)}
+.stamp.t3{transform:rotate(-9deg) scale(1.04);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.64rem;padding:2px 8px;
+ box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(242,96,63,.2),0 4px 12px rgba(198,71,42,.34)}
+/* 신기록 — 도장과 형태를 가른다: 기울기·테두리 없음 */
+.rec{flex:none;font-size:.6rem;font-weight:900;color:var(--accent);white-space:nowrap}
+.hero{flex-direction:column;gap:0;padding:0}
+.hero .ph{width:100%;height:104px;position:relative;background:linear-gradient(140deg,#c6dbd6,#e4edea)}
+.hero .hb{padding:10px}
+.pick{position:absolute;left:9px;top:9px;background:#fff;color:var(--accent);font-weight:900;
+ font-size:.6rem;padding:2px 8px;border-radius:99px;box-shadow:0 2px 6px #0002}
+.cut{position:absolute;left:0;right:0;bottom:0;height:74px;pointer-events:none;
+ background:linear-gradient(transparent,var(--sea) 66%)}
+.b{position:absolute;width:21px;height:21px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.64rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+ box-shadow:0 2px 8px #0004;z-index:20}
+.b.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
+ border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;font-weight:700;font-size:.74rem;color:var(--sub);padding:11px 12px;
+ border-bottom:1px solid var(--line);background:var(--soft)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.win{color:var(--accent);font-weight:900}
+.num2{display:inline-flex;width:20px;height:20px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.62rem;font-weight:900;align-items:center;justify-content:center;margin-right:7px}
+.num2.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.callout{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);
+ border-radius:10px;padding:16px 18px;margin:18px 0;font-size:.92rem;line-height:1.8;max-width:900px}
+.callout b{color:var(--accent)}
+ul.k{margin:12px 0 0;padding-left:19px;color:var(--sub);font-size:.89rem;max-width:900px}
+ul.k li{margin:8px 0}ul.k b{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
+
+.dmain{font-variant-numeric:tabular-nums;font-weight:800}
+.dmain .wd{font-weight:700;color:var(--sub)}
+.dmain .arw{color:var(--sub);margin:0 1px;font-weight:700}
+.dsub{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sub)}
+
+.wrapP{max-width:1180px;margin:0 auto;padding:44px 26px 90px}
+.strip{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;margin:14px 0 30px}
+.pcol{border:1px solid #cfdad7;border-radius:13px;overflow:hidden;background:var(--sea)}
+.phd{background:#fff;border-bottom:1px solid var(--line);padding:9px 11px}
+.phd b{font-size:.92rem;letter-spacing:-.02em}
+.phd .sub{font-size:.66rem;color:var(--sub);font-weight:700;margin-top:2px}
+.pbody{padding:9px}
+.mini{display:flex;flex-direction:column;gap:8px}
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px;overflow:hidden}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.76rem;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsub{font-size:.64rem;margin-top:2px}
+.bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px}
+.stamp.t3{transform:rotate(-9deg);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.62rem;padding:2px 8px;box-shadow:0 0 0 2px #fff}
+.globe{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:10px;
+ padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.gcirc{border-radius:99px;background:radial-gradient(circle at 34% 32%,#DCE6E3,#B9CFCA);
+ border:1px solid #cfdad7}
+.gtxt{font-size:.68rem;font-weight:800;color:var(--sub);font-variant-numeric:tabular-nums}
+.gtxt b{color:var(--ink);font-size:.86rem}
+.delta{font-size:.66rem;font-weight:800;font-variant-numeric:tabular-nums}
+.up{color:#1E7A50}.down{color:var(--accent)}.zero{color:var(--sub)}
+</style></head><body><div class=wrapP><h1>패널 폭 &mdash; <em>지구냐 카드냐</em></h1><p class=lede>좁히면 지도가 넓어져 <b>지구가 커지고</b>, 넓히면 <b>카드가 여유로워진다</b>. 둘 다 실측으로 쟀다 &mdash; 지도는 <code>viewBox 1000&times;680</code> 고정에서 나오는 far 배율, 카드는 <b>실제 도시명·가격 문자열 폭</b>이다. 앱 폭 1200px 기준.</p><div class=strip><div class="pcol" style="width:320px"><div class="phd"><b>320px</b><div class="sub">본문 204px · 지도 880px</div></div><div class="pbody"><div class="mini"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">쿠알라룸푸르</span><span class="stamp t1">26%&darr;</span></div><div class="prow"><span class="price">365,663<small>원</small></span></div><div class="dmain">6/1<span class="wd">(화)</span> <span class="arw">&rarr;</span> 6/4<span class="wd">(금)</span></div><div class="dsub">3박4일 &middot; 내년 6월</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">세부</span></div><div class="prow"><span class="price">176,056<small>원</small></span><span class="bdg">&#9992; 직항</span></div><div class="dmain">9/20<span class="wd">(일)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">4박5일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div></div><div class="globe"><div class="gcirc" style="width:68px;height:68px"></div><div class="gtxt">far 배율 <b>186</b> <span class="delta up">+6.9%</span></div><div class="gtxt down">가장 긴 줄이 <b>73%</b> 채움</div></div></div></div><div class="pcol" style="width:360px"><div class="phd"><b>360px</b><div class="sub">본문 244px · 지도 840px</div></div><div class="pbody"><div class="mini"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">쿠알라룸푸르</span><span class="stamp t1">26%&darr;</span></div><div class="prow"><span class="price">365,663<small>원</small></span></div><div class="dmain">6/1<span class="wd">(화)</span> <span class="arw">&rarr;</span> 6/4<span class="wd">(금)</span></div><div class="dsub">3박4일 &middot; 내년 6월</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">세부</span></div><div class="prow"><span class="price">176,056<small>원</small></span><span class="bdg">&#9992; 직항</span></div><div class="dmain">9/20<span class="wd">(일)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">4박5일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div></div><div class="globe"><div class="gcirc" style="width:65px;height:65px"></div><div class="gtxt">far 배율 <b>178</b> <span class="delta up">+2.3%</span></div><div class="gtxt up">가장 긴 줄이 <b>61%</b> 채움</div></div></div></div><div class="pcol" style="width:380px"><div class="phd"><b>380px</b> <span style="font-size:.6rem;font-weight:900;background:var(--ink);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px">지금</span><div class="sub">본문 264px · 지도 820px</div></div><div class="pbody"><div class="mini"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">쿠알라룸푸르</span><span class="stamp t1">26%&darr;</span></div><div class="prow"><span class="price">365,663<small>원</small></span></div><div class="dmain">6/1<span class="wd">(화)</span> <span class="arw">&rarr;</span> 6/4<span class="wd">(금)</span></div><div class="dsub">3박4일 &middot; 내년 6월</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">세부</span></div><div class="prow"><span class="price">176,056<small>원</small></span><span class="bdg">&#9992; 직항</span></div><div class="dmain">9/20<span class="wd">(일)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">4박5일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div></div><div class="globe"><div class="gcirc" style="width:64px;height:64px"></div><div class="gtxt">far 배율 <b>174</b> <span class="delta zero">0.0%</span></div><div class="gtxt up">가장 긴 줄이 <b>57%</b> 채움</div></div></div></div><div class="pcol" style="width:420px"><div class="phd"><b>420px</b> <span style="font-size:.6rem;font-weight:900;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px">추천</span><div class="sub">본문 304px · 지도 780px</div></div><div class="pbody"><div class="mini"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">쿠알라룸푸르</span><span class="stamp t1">26%&darr;</span></div><div class="prow"><span class="price">365,663<small>원</small></span></div><div class="dmain">6/1<span class="wd">(화)</span> <span class="arw">&rarr;</span> 6/4<span class="wd">(금)</span></div><div class="dsub">3박4일 &middot; 내년 6월</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">세부</span></div><div class="prow"><span class="price">176,056<small>원</small></span><span class="bdg">&#9992; 직항</span></div><div class="dmain">9/20<span class="wd">(일)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">4박5일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div></div><div class="globe"><div class="gcirc" style="width:60px;height:60px"></div><div class="gtxt">far 배율 <b>165</b> <span class="delta down">-5.2%</span></div><div class="gtxt up">가장 긴 줄이 <b>49%</b> 채움</div></div></div></div><div class="pcol" style="width:460px"><div class="phd"><b>460px</b><div class="sub">본문 344px · 지도 740px</div></div><div class="pbody"><div class="mini"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">쿠알라룸푸르</span><span class="stamp t1">26%&darr;</span></div><div class="prow"><span class="price">365,663<small>원</small></span></div><div class="dmain">6/1<span class="wd">(화)</span> <span class="arw">&rarr;</span> 6/4<span class="wd">(금)</span></div><div class="dsub">3박4일 &middot; 내년 6월</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">세부</span></div><div class="prow"><span class="price">176,056<small>원</small></span><span class="bdg">&#9992; 직항</span></div><div class="dmain">9/20<span class="wd">(일)</span> <span class="arw">&rarr;</span> 9/24<span class="wd">(목)</span></div><div class="dsub">4박5일 &middot; 이번 달</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">제주</span><span class="stamp t1">22%&darr;</span></div><div class="prow"><span class="price">33,004<small>원</small></span></div><div class="dmain">9/8<span class="wd">(화)</span> <span class="arw">&rarr;</span> 9/16<span class="wd">(수)</span></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="frow"><span class="fcity">후쿠오카</span></div><div class="prow"><span class="price">132,370<small>원</small></span></div><div class="dmain">9/7<span class="wd">(월)</span> <span class="arw">&rarr;</span> 9/9<span class="wd">(수)</span></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div></div><div class="globe"><div class="gcirc" style="width:57px;height:57px"></div><div class="gtxt">far 배율 <b>157</b> <span class="delta down">-9.8%</span></div><div class="gtxt up">가장 긴 줄이 <b>44%</b> 채움</div></div></div></div></div><h2><span class=n>01</span>숫자</h2><table><tr><th>패널</th><th style='text-align:right'>지도 폭</th><th style='text-align:right'>far 배율</th><th style='text-align:right'>지구 크기</th><th style='text-align:right'>카드 본문</th><th style='text-align:right'>카드 폭</th><th style='text-align:right'>가장 긴 줄</th></tr><tr><td class="k ">320px</td><td class="num">880</td><td class="num">186</td><td class="num up">+6.9%</td><td class="num">204</td><td class="num down">-22.7%</td><td class="num down">73%</td></tr><tr><td class="k ">360px</td><td class="num">840</td><td class="num">178</td><td class="num up">+2.3%</td><td class="num">244</td><td class="num down">-7.6%</td><td class="num up">61%</td></tr><tr><td class="k ">380px (지금)</td><td class="num">820</td><td class="num">174</td><td class="num zero">0.0%</td><td class="num">264</td><td class="num zero">0.0%</td><td class="num up">57%</td></tr><tr><td class="k win">420px</td><td class="num">780</td><td class="num">165</td><td class="num down">-5.2%</td><td class="num">304</td><td class="num up">+15.2%</td><td class="num up">49%</td></tr><tr><td class="k ">460px</td><td class="num">740</td><td class="num">157</td><td class="num down">-9.8%</td><td class="num">344</td><td class="num up">+30.3%</td><td class="num up">44%</td></tr></table><h2><span class=n>02</span>내 가설이 틀렸다</h2><div class=callout><b>&ldquo;좁히면 글자가 잘린다&rdquo;고 예상했는데 아니었다.</b><br><b>320px에서도 잘리는 카드가 0건</b>이다. 가장 긴 줄이 149px인데 본문이 204px이라 아직 남는다. 도시명이 길어야 <b>쿠알라룸푸르</b>(여섯 자)이고 가격은 아홉 자리가 최대라 <b>한글 서비스는 애초에 글자가 짧다.</b><br>그래서 <b>다른 걸 재야 했다</b> &mdash; 잘리느냐가 아니라 <b>가장 긴 줄이 본문을 얼마나 채우나</b>다.</div><ul class=k><li><b>320px은 74%를 채운다.</b> 안 잘리지만 오른쪽에 도장이 붙으면 빡빡하다. <b>380px은 57%</b>라 여유가 있다.</li><li><b>좁혀서 얻는 게 적다.</b> 60px을 좁혀도(380&rarr;320) 지구는 <b>+7%</b>뿐이다. <code>slice</code> 크롭 때문에 <b>무대가 넓어져도 보이는 viewBox 가로는 그만큼 안 늘어난다.</b></li><li><b>넓히는 것도 이득이 적다.</b> 420이면 본문은 넉넉해지지만 <b>어차피 채울 글자가 없다</b> &mdash; 빈 여백만 는다.</li><li><b>&lsquo;스르륵 이동&rsquo;이 지도 압박을 덜어준다.</b> 상세를 열면 지도가 그 핀으로 움직이므로 <b>처음부터 다 보일 필요가 줄었다</b>(2026-09-01 확정). 그게 없었다면 지구 크기를 더 지켜야 했다.</li><li><b>그래서 결론은 &lsquo;그대로&rsquo;다.</b> 380px은 이미 균형점이다. 바꿀 근거가 데이터에 없다 &mdash; <b>바꾸지 않는 것도 결정</b>이다.</li></ul><div class=callout style='border-left-color:#2E7D74'><b style='color:#2E7D74'>380px 유지.</b> 좁히면 +7% 지구에 빡빡한 카드를 사고, 넓히면 &minus;5% 지구에 빈 여백을 산다. <b>둘 다 남는 장사가 아니다.</b><br><b>모바일에서 다시 볼 문제</b>다 &mdash; 390px 폭에서는 패널이 전폭이라 이 저울이 통째로 달라진다.</div><p class=note>&#9888; <b>문자 폭은 근사다.</b> 정확한 값은 폰트가 정한다 &mdash; 한글 1.0em · 숫자 0.58em(tabular) 같은 어림으로 쟀다. <b>순위를 가리는 데는 충분하지만 경계값 근처는 브라우저로 봐야 한다.</b> 이 세션엔 브라우저가 없다.</p><p class=foot>생성 <b>design/build_panel.py</b> &middot; 데이터 <b>docs/data/deals.json</b> &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b> &sect;CH1</p></div></body></html>

@@ -46,7 +46,9 @@
   var LIGHT = [247, 178, 158], DEEP = [214, 60, 30];
   function lerp(a, b, t) { return Math.round(a + (b - a) * t); }
   function num(p) { return +p.replace(/[^0-9]/g, ""); }
-  function dkey(d) { var m = d.match(/(\d+)\/(\d+)/); return m ? (+m[1]) * 100 + (+m[2]) : 9999; }
+  // 출발일 정렬 키 — 원본 ISO(YYYY-MM-DD)를 그대로 쓴다. 사전순 = 시간순.
+  // 표시용 문자열("9/12(토)~")을 되파싱하면 연도가 없어 내년 딜이 앞으로 온다.
+  function depkey(c) { return c.dep || "9999-99-99"; }
   function discNum(s) { return parseInt(s, 10) || 0; }
 
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
@@ -85,7 +87,7 @@
       CITY.forEach(function (c, i) { if (upto.indexOf(c.haul) >= 0 && (showMinor || c.tier === "major")) { c._i = i; out.push(c); } });
     }
     var cmp = { value: function (a, b) { return num(a.price) - num(b.price); },
-                imminent: function (a, b) { return dkey(a.date) - dkey(b.date); },
+                imminent: function (a, b) { var x = depkey(a), y = depkey(b); return x < y ? -1 : x > y ? 1 : 0; },
                 discount: function (a, b) { return discNum(b.disc) - discNum(a.disc); } };
     out.sort(function (a, b) { var da = dimmed(a) ? 1 : 0, db = dimmed(b) ? 1 : 0; if (da !== db) return da - db; return cmp[sortMode](a, b); });
     return out;
@@ -129,7 +131,7 @@
     var matches = vis.filter(function (c) { return !dimmed(c); });
     if (anyFilter() && matches.length === 0) { var nt = document.createElement("div"); nt.className = "feednote"; nt.textContent = "이 조건엔 딜이 없어요 — 조건을 바꿔보세요"; feed.appendChild(nt); }
     var heroCity = null;
-    matches.forEach(function (c) { if (!heroCity || discNum(c.disc) > discNum(heroCity.disc) || (discNum(c.disc) === discNum(heroCity.disc) && dkey(c.date) < dkey(heroCity.date))) heroCity = c; });
+    matches.forEach(function (c) { if (!heroCity || discNum(c.disc) > discNum(heroCity.disc) || (discNum(c.disc) === discNum(heroCity.disc) && depkey(c) < depkey(heroCity))) heroCity = c; });
     var order = heroCity ? [heroCity].concat(vis.filter(function (c) { return c !== heroCity; })) : vis;
     order.forEach(function (c) {
       var hero = (c === heroCity);

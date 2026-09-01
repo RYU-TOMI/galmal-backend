@@ -1,0 +1,295 @@
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>갈래말래 — 화면0</title><style>
+:root{--ink:#17201F;--sub:#6C7B78;--line:#E3EAE8;--soft:#F2F6F5;
+ --accent:#F2603F;--coast:#2E7D74;--sea:#EAF1F0;--land:#DCE6E3;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+ color:var(--ink);background:#E4EDEB}
+.wrap{max-width:1320px;margin:0 auto;padding:44px 26px 90px}
+h1{font-size:1.9rem;letter-spacing:-.03em;margin:0 0 6px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--sub);margin:0 0 26px;max-width:860px;line-height:1.75}
+h2{font-size:1.12rem;margin:56px 0 10px;display:flex;align-items:center;gap:10px}
+h2 .n{font-size:.68rem;background:var(--ink);color:#fff;border-radius:5px;padding:2px 7px;font-weight:800}
+.note{color:var(--sub);font-size:.88rem;line-height:1.75;margin:0 0 18px;max-width:900px}
+.app{width:1200px;border:1px solid #cfdad7;border-radius:16px;overflow:hidden;
+ background:var(--card);box-shadow:0 14px 40px rgba(20,50,45,.14);position:relative}
+.hdr{display:flex;align-items:center;gap:20px;height:56px;padding:0 18px;
+ background:var(--card);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}
+.logo i{font-style:normal;color:var(--accent)}
+.nav{display:flex;gap:15px;font-size:.82rem;font-weight:800}
+.nav .a{color:var(--ink);border-bottom:2px solid var(--accent);padding-bottom:2px}
+.nav .m{color:var(--sub)}
+.origin{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:5px 13px;font-size:.8rem;font-weight:800}
+.body{display:flex;height:640px}
+.stage{width:820px;flex:none;position:relative;background:var(--sea);overflow:hidden}
+.land{position:absolute;background:var(--land);border-radius:44% 56% 38% 62%/52% 42% 58% 48%}
+svg.arcs{position:absolute;inset:0;pointer-events:none;z-index:1}
+.pin{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18);z-index:2}
+.pin.on{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;box-shadow:0 0 0 7px rgba(242,96,63,.28);z-index:4}
+.pin.hid{background:#B9A9A4;box-shadow:0 0 0 3px rgba(120,100,95,.14)}
+.pin.orig{background:var(--coast);box-shadow:0 0 0 4px rgba(46,125,116,.2);
+ width:13px;height:13px;margin:-6.5px 0 0 -6.5px}
+.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+ background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;z-index:3}
+.plab.orig{background:var(--coast);color:#fff}
+.stagebar{position:absolute;left:16px;top:14px;display:flex;gap:6px;z-index:7}
+.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.74rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 도크 공통 */
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--sub)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip.new{border-color:var(--accent);color:var(--accent);background:#FFF4F1}
+.brange{flex:1;height:4px;border-radius:99px;background:var(--line);position:relative}
+.brange i{position:absolute;left:0;top:0;bottom:0;width:74%;border-radius:99px;background:var(--accent)}
+/* F0 */
+.dock0{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:9px 13px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1)}
+.fdrow{display:flex;align-items:center;gap:9px;margin:4px 0}
+.fdlabel{font-size:.66rem;font-weight:800;color:var(--sub);width:36px;flex:none}
+.bval{font-size:.66rem;font-weight:800}
+/* F1 */
+.f1bar{position:absolute;right:12px;top:12px;display:flex;gap:6px;z-index:8}
+.fbtn{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.fbtn.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbtn .x{opacity:.7;margin-left:4px}
+.pop1{position:absolute;right:12px;top:50px;width:262px;background:#fff;border:1px solid var(--line);
+ border-radius:13px;padding:11px 12px;box-shadow:0 14px 34px rgba(16,44,38,.24);z-index:9}
+.pop1 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* F3 */
+.rail{position:absolute;left:12px;top:54px;bottom:54px;width:104px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:10px 9px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1);overflow:hidden}
+.rail .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:7px 0 4px}
+.rail .fchip{display:block;text-align:center;margin:3px 0;padding:3px 4px}
+/* ── 아래 바 재설계 ── */
+.bar{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff5;
+ border:1px solid var(--line);border-radius:12px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.12);display:flex;align-items:center;gap:8px;padding:0 12px}
+.bar.h44{height:44px}.bar.h52{height:52px}
+.bar .sep{width:1px;height:20px;background:var(--line);flex:none}
+.bar .cnt{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.srch{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);
+ border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:0}
+.srch .mag{color:var(--sub);font-size:.82rem;flex:none}
+.srch .ph{font-size:.74rem;color:var(--sub);font-weight:600;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.srch .cur{width:1px;height:14px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;
+ font-size:.66rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:4px}
+.ac{position:absolute;left:16px;bottom:72px;width:290px;background:#fff;
+ border:1px solid var(--line);border-radius:12px;padding:9px 10px;z-index:9;
+ box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.ac .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:2px 0 7px}
+.ac .row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;font-size:.72rem}
+.ac .row.on{background:var(--soft)}
+.ac .row b{font-weight:800}
+.ac .row .n{margin-left:auto;font-size:.62rem;color:var(--sub);font-weight:700}
+.pop2{position:absolute;bottom:70px;width:250px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:11px 12px;z-index:9;box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.pop2 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* 상세 */
+.pop{position:absolute;width:224px;z-index:10;transform:translate(-50%,-100%)}
+.pop:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;
+ border:8px solid transparent;border-top-color:#fff}
+.det{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 16px 40px rgba(16,44,38,.3)}
+.det .ph{height:94px;position:relative;background:linear-gradient(140deg,#b9d1cc,#dce8e5)}
+.phtags{position:absolute;left:7px;right:7px;bottom:7px;display:flex;gap:3px;flex-wrap:wrap}
+.phtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.52);
+ border-radius:4px;padding:1px 6px;white-space:nowrap}
+.cityover{position:absolute;left:9px;bottom:24px;color:#fff;font-weight:900;font-size:.98rem;
+ text-shadow:0 1px 7px #0009;letter-spacing:-.02em}
+.closex{position:absolute;right:7px;top:7px;width:20px;height:20px;border-radius:99px;
+ background:rgba(6,20,18,.45);color:#fff;font-size:.66rem;font-weight:900;
+ display:flex;align-items:center;justify-content:center}
+.db{padding:10px}
+.dsec{font-size:.55rem;font-weight:800;color:var(--sub);margin:9px 0 5px;padding-top:8px;
+ border-top:1px dashed var(--line)}
+.cmp{display:flex;align-items:center;gap:6px;font-size:.57rem;margin:3px 0}
+.cmp .bar{flex:1;height:6px;border-radius:99px;background:var(--soft);overflow:hidden}
+.cmp .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.cmp .bar.mut i{background:#c3cfcc}
+.cmp b{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.59rem}
+.rec2{font-size:.58rem;font-weight:800;color:var(--accent);margin-top:5px}
+.lnk{display:flex;justify-content:space-between;background:var(--soft);border-radius:7px;
+ padding:5px 8px;font-size:.58rem;font-weight:800;margin-top:4px}
+.lnk .p{font-variant-numeric:tabular-nums}
+.go{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;
+ font-size:.66rem;border-radius:8px;padding:8px 0}
+.ad{font-size:.48rem;color:var(--sub);line-height:1.5;margin-top:6px;text-align:center}
+/* 패널 */
+.panel{width:380px;flex:none;background:var(--sea);border-left:1px solid var(--line);
+ padding:0 10px;position:relative;overflow:hidden}
+.pfilter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-top:10px}
+.pfhead{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;font-weight:800}
+.pfhead span{font-size:.64rem;color:var(--sub);font-weight:700}
+.fhead{padding:12px 2px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.fhead b{font-size:.98rem;letter-spacing:-.02em}
+.fhead span{font-size:.66rem;color:var(--sub);font-weight:700}
+.sortbar{display:flex;gap:5px;padding-bottom:9px}
+.spill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 11px;
+ font-size:.66rem;font-weight:800;color:var(--sub)}
+.spill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.feed{display:flex;flex-direction:column;gap:9px}
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px;overflow:hidden}
+.fcard.on{border-color:var(--accent);box-shadow:0 5px 16px rgba(242,96,63,.2)}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.76rem;margin-top:5px}
+.dsub{font-size:.64rem;margin-top:2px}
+.bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px;
+ box-shadow:0 2px 6px rgba(242,96,63,.34)}
+.stamp.t3{transform:rotate(-9deg) scale(1.04);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.64rem;padding:2px 8px;
+ box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(242,96,63,.2),0 4px 12px rgba(198,71,42,.34)}
+/* 신기록 — 도장과 형태를 가른다: 기울기·테두리 없음 */
+.rec{flex:none;font-size:.6rem;font-weight:900;color:var(--accent);white-space:nowrap}
+.hero{flex-direction:column;gap:0;padding:0}
+.hero .ph{width:100%;height:104px;position:relative;background:linear-gradient(140deg,#c6dbd6,#e4edea)}
+.hero .hb{padding:10px}
+.pick{position:absolute;left:9px;top:9px;background:#fff;color:var(--accent);font-weight:900;
+ font-size:.6rem;padding:2px 8px;border-radius:99px;box-shadow:0 2px 6px #0002}
+.cut{position:absolute;left:0;right:0;bottom:0;height:74px;pointer-events:none;
+ background:linear-gradient(transparent,var(--sea) 66%)}
+.b{position:absolute;width:21px;height:21px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.64rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+ box-shadow:0 2px 8px #0004;z-index:20}
+.b.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
+ border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;font-weight:700;font-size:.74rem;color:var(--sub);padding:11px 12px;
+ border-bottom:1px solid var(--line);background:var(--soft)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.win{color:var(--accent);font-weight:900}
+.num2{display:inline-flex;width:20px;height:20px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.62rem;font-weight:900;align-items:center;justify-content:center;margin-right:7px}
+.num2.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.callout{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);
+ border-radius:10px;padding:16px 18px;margin:18px 0;font-size:.92rem;line-height:1.8;max-width:900px}
+.callout b{color:var(--accent)}
+ul.k{margin:12px 0 0;padding-left:19px;color:var(--sub);font-size:.89rem;max-width:900px}
+ul.k li{margin:8px 0}ul.k b{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
+
+.dmain{font-variant-numeric:tabular-nums;font-weight:800}
+.dmain .wd{font-weight:700;color:var(--sub)}
+.dmain .arw{color:var(--sub);margin:0 1px;font-weight:700}
+.dsub{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sub)}
+
+.wrapZ{max-width:1180px;margin:0 auto;padding:44px 26px 90px}
+.zrow{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin:16px 0 34px}
+.zc{width:368px}
+.zhd{display:flex;align-items:baseline;gap:8px}
+.zid{font-size:.64rem;font-weight:900;background:var(--ink);color:#fff;border-radius:4px;padding:2px 7px}
+.znm{font-weight:800;font-size:.92rem}
+.rec{font-size:.55rem;font-weight:900;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.no{font-size:.55rem;font-weight:900;background:var(--sub);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.zdesc{color:var(--sub);font-size:.78rem;line-height:1.62;min-height:74px;margin:5px 0 10px}
+.frame{width:368px;height:400px;border:1px solid #cfdad7;border-radius:14px;overflow:hidden;
+ position:relative;background:#fff}
+.wmap{position:absolute;inset:0;background:
+ radial-gradient(110px 80px at 26% 30%,var(--land),transparent 70%),
+ radial-gradient(90px 66px at 68% 54%,var(--land),transparent 70%),
+ radial-gradient(70px 54px at 40% 74%,var(--land),transparent 70%),var(--sea)}
+.wpin{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18)}
+.blur{position:absolute;inset:0;backdrop-filter:blur(2px);background:rgba(234,241,240,.55)}
+/* 전체 화면 인트로 */
+.intro{position:absolute;inset:0;background:var(--sea);display:flex;
+ flex-direction:column;align-items:center;padding:26px 20px}
+.ititle{font-size:1.06rem;font-weight:900;letter-spacing:-.03em;text-align:center}
+.isub{font-size:.74rem;color:var(--sub);font-weight:700;margin-top:5px;text-align:center}
+.kmap{position:relative;width:300px;height:380px;margin-top:6px}
+.kland{position:absolute;left:52px;top:44px;width:196px;height:290px;background:var(--land);
+ border-radius:44% 52% 38% 60%/34% 30% 62% 66%}
+.kpin{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+ align-items:center;gap:4px}
+.kdot{width:13px;height:13px;border-radius:99px;background:var(--accent);
+ box-shadow:0 0 0 4px rgba(242,96,63,.2),0 2px 6px #0002}
+.klab{background:#fff;border:1px solid var(--line);border-radius:99px;padding:3px 10px;
+ font-size:.72rem;font-weight:800;white-space:nowrap;box-shadow:0 2px 7px #0002;
+ display:inline-flex;align-items:baseline;gap:5px}
+.klab .n{font-size:.62rem;color:var(--sub);font-weight:700;font-variant-numeric:tabular-nums}
+.klab.sp{border-style:dashed}
+.klab.sp .n{color:var(--accent)}
+/* 시트형 */
+.osheet{position:absolute;left:14px;right:14px;bottom:14px;background:#fff;
+ border:1px solid var(--line);border-radius:15px;padding:14px 15px 15px;
+ box-shadow:0 -12px 34px rgba(16,44,38,.2)}
+.ohd{font-size:.94rem;font-weight:900;letter-spacing:-.02em}
+.osub{font-size:.7rem;color:var(--sub);font-weight:700;margin-top:3px}
+.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
+.obtn{border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:var(--soft);
+ display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.obtn b{font-size:.86rem;font-weight:900;letter-spacing:-.02em}
+.obtn .n{font-size:.66rem;color:var(--sub);font-weight:700;font-variant-numeric:tabular-nums}
+.obtn.sp{border-style:dashed}
+.obtn.sp .n{color:var(--accent)}
+.obtn.on{background:var(--accent);border-color:var(--accent)}
+.obtn.on b,.obtn.on .n{color:#fff}
+/* 헤더 */
+.hdr2{position:absolute;left:0;right:0;top:0;height:46px;background:#fff;
+ border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 13px;z-index:5}
+.logo2{font-weight:900;font-size:.9rem;letter-spacing:-.03em}
+.logo2 i{font-style:normal;color:var(--accent)}
+.pill0{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:4px 11px;font-size:.72rem;font-weight:800}
+.pill0.hi{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mini2{position:absolute;left:0;right:0;bottom:0;background:var(--sea);
+ border-top:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:7px}
+.fcard{display:flex;gap:9px;background:#fff;border:1.5px solid var(--line);
+ border-radius:11px;padding:8px}
+.thumb{flex:none;width:46px;height:46px;border-radius:8px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.fcity{font-size:.84rem;font-weight:900;letter-spacing:-.02em}
+.price{font-weight:900;font-size:.98rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub)}
+.dsub{font-size:.6rem;font-weight:700;color:var(--sub);margin-top:2px}
+.mt2{display:flex;gap:7px;margin:9px 0 0}
+.mt2 div{flex:1;background:#fff;border:1px solid var(--line);border-radius:9px;
+ padding:7px 8px;text-align:center;font-size:.63rem;color:var(--sub);font-weight:700;line-height:1.4}
+.mt2 b{display:block;font-size:1.02rem;letter-spacing:-.02em;color:var(--ink)}
+.mt2 .g b{color:#1E7A50}.mt2 .r b{color:var(--accent)}
+/* 헤더 알약 3안 */
+.pill0.quiet{background:var(--soft);border-color:var(--line);color:var(--ink)}
+.pill0.loud{background:#fff;border:1.5px solid var(--accent);color:var(--accent);font-weight:900}
+.hint{position:absolute;left:0;right:0;top:46px;z-index:5;background:#FFF4F1;
+ border-bottom:1px solid #F6C9BB;padding:7px 13px;display:flex;align-items:center;gap:8px;
+ font-size:.72rem;font-weight:700;color:var(--ink)}
+.hint b{color:var(--accent)}
+.hint .x{margin-left:auto;color:var(--sub);font-weight:900}
+.caret{position:absolute;right:16px;top:44px;width:0;height:0;z-index:6;
+ border:7px solid transparent;border-bottom-color:#fff;filter:drop-shadow(0 -2px 2px #0001)}
+.odrop{position:absolute;right:13px;top:56px;width:196px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:9px 10px;z-index:6;box-shadow:0 12px 30px rgba(16,44,38,.2)}
+.odrop .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:6px}
+.odrop .r2{display:flex;align-items:baseline;justify-content:space-between;
+ padding:6px 8px;border-radius:7px;font-size:.78rem;font-weight:800}
+.odrop .r2.on{background:var(--accent);color:#fff}
+.odrop .r2 .n{font-size:.64rem;color:var(--sub);font-weight:700;font-variant-numeric:tabular-nums}
+.odrop .r2.on .n{color:#fff9}
+</style></head><body><div class=wrapZ><h1>화면0 &mdash; <em>출발지를 어떻게 고르나</em></h1><p class=lede>현행(<code>discover.js:262~284</code>)은 <b>전체 화면 인트로</b>다. 한국 지도에 핀 넷을 찍고 고르면 <code>#intro</code>가 숨는다. 실제 허브 딜 수로 그렸다.</p><table><tr><th>허브</th><th style='text-align:right'>딜</th><th style='text-align:right'>비중</th><th></th></tr><tr><td class="k">서울</td><td class="num">69건</td><td class="num">55%</td><td></td></tr><tr><td class="k">부산</td><td class="num">37건</td><td class="num">29%</td><td></td></tr><tr><td class="k">대구</td><td class="num">12건</td><td class="num">10%</td><td></td></tr><tr><td class="k">제주</td><td class="num">8건</td><td class="num">6%</td><td><b style='color:#F2603F'>희소</b> — 10곳 미만</td></tr></table><h2><span class=n>01</span>화면0을 둘까</h2><div class=zrow><div class="zc"><div class="zhd"><span class="zid">Z0</span><span class="znm">전체 화면 인트로</span><span class="no">기각</span></div><div class="zdesc">한국 지도에 핀 넷. <b>고르기 전엔 아무것도 안 보인다.</b><br><b>몇 곳이 열려 있는지도 안 알려준다</b> &mdash; 제주를 골랐다가 8곳뿐인 걸 그때 안다.</div><div class="frame"><div class="intro"><div class="ititle">어디서 출발해요?</div><div class="isub">출발 공항을 고르면 오늘 싼 곳들이 열려요</div><div class="kmap"><div class="kland"></div><div class="kpin" style="left:109px;top:75px"><span class="kdot"></span><span class="klab">서울</span></div><div class="kpin" style="left:220px;top:210px"><span class="kdot"></span><span class="klab">부산</span></div><div class="kpin" style="left:204px;top:169px"><span class="kdot"></span><span class="klab">대구</span></div><div class="kpin" style="left:80px;top:305px"><span class="kdot"></span><span class="klab sp">제주</span></div></div></div></div><div class="mt2"><div class=""><b>1클릭</b>&nbsp;</div><div class="r"><b>매번</b>&nbsp;</div><div class="g"><b>제품</b>이해 ◎</div></div></div><div class="zc"><div class="zhd"><span class="zid">Z1</span><span class="znm">전체 화면 + 건수</span><span class="no">기각</span></div><div class="zdesc">같은 구조에 <b>딜 수를 붙였다.</b> 희소 허브(10곳 미만)는 <b>점선</b>으로 표시한다.<br>고르기 전에 <b>무엇을 고르는지</b> 안다. 하지만 여전히 <b>지도를 통째로 가린다.</b></div><div class="frame"><div class="intro"><div class="ititle">어디서 출발해요?</div><div class="isub">오늘 126곳이 열려 있어요</div><div class="kmap"><div class="kland"></div><div class="kpin" style="left:109px;top:75px"><span class="kdot"></span><span class="klab">서울<span class="n">69곳</span></span></div><div class="kpin" style="left:220px;top:210px"><span class="kdot"></span><span class="klab">부산<span class="n">37곳</span></span></div><div class="kpin" style="left:204px;top:169px"><span class="kdot"></span><span class="klab">대구<span class="n">12곳</span></span></div><div class="kpin" style="left:80px;top:305px"><span class="kdot"></span><span class="klab sp">제주<span class="n">8곳</span></span></div></div></div></div><div class="mt2"><div class=""><b>1클릭</b>&nbsp;</div><div class="r"><b>매번</b>&nbsp;</div><div class="g"><b>제품</b>이해 ◎</div></div></div><div class="zc"><div class="zhd"><span class="zid">Z2</span><span class="znm">지도 위 시트 + 기억</span><span class="no">기각</span></div><div class="zdesc"><b>제품이 뒤에 보인다.</b> 세계 지도와 핀이 흐릿하게 깔린 채 시트가 묻는다 &mdash; &lsquo;여긴 지도로 여행지를 찾는 곳이구나&rsquo;가 <b>고르기 전에</b> 전달된다.<br>고른 출발지는 <b>기억한다</b> &mdash; 다음부터 이 시트가 안 뜬다.</div><div class="frame"><div class="wmap"></div><span class="wpin" style="left:24%;top:30%"></span><span class="wpin" style="left:38%;top:22%"></span><span class="wpin" style="left:56%;top:42%"></span><span class="wpin" style="left:32%;top:58%"></span><span class="wpin" style="left:68%;top:62%"></span><span class="wpin" style="left:48%;top:72%"></span><span class="wpin" style="left:72%;top:34%"></span><span class="wpin" style="left:60%;top:76%"></span><span class="wpin" style="left:28%;top:44%"></span><div class="blur"></div><div class="hdr2"><span class="logo2">갈래<i>말래</i></span></div><div class="osheet"><div class="ohd">어디서 출발해요?</div><div class="osub">오늘 126곳이 열려 있어요</div><div class="ogrid"><div class="obtn on"><b>서울</b><span class="n">69곳</span></div><div class="obtn"><b>부산</b><span class="n">37곳</span></div><div class="obtn"><b>대구</b><span class="n">12곳</span></div><div class="obtn sp"><b>제주</b><span class="n">8곳</span></div></div></div></div><div class="mt2"><div class=""><b>1클릭</b>&nbsp;</div><div class="g"><b>첫</b>방문만</div><div class="g"><b>제품</b>이해 ◎</div></div></div><div class="zc"><div class="zhd"><span class="zid">Z3</span><span class="znm">화면0 없음 &mdash; 서울 기본</span><span class="rec">확정</span></div><div class="zdesc">바로 홈이 뜬다. <b>딜을 보여주는 것 자체가 가장 좋은 제품 설명</b>이다 &mdash; <code>어디서 출발해요?</code>는 아무 가치도 안 준 채 질문부터 한다.<br>남는 문제는 하나 &mdash; <b>서울이 아닌 45%가 바꾸는 버튼을 찾느냐.</b> &sect;02에서 푼다.</div><div class="frame"><div class="wmap"></div><span class="wpin" style="left:24%;top:30%"></span><span class="wpin" style="left:38%;top:22%"></span><span class="wpin" style="left:56%;top:42%"></span><span class="wpin" style="left:32%;top:58%"></span><span class="wpin" style="left:68%;top:62%"></span><span class="wpin" style="left:48%;top:72%"></span><span class="wpin" style="left:72%;top:34%"></span><span class="wpin" style="left:60%;top:76%"></span><span class="wpin" style="left:28%;top:44%"></span><div class="hdr2"><span class="logo2">갈래<i>말래</i></span><span class="pill0 hi">서울 출발 &#9662;</span></div><div class="mini2"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">제주</div><div class="price">33,004<small>원</small></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">후쿠오카</div><div class="price">132,370<small>원</small></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">오사카</div><div class="price">139,230<small>원</small></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div></div></div><div class="mt2"><div class="g"><b>0클릭</b>&nbsp;</div><div class=""><b>없음</b>&nbsp;</div><div class="g"><b>제품</b>이해 ◎</div></div></div></div><div class=callout><b>내가 Z2를 추천했다가 뒤집었다.</b><br>내 논리는 &lsquo;화면0이 제품을 설명한다&rsquo;였는데, <b>딜을 바로 보여주는 게 더 잘 설명한다.</b> <code>어디서 출발해요?</code>는 <b>아무 가치도 안 준 채 질문부터</b> 하고, <code>서울 &rarr; 제주 33,004원</code>은 그 자체로 설명이다.<br>첫 화면이 질문이면 <b>이탈 지점이 하나 는다.</b> 발견 서비스는 일단 보여줘야 한다.</div><h2><span class=n>02</span>그럼 서울이 아닌 45%는 어떻게 바꾸나</h2><p class=note>Z3의 유일한 위험은 <b>&lsquo;서울 전용 서비스&rsquo;로 읽히는 것</b>이다. 부산 사람이 바꾸는 버튼을 못 찾으면 그대로 나간다. 헤더 처리를 셋으로 그렸다.</p><div class=zrow><div class="zc"><div class="zhd"><span class="zid">P1</span><span class="znm">조용한 알약</span><span class="no">현행 스타일</span></div><div class="zdesc">지금 헤더에 있는 회색 알약 그대로. <b>있는지도 모르고 지나칠 수 있다</b> &mdash; 부산 사람이 &lsquo;서울 전용 서비스인가&rsquo;로 읽으면 그대로 이탈한다.</div><div class="frame"><div class="wmap"></div><span class="wpin" style="left:24%;top:30%"></span><span class="wpin" style="left:38%;top:22%"></span><span class="wpin" style="left:56%;top:42%"></span><span class="wpin" style="left:32%;top:58%"></span><span class="wpin" style="left:68%;top:62%"></span><span class="wpin" style="left:48%;top:72%"></span><span class="wpin" style="left:72%;top:34%"></span><span class="wpin" style="left:60%;top:76%"></span><span class="wpin" style="left:28%;top:44%"></span><div class="hdr2"><span class="logo2">갈래<i>말래</i></span><span class="pill0 quiet">서울 출발 &#9662;</span></div><div class="mini2"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">제주</div><div class="price">33,004<small>원</small></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">후쿠오카</div><div class="price">132,370<small>원</small></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">오사카</div><div class="price">139,230<small>원</small></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div></div></div><div class="mt2"><div class="g"><b>0클릭</b>&nbsp;</div><div class="r"><b>눈에</b>안 띔</div><div class="r"><b>이탈</b>위험</div></div></div><div class="zc"><div class="zhd"><span class="zid">P2</span><span class="znm">코랄 알약 + 한 줄 안내</span><span class="rec">추천</span></div><div class="zdesc">알약을 <b>코랄 테두리</b>로 올리고, <b>첫 방문에만</b> 한 줄 띠를 띄운다.<br><b>막지 않는다</b> &mdash; 뒤에 딜이 이미 보이고, 닫으면 다시 안 뜬다.</div><div class="frame"><div class="wmap"></div><span class="wpin" style="left:24%;top:30%"></span><span class="wpin" style="left:38%;top:22%"></span><span class="wpin" style="left:56%;top:42%"></span><span class="wpin" style="left:32%;top:58%"></span><span class="wpin" style="left:68%;top:62%"></span><span class="wpin" style="left:48%;top:72%"></span><span class="wpin" style="left:72%;top:34%"></span><span class="wpin" style="left:60%;top:76%"></span><span class="wpin" style="left:28%;top:44%"></span><div class="hdr2"><span class="logo2">갈래<i>말래</i></span><span class="pill0 loud">서울 출발 &#9662;</span></div><div class="hint">지금 <b>서울 출발</b>로 보고 있어요<span style="color:var(--accent);font-weight:900">&nbsp;바꾸기</span><span class="x">&times;</span></div><div class="mini2"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">제주</div><div class="price">33,004<small>원</small></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">후쿠오카</div><div class="price">132,370<small>원</small></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">오사카</div><div class="price">139,230<small>원</small></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div></div></div><div class="mt2"><div class="g"><b>0클릭</b>&nbsp;</div><div class="g"><b>눈에</b>띔</div><div class="g"><b>안</b>막음</div></div></div><div class="zc"><div class="zhd"><span class="zid">P3</span><span class="znm">코랄 알약 + 드롭다운 열어둠</span></div><div class="zdesc">첫 방문에 목록을 <b>미리 펼쳐</b> 둔다. 가장 확실히 보이지만 <b>딜을 가린다</b> &mdash; 결국 작아진 화면0이다.</div><div class="frame"><div class="wmap"></div><span class="wpin" style="left:24%;top:30%"></span><span class="wpin" style="left:38%;top:22%"></span><span class="wpin" style="left:56%;top:42%"></span><span class="wpin" style="left:32%;top:58%"></span><span class="wpin" style="left:68%;top:62%"></span><span class="wpin" style="left:48%;top:72%"></span><span class="wpin" style="left:72%;top:34%"></span><span class="wpin" style="left:60%;top:76%"></span><span class="wpin" style="left:28%;top:44%"></span><div class="hdr2"><span class="logo2">갈래<i>말래</i></span><span class="pill0 loud">서울 출발 &#9662;</span></div><div class="caret"></div><div class="odrop"><div class="t">어디서 출발해요?</div><div class="r2 on"><span>서울</span><span class="n">69곳</span></div><div class="r2"><span>부산</span><span class="n">37곳</span></div><div class="r2"><span>대구</span><span class="n">12곳</span></div><div class="r2"><span>제주</span><span class="n">8곳</span></div></div><div class="mini2"><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">제주</div><div class="price">33,004<small>원</small></div><div class="dsub">8박9일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">후쿠오카</div><div class="price">132,370<small>원</small></div><div class="dsub">2박3일 &middot; 이번 주</div></div></div><div class="fcard"><div class="thumb"></div><div class="fbody"><div class="fcity">오사카</div><div class="price">139,230<small>원</small></div><div class="dsub">8박9일 &middot; 이번 달</div></div></div></div></div><div class="mt2"><div class="g"><b>0클릭</b>&nbsp;</div><div class=""><b>가장</b>잘 띔</div><div class="r"><b>일부</b>가림</div></div></div></div><h2><span class=n>왜</span>P2 &mdash; 띄우되 막지 않는다</h2><div class=callout><b>막는 대신 띄운다.</b><br>뒤에 <b>딜이 이미 보이는 채로</b> 한 줄 띠가 &lsquo;서울 출발로 보고 있어요&rsquo;라고 알린다. 닫으면 다시 안 뜬다. <b>P3(드롭다운 열어둠)는 결국 작아진 화면0</b>이라 딜을 가린다.</div><ul class=k><li><b>알약을 코랄로 올린다.</b> 회색이면 &lsquo;장식&rsquo;으로 읽힌다. 이건 <b>이 제품에서 두 번째로 중요한 조작</b>이다 &mdash; 첫째는 딜 고르기.</li><li><b>드롭다운에 건수를 붙인다.</b> <code>제주 8곳</code>처럼 보이면 고르기 전에 안다. 희소 허브(10곳 미만)는 미리 티를 낸다 &mdash; 필터 건수와 같은 원리다.</li><li><b>고른 출발지는 기억한다.</b> 잘 안 바뀌는 값이라 매번 물을 이유가 없다. 안내 띠도 <b>첫 방문에만</b> 뜬다.</li><li><b>딥링크가 기본값을 이긴다.</b> <code>#PUS-DAD</code>로 들어오면 저장된 값도 서울 기본값도 무시하고 <b>부산</b>이다(§CH4 확정).</li><li>⚠️ <b>&lsquo;서울 출발&rsquo;은 인천+김포다.</b> 알약이 &lsquo;서울&rsquo;이라 말하는데 실제로는 두 공항을 합친 가상 허브다(<code>SEL</code>). 김포 딜을 보고 인천으로 갈까 헷갈릴 자리라 <b>확장 상세에서 공항을 밝힌다.</b></li></ul><p class=note>&#9888; <b>&lsquo;기억&rsquo;은 <code>localStorage</code>가 필요하다.</b> 필터를 URL에 안 넣기로 한 것과는 다른 문제다 &mdash; 그건 <b>공유받은 사람에게 남의 필터를 강요하지 않으려는</b> 결정이었고, 출발지 기억은 <b>내 기기에서 나만 겪는 편의</b>다. 공유 링크는 해시가 이기므로 충돌하지 않는다.</p><p class=note>&#9888; 이 세션엔 브라우저가 없어 실제 렌더를 못 본다. 특히 <b>뒤 배경 흐림(<code>backdrop-filter</code>)</b>이 저사양 기기에서 어떤지는 봐야 안다 &mdash; 안 되면 <b>불투명 배경으로 폴백</b>한다.</p><p class=foot>생성 <b>design/build_origin.py</b> &middot; 데이터 <b>docs/data/deals.json</b> &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b> &sect;CH2</p></div></body></html>
