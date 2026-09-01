@@ -21,9 +21,20 @@ BOXES = {
     "F1": (SW - 236, 12, SW - 12, 46),
     "F2": None,
     "F3": (12, 54, 116, SH - 54),
+    # ── 아래 바 재설계 (2026-09-01, 위치는 F0 유지 · 크기와 조작을 바꾼다) ──
+    "G0": (16, SH - 104, SW - 16, SH - 14),   # 현행 3줄 · 90px
+    "G1": (16, SH - 58, SW - 16, SH - 14),    # 알약 3개 · 44px
+    "G2": (16, SH - 66, SW - 16, SH - 14),    # 검색 한 줄 · 52px
+    "G3": (16, SH - 58, SW - 16, SH - 14),    # 검색 + 알약 · 44px
 }
 
+DOCK_H = {"G0": 90, "G1": 44, "G2": 52, "G3": 44}
+
 DOCK_NAME = {
+    "G0": "현행 — 3줄 다 펼침",
+    "G1": "알약 셋 + 팝오버",
+    "G2": "검색 한 줄",
+    "G3": "검색 + 알약",
     "F0": "하단 전폭 판",
     "F1": "우상단 알약 + 팝오버",
     "F2": "패널 상단으로",
@@ -101,6 +112,33 @@ svg.arcs{position:absolute;inset:0;pointer-events:none;z-index:1}
  box-shadow:0 6px 20px rgba(20,50,45,.1);overflow:hidden}
 .rail .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:7px 0 4px}
 .rail .fchip{display:block;text-align:center;margin:3px 0;padding:3px 4px}
+/* ── 아래 바 재설계 ── */
+.bar{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff5;
+ border:1px solid var(--line);border-radius:12px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.12);display:flex;align-items:center;gap:8px;padding:0 12px}
+.bar.h44{height:44px}.bar.h52{height:52px}
+.bar .sep{width:1px;height:20px;background:var(--line);flex:none}
+.bar .cnt{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.srch{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);
+ border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:0}
+.srch .mag{color:var(--sub);font-size:.82rem;flex:none}
+.srch .ph{font-size:.74rem;color:var(--sub);font-weight:600;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.srch .cur{width:1px;height:14px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;
+ font-size:.66rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:4px}
+.ac{position:absolute;left:16px;bottom:72px;width:290px;background:#fff;
+ border:1px solid var(--line);border-radius:12px;padding:9px 10px;z-index:9;
+ box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.ac .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:2px 0 7px}
+.ac .row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;font-size:.72rem}
+.ac .row.on{background:var(--soft)}
+.ac .row b{font-weight:800}
+.ac .row .n{margin-left:auto;font-size:.62rem;color:var(--sub);font-weight:700}
+.pop2{position:absolute;bottom:70px;width:250px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:11px 12px;z-index:9;box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.pop2 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
 /* 상세 */
 .pop{position:absolute;width:224px;z-index:10;transform:translate(-50%,-100%)}
 .pop:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;
@@ -237,8 +275,43 @@ CHIPS_DATE = "".join('<span class="fchip%s">%s</span>' % (" on" if t == "아무�
                      for t in ["아무때", "이번 주", "이번 주말", "다음 달", "날짜 지정"])
 
 
+MOODS_N = {"해변": 41, "도시": 82, "미식": 52, "자연": 28, "문화": 56, "온천": 15}
+
+
 def dock_html(kind):
-    if kind == "F0":
+    # ── 아래 바 재설계 ─────────────────────────────────────────
+    if kind == "G1":
+        return ('<div class="bar h44">'
+                '<span class="fbtn">아무때 &#9662;</span>'
+                '<span class="fbtn act">문화<span class="x">&times;</span></span>'
+                '<span class="fbtn">74만 이하 &#9662;</span>'
+                '<span class="cnt">56곳</span></div>'
+                '<div class="pop2" style="left:120px"><div class="t">분위기</div>'
+                '<div class="chips">' + CHIPS_MOOD + '</div></div>')
+    if kind == "G2":
+        return ('<div class="bar h52">'
+                '<span class="srch"><span class="mag">&#9906;</span>'
+                '<span class="tok">문화<span class="x">&times;</span></span>'
+                '<span class="cur"></span>'
+                '<span class="ph">해변, 야경, 온천&hellip; 어떤 여행이 좋아요?</span></span>'
+                '<span class="sep"></span>'
+                '<span class="fbtn">아무때 &#9662;</span>'
+                '<span class="fbtn">74만 &#9662;</span></div>'
+                '<div class="ac"><div class="t">분위기</div>'
+                + "".join('<div class="row%s"><b>%s</b><span class="n">%d곳</span></div>'
+                          % (" on" if k == "문화" else "", k, v)
+                          for k, v in list(MOODS_N.items())[:5])
+                + '</div>')
+    if kind == "G3":
+        return ('<div class="bar h44">'
+                '<span class="srch" style="max-width:300px"><span class="mag">&#9906;</span>'
+                '<span class="ph">분위기·도시 검색</span></span>'
+                '<span class="tok">문화<span class="x">&times;</span></span>'
+                '<span class="sep"></span>'
+                '<span class="fbtn">아무때 &#9662;</span>'
+                '<span class="fbtn">74만 이하 &#9662;</span>'
+                '<span class="cnt">56곳</span></div>')
+    if kind in ("F0", "G0"):
         return ('<div class="dock0">'
                 '<div class="fdrow"><span class="fdlabel">날짜</span>'
                 '<div class="chips">' + CHIPS_DATE + '</div></div>'
