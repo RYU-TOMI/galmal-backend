@@ -2,6 +2,8 @@
 """도시·항공사 한글명, 지역 분류, 날짜 표기 — 사이트와 알림 메일이 공유."""
 from datetime import date
 
+import dests
+
 WEEKDAY = "월화수목금토일"          # date.weekday(): 0=월
 SQL_WEEKDAY = "일월화수목금토"      # strftime('%w'): 0=일
 
@@ -39,7 +41,21 @@ REGION_CHIPS = [("all", "전체"), ("jp", "일본"), ("sea", "동남아"), ("cn"
 
 
 def city(code):
-    return CITY.get(code, code)
+    """IATA 코드 → 한글 도시명. 모르면 코드를 그대로 돌려준다.
+
+    `CITY`에 없으면 `dests`로 넘긴다. 같은 지식(코드→한글명)이 두 사전에 있어서
+    어긋났다 — 부산·대구가 `dests.ORIGINS`에만 있어 노선 페이지 제목이
+    `"PUS → 도쿄"`로 나갔다(2026-09-01). 목적지도 `dests.DEST`가 84곳으로 더 넓다.
+
+    `CITY`를 먼저 보는 이유는 노선 페이지가 오래 쓰던 표기를 지키기 위해서다
+    (예: `DPS`는 `CITY`가 "발리", `dests`는 "덴파사르"). 새 코드를 여기 더하지 말고
+    `dests`에 넣으면 자동으로 따라온다.
+    """
+    if code in CITY:
+        return CITY[code]
+    if code in dests.ORIGINS:
+        return dests.ORIGINS[code]
+    return dests.dest_name(code)
 
 
 def airline_name(code):
