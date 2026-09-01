@@ -205,10 +205,20 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(
 OBS_FLOOR = 14
 
 
+DROP_FLOOR = 0.05
+
+
 def record(d):
-    """`low`가 있고 `obs_days >= 14`이고 `price < low`. 타이기록은 신기록이 아니다."""
+    """신기록 — 조건 넷 (SPEC.md §CH3).
+
+    `low`가 있고 · `obs_days >= 14` · `price < low`(타이기록은 아니다) ·
+    **낙폭이 5% 이상**. 마지막 조건이 핵심이다 — `0.8% 더 쌈`은 기술적으로 신기록이지만
+    사용자에겐 같은 가격이고, 그런 게 문구의 신뢰를 깎는다.
+    """
     lo = d.get("low")
-    return lo is not None and d.get("obs_days", 0) >= OBS_FLOOR and d["price"] < lo
+    if lo is None or d.get("obs_days", 0) < OBS_FLOOR or d["price"] >= lo:
+        return False
+    return (1.0 - float(d["price"]) / lo) >= DROP_FLOOR
 
 
 def claim(d):
