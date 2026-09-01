@@ -123,8 +123,17 @@ import sys; sys.stdout.reconfigure(encoding='utf-8')   # 한글 출력 전 항�
 | 대상 | 기준 |
 |---|---|
 | **프론트 소유 문서** (`FRONTEND.md` · `BACKLOG.md`) | **묻지 않고 자동 push.** 다른 세션이 읽어야 의미가 있고, 되돌리기 쉽다 |
-| **코드** (`discover.js` · `discover.css` · `discover_home.py`) | **매번 사용자 확인.** 실제 사이트가 바뀐다 |
+| **코드** (`discover.js` · `discover.css` · `discover_home.py`) | **승인 전까지 커밋하지 않는다.** 작업 트리에만 두고, 사용자가 화면으로 확인한 뒤 커밋·push (2026-09-01 사용자 결정) |
 | **공용 파일** (`CLAUDE.md` 등) | 변경 자체를 먼저 확인받는다 (`CLAUDE.md` 규칙) |
+
+> ⚠️ **왜 "커밋도 하지 않는다"인가** — `git push`는 브랜치 단위라 문서만 골라 올릴 수 없다.
+> 코드를 미리 커밋해두면 **다음 문서 자동 push에 딸려 올라간다.** 실제로 2026-09-01 B25 수정이
+> 그렇게 승인 없이 main에 올라갔다. 커밋 자체를 미루면 이 경로가 막힌다.
+>
+> **문서를 push하기 전 매번 확인한다:**
+> ```bash
+> git diff --name-only origin/main..frontend   # .md 외 파일이 있으면 push 보류
+> ```
 
 - push는 `frontend` → `origin/frontend` → `origin/main`(fast-forward) 순. 그 전에 반드시 `git fetch && git merge origin/main`.
 - 문서를 자동 push해도 **무엇을 올렸는지는 보고에 always 남긴다.** 조용히 올리지 않는다.

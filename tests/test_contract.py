@@ -23,6 +23,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
+import config
 import db
 import dests
 import discover_data
@@ -50,8 +51,9 @@ TAG_ROW_RE = re.compile(
     r"^\|\s*\*{0,2}`([^`]+)`\*{0,2}\s*\|\s*\d+\s*\|"
     r"\s*(?:\*{0,2}`([^`]+)`\*{0,2}|[—-]+)\s*\|", re.M)
 KST_OFFSET = timedelta(hours=9)
+ROUTE_CODES = {f"{o}-{d}" for o, d in config.ROUTES}
 # `when` 통제 어휘(계약 §when). 고정 문구 넷 + 패턴 셋.
-WHEN_FIXED = {"이번 주말", "이번 주", "이번 달", "다음 달"}
+WHEN_FIXED = {"이번 주말", "다음 주말", "이번 주", "이번 달", "다음 달"}
 WHEN_PATTERNS = (
     re.compile(r"^\d{1,2}월$"),            # 같은 해, 2개월 이후
     re.compile(r"^내년 \d{1,2}월$"),        # 이듬해
@@ -185,7 +187,8 @@ def validate(payload, vocab, parent=None, fields=None):
                 errs.append(f"{at}.{k}가 비었거나 문자열이 아니다: {dl[k]!r}")
         # `when`은 통제 어휘다(계약 §when). 어휘 밖 값이 나가면 프론트의 분기가
         # 조용히 폴백으로 떨어진다 — 태그 어휘와 같은 이유로 검사한다.
-        if isinstance(dl["when"], str) and dl["when"] not in WHEN_FIXED                 and not any(p.match(dl["when"]) for p in WHEN_PATTERNS):
+        if (isinstance(dl["when"], str) and dl["when"] not in WHEN_FIXED
+                and not any(p.match(dl["when"]) for p in WHEN_PATTERNS)):
             errs.append(f"{at}.when 통제 어휘 밖: {dl['when']!r} "
                         "(CONTRACT.md §when 표를 먼저 갱신해야 한다)")
         if dl["region"] not in REGIONS:
@@ -214,6 +217,22 @@ def validate(payload, vocab, parent=None, fields=None):
             errs.append(f"{at}.lat 범위 이탈: {dl['lat']!r}")
         if not (_num(dl["lon"]) and -180 <= dl["lon"] <= 180):
             errs.append(f"{at}.lon 범위 이탈: {dl['lon']!r}")
+        # `route`가 **그 딜의 허브에 속한 노선**인지 본다. 있기만 하면 통과시키면
+        # 부산 딜에 인천 노선을 붙여도 잡히지 않는다 — 가격도 시세도 다른 노선으로
+        # 사용자를 보내는 것이고, 그게 BB22에서 잡은 실수다.
+        if dl["route"] is not None:
+            if dl["route"] not in ROUTE_CODES:
+                errs.append(f"{at}.route가 config.ROUTES에 없다: {dl['route']!r}")
+            else:
+                origin = dl["route"].split("-")[0]
+                allowed = ("ICN", "GMP") if dl["o"] == "SEL" else (dl["o"],)
+                if origin not in allowed:
+                    errs.append(f"{at}.route의 출발 공항이 허브와 다르다: "
+                                f"o={dl['o']!r}인데 route={dl['route']!r}")
+                if not dl["route"].endswith("-" + str(dl["d"])):
+                    errs.append(f"{at}.route의 목적지가 d와 다르다: "
+                                f"d={dl['d']!r}인데 route={dl['route']!r}")
+
         if dl["low"] is not None and not (_num(dl["low"]) and dl["low"] > 0):
             errs.append(f"{at}.low가 양수가 아니다: {dl['low']!r}")
         if not (_num(dl["obs_days"]) and dl["obs_days"] >= 0):
@@ -319,7 +338,7 @@ class ContractParsingTest(unittest.TestCase):
         고정 문구 넷과 패턴 셋으로 되어 있어 태그처럼 목록만으로는 안 된다.
         어휘 밖 값이 나가면 프론트 분기가 조용히 폴백으로 떨어진다.
         """
-        for ok in ("이번 주말", "이번 주", "이번 달", "다음 달",
+        for ok in ("이번 주말", "다음 주말", "이번 주", "이번 달", "다음 달",
                    "11월", "3월", "내년 1월", "내년 12월", "2028년 3월"):
             with self.subTest(value=ok):
                 self.assertTrue(

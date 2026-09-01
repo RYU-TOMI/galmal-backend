@@ -76,6 +76,21 @@ def _median(vals):
     return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) // 2
 
 
+def _route_code(origin_airport, dest, available):
+    """그 딜에 해당하는 노선 페이지 코드. 없으면 None.
+
+    **프론트가 판정할 수 없어서 여기서 넣는다.** 허브 `o`가 가상(`SEL`)이라
+    `deals.json`만 봐서는 인천인지 김포인지 알 수 없고, 프론트가 `ICN`으로
+    추측하면 부산 딜을 인천 노선 페이지로 보내는 것과 같은 오류가 된다.
+
+    ⚠️ `config.ROUTES` 목록이 아니라 **이번 빌드가 실제로 만든 페이지**(`available`)로
+    판정한다. `route_page()`는 수집 이력이 없으면 파일을 만들지 않으므로, 노선을
+    새로 추가한 날에는 목록에 있어도 페이지가 없다. 목록만 보면 프론트가 404로 간다.
+    """
+    code = f"{origin_airport}-{dest}"
+    return code if code in available else None
+
+
 def _previous_deal_count():
     """커밋돼 있는 `deals.json`의 딜 수. 없거나 못 읽으면 None."""
     path = DOCS / "data" / "deals.json"
@@ -123,19 +138,34 @@ def _prior_history(conn, cutoff, floor):
 
 
 def _when_label(dep, today):
-    """출발일을 상대 날짜 라벨로. 어휘는 `CONTRACT.md`가 못 박는다.
+    """출발일을 상대 날짜 라벨로. 어휘와 순서는 `CONTRACT.md` §when이 못 박는다.
 
-    두 구멍을 메운 형태다(BB7·BB8).
-      - `이번 주`(7일)와 `다음 달` 사이가 비어 있어, 7일 초과이면서 이번 달인
-        구간이 월 이름으로 떨어졌다. 오늘이 9월인데 `"9월"`은 아무 말도 아니다.
-        월초에는 딜의 3분의 1이 이 상태였다(2026-09-01 실측 44/126).
-      - 연도가 없어 이듬해 출발이 지난 달과 구분되지 않았다. 출발일 범위가
-        약 1년이라 `"7월"`이 **지난 7월이 아니라 내년 7월**인 경우가 실제로 있었다.
+    **달력 단위로 잰다.** 예전엔 "N일 이내"라는 상대 거리로 재면서 라벨은 달력을
+    말해서, 다음 주 것이 이번 주로 표기됐다(BB21).
+
+        9/12(토) 접속 · 옛 규칙
+          9/18(금) +6 → "이번 주말"   ← 다음 주말인데
+          9/14(월) +2 → "이번 주"     ← 다음 주인데
+
+    `이번 주말`은 금·토·일에 접속하면 3일이 통째로, `이번 주`는 월요일 접속에도
+    어긋났다. 원인이 하나라 함께 고쳤다.
+
+    `다음 주말`을 따로 두는 이유: 달력으로만 고치면 다음 주말이 `이번 달`로 떨어져
+    임박 신호를 잃는다. 여행에서 주말은 특별한 단위다. 다음 주 **평일**은 그만큼
+    중요하지 않으므로 `이번 달`로 둔다(기획 판단).
+
+    주는 **월요일 시작**이다(한국 관례). 1·2가 4·5보다 먼저라, 9/30(수)에 10/3(토)이면
+    `다음 달`이 아니라 `이번 주말`이다 — 달을 넘어도 이번 주면 이번 주다.
     """
-    delta = (dep - today).days
-    if 0 <= delta <= 9 and dep.weekday() >= 4:   # 금·토·일 출발이 임박
+    monday = today - timedelta(days=today.weekday())     # 이번 주 월요일
+    this_week = {monday + timedelta(days=i) for i in range(7)}
+    next_week = {monday + timedelta(days=7 + i) for i in range(7)}
+
+    if dep in this_week and dep.weekday() >= 4:          # 1. 이번 주 금·토·일
         return "이번 주말"
-    if delta <= 7:
+    if dep in next_week and dep.weekday() >= 4:          # 2. 다음 주 금·토·일
+        return "다음 주말"
+    if dep in this_week:                                 # 3. 이번 주 나머지
         return "이번 주"
     if (dep.year, dep.month) == (today.year, today.month):
         return "이번 달"
@@ -146,12 +176,15 @@ def _when_label(dep, today):
     years = dep.year - today.year
     if years == 1:
         return f"내년 {dep.month}월"
-    if years >= 2:                               # 현재 데이터엔 없지만 방어적으로
+    if years >= 2:
         return f"{dep.year}년 {dep.month}월"
     return f"{dep.month}월"
 
 
-def build_deals_json(conn):
+def build_deals_json(conn, routes=None):
+    """`routes` — 이번 빌드가 실제로 만든 노선 페이지 코드 집합(`{"ICN-FUK", ...}`).
+    `build_site`가 넘긴다. 생략하면 `route`는 전부 `None`이 된다."""
+    routes = routes or set()
     now = timeutil.now_kst()
     today = now.date()          # 제품용 '오늘'은 KST — 사용자 기준이다(BB17)
     seen_floor = now - timedelta(days=SEEN_MAX_DAYS)
@@ -213,6 +246,8 @@ def build_deals_json(conn):
             # 절대 시각만 준다 — "3시간 전" 같은 문구를 구우면 정적 페이지라
             # 다음 날 방문자에게 거짓말이 된다. 나이 계산은 프론트 몫.
             "seen": dd["seen"].isoformat() if dd["seen"] else None,
+            # 노선 페이지 코드. 실제 공항(_oi)으로 판정한다 — 허브(o)로는 안 된다.
+            "route": _route_code(dd["_oi"], dd["d"], routes),
             # 예약처 비교 링크:
             #   출발 — 실제 공항코드(_oi: ICN/GMP/PUS…). SEL은 공항이 아니고,
             #          우리가 그 공항을 지정해 물었으므로 아는 값이다.
@@ -252,6 +287,6 @@ def build_deals_json(conn):
 if __name__ == "__main__":
     import db
     conn = db.connect()
-    n = build_deals_json(conn)
+    n = build_deals_json(conn)          # 단독 실행 시 route는 전부 None
     conn.close()
     print("deals.json 유지(하한선 미달)" if n < 0 else f"deals.json 생성: {n}건")
