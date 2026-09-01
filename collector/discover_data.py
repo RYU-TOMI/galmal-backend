@@ -19,7 +19,6 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
-import config
 import dests
 import timeutil
 from affiliates import compare_links
@@ -50,10 +49,6 @@ SEEN_MAX_DAYS = 7
 MIN_DEALS = 30
 MIN_RATIO = 0.5
 
-# 노선 페이지가 있는 (출발공항, 목적지) 쌍. 목적지만 대조하면 부산 딜이
-# 인천 노선 페이지를 가리킨다 — 가격도 시세도 다른 노선이다(BB22).
-_ROUTE_SET = set(config.ROUTES)
-
 # `median`·`low`·`obs_days`가 보는 이력의 **가장 오래된 경계**. 창이 없으면 이력이
 # 길어질수록 중앙값이 옛 가격에 끌려가 할인율이 부풀려진다(BB4).
 #
@@ -81,21 +76,19 @@ def _median(vals):
     return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) // 2
 
 
-def _route_code(origin_airport, dest):
+def _route_code(origin_airport, dest, available):
     """그 딜에 해당하는 노선 페이지 코드. 없으면 None.
 
     **프론트가 판정할 수 없어서 여기서 넣는다.** 허브 `o`가 가상(`SEL`)이라
     `deals.json`만 봐서는 인천인지 김포인지 알 수 없고, 프론트가 `ICN`으로
     추측하면 부산 딜을 인천 노선 페이지로 보내는 것과 같은 오류가 된다.
 
-    `build_site.route_page()`가 실제로 파일을 만드는 조건은 "수집 이력이 있을 것"
-    이므로 `config.ROUTES`에 있다고 반드시 페이지가 있는 건 아니다. 다만 26노선은
-    매일 수집되므로 사실상 항상 존재한다 — 없으면 프론트가 404를 보게 되는데,
-    그건 `config.ROUTES`를 넓힐 때 확인할 일이다(BB22).
+    ⚠️ `config.ROUTES` 목록이 아니라 **이번 빌드가 실제로 만든 페이지**(`available`)로
+    판정한다. `route_page()`는 수집 이력이 없으면 파일을 만들지 않으므로, 노선을
+    새로 추가한 날에는 목록에 있어도 페이지가 없다. 목록만 보면 프론트가 404로 간다.
     """
-    if (origin_airport, dest) in _ROUTE_SET:
-        return f"{origin_airport}-{dest}"
-    return None
+    code = f"{origin_airport}-{dest}"
+    return code if code in available else None
 
 
 def _previous_deal_count():
@@ -188,7 +181,10 @@ def _when_label(dep, today):
     return f"{dep.month}월"
 
 
-def build_deals_json(conn):
+def build_deals_json(conn, routes=None):
+    """`routes` — 이번 빌드가 실제로 만든 노선 페이지 코드 집합(`{"ICN-FUK", ...}`).
+    `build_site`가 넘긴다. 생략하면 `route`는 전부 `None`이 된다."""
+    routes = routes or set()
     now = timeutil.now_kst()
     today = now.date()          # 제품용 '오늘'은 KST — 사용자 기준이다(BB17)
     seen_floor = now - timedelta(days=SEEN_MAX_DAYS)
@@ -251,7 +247,7 @@ def build_deals_json(conn):
             # 다음 날 방문자에게 거짓말이 된다. 나이 계산은 프론트 몫.
             "seen": dd["seen"].isoformat() if dd["seen"] else None,
             # 노선 페이지 코드. 실제 공항(_oi)으로 판정한다 — 허브(o)로는 안 된다.
-            "route": _route_code(dd["_oi"], dd["d"]),
+            "route": _route_code(dd["_oi"], dd["d"], routes),
             # 예약처 비교 링크:
             #   출발 — 실제 공항코드(_oi: ICN/GMP/PUS…). SEL은 공항이 아니고,
             #          우리가 그 공항을 지정해 물었으므로 아는 값이다.
@@ -291,6 +287,6 @@ def build_deals_json(conn):
 if __name__ == "__main__":
     import db
     conn = db.connect()
-    n = build_deals_json(conn)
+    n = build_deals_json(conn)          # 단독 실행 시 route는 전부 None
     conn.close()
     print("deals.json 유지(하한선 미달)" if n < 0 else f"deals.json 생성: {n}건")

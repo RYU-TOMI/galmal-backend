@@ -360,7 +360,8 @@ def main():
         result = route_page(conn, origin, dest)
         if result:
             route_index.append(result)
-    n_disc = build_deals_json(conn)
+    # 실제로 파일이 만들어진 노선만 넘긴다 — route 필드가 404를 가리키지 않게.
+    n_disc = build_deals_json(conn, {code for code, _ in route_index})
     n_deals = build_index(conn, route_index)
     build_seo(route_index)
     conn.close()

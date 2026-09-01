@@ -255,6 +255,34 @@ class BuildDealsSeenTest(unittest.TestCase):
         self.assertIn("updated", out)
 
 
+class RouteCodeTest(unittest.TestCase):
+    """`route`는 **실제로 만들어진 페이지**만 가리킨다 (BB22).
+
+    `config.ROUTES` 목록으로 판정하면 노선을 새로 추가한 날 페이지가 아직 없는데도
+    값이 나가 프론트가 404를 본다. `route_page()`는 수집 이력이 없으면 파일을
+    만들지 않기 때문이다. 그래서 빌드가 실제로 만든 목록을 받아 대조한다.
+    """
+
+    def test_only_generated_pages_are_referenced(self):
+        available = {"ICN-FUK", "GMP-CJU"}
+        self.assertEqual(discover_data._route_code("ICN", "FUK", available), "ICN-FUK")
+        self.assertIsNone(discover_data._route_code("PUS", "FUK", available),
+                          "페이지가 없으면 None이어야 한다")
+
+    def test_empty_set_yields_no_routes(self):
+        """빌드가 페이지를 하나도 못 만든 날에도 404를 내보내지 않는다."""
+        self.assertIsNone(discover_data._route_code("ICN", "FUK", set()))
+
+    def test_origin_airport_decides_not_the_hub(self):
+        """허브가 아니라 **실제 공항**으로 판정한다.
+
+        김포 딜에 `ICN-` 코드를 붙이면 다른 노선의 시세를 보여주게 된다.
+        """
+        available = {"ICN-CJU", "GMP-CJU"}
+        self.assertEqual(discover_data._route_code("GMP", "CJU", available), "GMP-CJU")
+        self.assertEqual(discover_data._route_code("ICN", "CJU", available), "ICN-CJU")
+
+
 class ArtifactGuardTest(unittest.TestCase):
     """수집이 무너진 날 좋은 산출물을 나쁜 것으로 덮지 않는가 (BB1 / 기획 F1).
 
