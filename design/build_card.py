@@ -6,6 +6,8 @@
     python design/build_card.py
 """
 import datetime
+import sys, os as _os
+sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import json
 import pathlib
 
@@ -15,7 +17,8 @@ D = json.loads((ROOT / "docs/data/deals.json").read_text(encoding="utf-8"))
 
 WD = ["월", "화", "수", "목", "금", "토", "일"]
 STAMP_MIN = 15
-TIERS = [(35, "t3"), (25, "t2"), (15, "t1")]   # 할인 도장 티어 (내림차순)
+# 임계값은 _fmt.py 한 곳에만 둔다 — 여기서 다시 적으면 갈라진다(2026-09-01)
+from _fmt import TIERS   # 할인 도장 티어 (내림차순)
 GRAD = {"해변": "linear-gradient(135deg,#8fd0e0,#2a6f8f)", "도시": "linear-gradient(135deg,#ff9a76,#c6472a)",
         "미식": "linear-gradient(135deg,#f2603f,#7a2e18)", "자연": "linear-gradient(135deg,#a8e0c0,#2a8f6c)",
         "문화": "linear-gradient(135deg,#ffcf9a,#c6652a)", "온천": "linear-gradient(135deg,#ffc07a,#e0782f)"}
