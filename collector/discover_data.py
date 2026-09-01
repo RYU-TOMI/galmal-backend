@@ -113,15 +113,31 @@ def _prior_history(conn, cutoff, floor):
 
 
 def _when_label(dep, today):
+    """출발일을 상대 날짜 라벨로. 어휘는 `CONTRACT.md`가 못 박는다.
+
+    두 구멍을 메운 형태다(BB7·BB8).
+      - `이번 주`(7일)와 `다음 달` 사이가 비어 있어, 7일 초과이면서 이번 달인
+        구간이 월 이름으로 떨어졌다. 오늘이 9월인데 `"9월"`은 아무 말도 아니다.
+        월초에는 딜의 3분의 1이 이 상태였다(2026-09-01 실측 44/126).
+      - 연도가 없어 이듬해 출발이 지난 달과 구분되지 않았다. 출발일 범위가
+        약 1년이라 `"7월"`이 **지난 7월이 아니라 내년 7월**인 경우가 실제로 있었다.
+    """
     delta = (dep - today).days
     if 0 <= delta <= 9 and dep.weekday() >= 4:   # 금·토·일 출발이 임박
         return "이번 주말"
     if delta <= 7:
         return "이번 주"
+    if (dep.year, dep.month) == (today.year, today.month):
+        return "이번 달"
     nxt = today.month % 12 + 1
     nxt_year = today.year + (1 if today.month == 12 else 0)
-    if dep.month == nxt and dep.year == nxt_year:
+    if (dep.year, dep.month) == (nxt_year, nxt):
         return "다음 달"
+    years = dep.year - today.year
+    if years == 1:
+        return f"내년 {dep.month}월"
+    if years >= 2:                               # 현재 데이터엔 없지만 방어적으로
+        return f"{dep.year}년 {dep.month}월"
     return f"{dep.month}월"
 
 

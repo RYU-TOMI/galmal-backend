@@ -50,6 +50,13 @@ TAG_ROW_RE = re.compile(
     r"^\|\s*\*{0,2}`([^`]+)`\*{0,2}\s*\|\s*\d+\s*\|"
     r"\s*(?:\*{0,2}`([^`]+)`\*{0,2}|[—-]+)\s*\|", re.M)
 KST_OFFSET = timedelta(hours=9)
+# `when` 통제 어휘(계약 §when). 고정 문구 넷 + 패턴 셋.
+WHEN_FIXED = {"이번 주말", "이번 주", "이번 달", "다음 달"}
+WHEN_PATTERNS = (
+    re.compile(r"^\d{1,2}월$"),            # 같은 해, 2개월 이후
+    re.compile(r"^내년 \d{1,2}월$"),        # 이듬해
+    re.compile(r"^\d{4}년 \d{1,2}월$"),    # 2년 이후(방어용)
+)
 
 
 def _cells(line):
@@ -176,6 +183,11 @@ def validate(payload, vocab, parent=None, fields=None):
         for k in ("ko", "country", "when"):
             if not (isinstance(dl[k], str) and dl[k]):
                 errs.append(f"{at}.{k}가 비었거나 문자열이 아니다: {dl[k]!r}")
+        # `when`은 통제 어휘다(계약 §when). 어휘 밖 값이 나가면 프론트의 분기가
+        # 조용히 폴백으로 떨어진다 — 태그 어휘와 같은 이유로 검사한다.
+        if isinstance(dl["when"], str) and dl["when"] not in WHEN_FIXED                 and not any(p.match(dl["when"]) for p in WHEN_PATTERNS):
+            errs.append(f"{at}.when 통제 어휘 밖: {dl['when']!r} "
+                        "(CONTRACT.md §when 표를 먼저 갱신해야 한다)")
         if dl["region"] not in REGIONS:
             errs.append(f"{at}.region enum 위반: {dl['region']!r}")
         if dl["haul"] not in HAULS:
@@ -300,6 +312,24 @@ class ContractParsingTest(unittest.TestCase):
             self.assertTrue(fields.get(nullable), f"{nullable}은 null 허용이어야 한다")
         for required in ("o", "d", "price", "obs_days"):
             self.assertFalse(fields.get(required), f"{required}은 필수여야 한다")
+
+    def test_when_vocabulary_covers_the_contract_table(self):
+        """`when` 어휘 검사가 계약 §when의 7단계를 전부 받아들이는가.
+
+        고정 문구 넷과 패턴 셋으로 되어 있어 태그처럼 목록만으로는 안 된다.
+        어휘 밖 값이 나가면 프론트 분기가 조용히 폴백으로 떨어진다.
+        """
+        for ok in ("이번 주말", "이번 주", "이번 달", "다음 달",
+                   "11월", "3월", "내년 1월", "내년 12월", "2028년 3월"):
+            with self.subTest(value=ok):
+                self.assertTrue(
+                    ok in WHEN_FIXED or any(p.match(ok) for p in WHEN_PATTERNS),
+                    f"계약이 허용한 값인데 검사가 거부한다: {ok}")
+        for bad in ("9월달", "내년봄", "2027-03", "곧", "내년", "13월달"):
+            with self.subTest(value=bad):
+                self.assertFalse(
+                    bad in WHEN_FIXED or any(p.match(bad) for p in WHEN_PATTERNS),
+                    f"어휘 밖인데 검사가 통과시킨다: {bad}")
 
     def test_vocabulary_is_readable(self):
         self.assertGreaterEqual(len(contract_tags()), 5, "어휘가 비정상적으로 적다")
