@@ -229,9 +229,14 @@ def validate(payload, vocab, parent=None, fields=None):
                 if origin not in allowed:
                     errs.append(f"{at}.route의 출발 공항이 허브와 다르다: "
                                 f"o={dl['o']!r}인데 route={dl['route']!r}")
-                if not dl["route"].endswith("-" + str(dl["d"])):
+                # `route`는 **공항 코드**(ICN-NRT)이고 `d`는 **도시 코드**(TYO)라
+                # 직접 비교가 안 된다. 같은 변환을 거쳐 맞춘다 — 검사 의도는
+                # "route가 이 딜과 다른 목적지를 가리키지 않는가"다.
+                route_dest = dl["route"].split("-", 1)[1]
+                if dests.link_code(route_dest) != dl["d"]:
                     errs.append(f"{at}.route의 목적지가 d와 다르다: "
-                                f"d={dl['d']!r}인데 route={dl['route']!r}")
+                                f"d={dl['d']!r}인데 route={dl['route']!r} "
+                                f"(도시 코드로는 {dests.link_code(route_dest)!r})")
 
         if dl["low"] is not None and not (_num(dl["low"]) and dl["low"] > 0):
             errs.append(f"{at}.low가 양수가 아니다: {dl['low']!r}")
