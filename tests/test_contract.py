@@ -203,6 +203,18 @@ def validate(payload, vocab, parent=None):
     if unused:
         errs.append(f"딜이 없는 허브가 origins에 남아 있다: {unused}")
 
+    # URL 딥링크(`#SEL-DAD`)가 이 유일성 위에 서 있다(기획 PH4). 중복이 생기면
+    # 링크가 조용히 엉뚱한 딜을 가리킨다 — 에러도 안 나고 아무도 모른다.
+    seen_keys = {}
+    for i, dl in enumerate(deals):
+        if "o" not in dl or "d" not in dl:
+            continue
+        key = f"{dl['o']}-{dl['d']}"
+        if key in seen_keys:
+            errs.append(f"(o, d) 조합 중복: {key} — deals[{seen_keys[key]}]와 deals[{i}]. "
+                        "URL 딥링크가 딜을 유일하게 가리키지 못한다")
+        seen_keys[key] = i
+
     return errs
 
 

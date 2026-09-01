@@ -32,6 +32,17 @@ STALE_DAYS = 3
 # 잘리므로 하지 않는다(CONTRACT.md / DECISIONS.md 2026-08-22).
 SEEN_MAX_DAYS = 7
 
+# 산출물 보호(BB1) — 수집이 무너진 날 좋은 파일을 나쁜 파일로 덮지 않는다.
+#
+# 값 근거(2026-09-01, 30일 재현 실측): 딜 수는 최소 99 · 중앙 110 · 최대 126,
+# 전날 대비 하루 변동은 **최대 -12.5%**였다. 그러니 절대 30건 미만이나 전날의
+# 절반 이하는 정상 변동이 아니라 사고다.
+#
+# ⚠️ 잠금 방지: 이전 산출물 자체가 하한선 미만이면 이 검사를 걸지 않는다.
+#    안 그러면 한 번 망가진 파일이 영원히 보존돼 정상 데이터가 못 들어온다.
+MIN_DEALS = 30
+MIN_RATIO = 0.5
+
 # 정규화 출발지 → (표시명, lat, lon). 인천+김포 = 서울 통합.
 ORIGIN_HUBS = {
     "SEL": ("서울", 37.55, 126.99),
@@ -48,6 +59,15 @@ def _median(vals):
     if not n:
         return None
     return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) // 2
+
+
+def _previous_deal_count():
+    """커밋돼 있는 `deals.json`의 딜 수. 없거나 못 읽으면 None."""
+    path = DOCS / "data" / "deals.json"
+    try:
+        return len(json.loads(path.read_text(encoding="utf-8"))["deals"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
 
 
 def _when_label(dep, today):
@@ -123,6 +143,21 @@ def build_deals_json(conn):
         })
 
     deals.sort(key=lambda x: x["price"])
+
+    # 수집이 무너진 날 빈 산출물로 덮어쓰지 않는다(BB1 / 기획 F1).
+    # 파일을 아예 쓰지 않으면 `build_index()`가 기존 파일을 읽어 그대로 인라인하므로
+    # index.html도 같은 내용으로 재생성되고, git이 변경 없음으로 보아 커밋조차 안 생긴다.
+    # `updated`도 예전 시각 그대로 남는데 그게 옳다 — 어제 데이터에 오늘 도장을 찍는 것이
+    # 더 나쁘다(기획 합의 2026-08-22). seen 배지가 저절로 늙어 상태를 대신 말해 준다.
+    prev = _previous_deal_count()
+    if prev is not None and prev >= MIN_DEALS:
+        if len(deals) < MIN_DEALS or len(deals) < prev * MIN_RATIO:
+            print(f"⚠️  deals.json을 갱신하지 않는다: {len(deals)}건 "
+                  f"(이전 {prev}건 · 하한 {MIN_DEALS}건 또는 이전의 {MIN_RATIO:.0%})")
+            print("    수집 실패·목적지 코드 변경·신선도 컷을 의심할 것. "
+                  "이전 산출물을 그대로 둔다.")
+            return -1
+
     origins = {k: {"name": v[0], "lat": v[1], "lon": v[2]}
                for k, v in ORIGIN_HUBS.items() if any(dl["o"] == k for dl in deals)}
     out = {"updated": now.strftime("%Y-%m-%d %H:%M"),
@@ -138,4 +173,4 @@ if __name__ == "__main__":
     conn = db.connect()
     n = build_deals_json(conn)
     conn.close()
-    print(f"deals.json 생성: {n}건")
+    print("deals.json 유지(하한선 미달)" if n < 0 else f"deals.json 생성: {n}건")
