@@ -44,6 +44,10 @@ SEEN_MAX_DAYS = 7
 MIN_DEALS = 30
 MIN_RATIO = 0.5
 
+# `median`(평소 시세)을 재는 기간. `detect_deals`의 BASELINE_DAYS와 같은 관례다.
+# 창이 없으면 이력이 길어질수록 중앙값이 옛 가격에 끌려가 할인율이 부풀려진다(BB4).
+BASELINE_DAYS = 30
+
 # 정규화 출발지 → (표시명, lat, lon). 인천+김포 = 서울 통합.
 ORIGIN_HUBS = {
     "SEL": ("서울", 37.55, 126.99),
@@ -71,8 +75,8 @@ def _previous_deal_count():
         return None
 
 
-def _prior_history(conn, cutoff):
-    """`(허브, 도시)` → `(이전 기간 최저가, 관측 일수)`.
+def _prior_history(conn, cutoff, floor):
+    """`(허브, 도시)` → `(평소 시세, 이전 기간 최저가, 관측 일수)`.
 
     **"이전 기간"은 이번 수집 창(`cutoff` 이후)을 뺀 그 앞이다.** 오늘 값을 포함하면
     "역대 최저냐"가 동어반복이 된다 — `deals.json`의 `price`가 이미 최근 3~4일 중
@@ -81,22 +85,31 @@ def _prior_history(conn, cutoff):
 
     알갱이가 `(허브, 한글도시명)`인 이유: 딜의 중복 제거 키와 같아야 한다. 딜 하나가
     도시 하나를 가리키므로 이력도 도시 단위로 봐야 "17일 중 최저"가 그 카드의 말이 된다.
-    ⚠️ `median`은 아직 `(실공항, IATA)` 단위라 알갱이가 다르다 — BB4에서 함께 정리한다.
+
+    **셋 다 같은 것을 재고 같은 기간을 본다** — "그 도시 그날 최저가"의 이전 기간 분포.
+    `median`은 그 분포의 가운데, `low`는 바닥, `obs_days`는 표본 수다. 그래야 한 카드
+    안에서 말이 맞는다. 예전엔 `median`만 `(실공항, IATA)` 단위였고(BB4), `price`가
+    도시 단위 최저가라 **사과와 오렌지를 비교**하고 있었다.
+
+    `floor`(30일) 이전은 보지 않고, `cutoff`(이번 수집 창) 이후도 보지 않는다.
+    창을 안 두면 중앙값이 옛 가격에 끌려가고, 오늘을 넣으면 비교 대상이 자기 자신이 된다.
+    이력이 없으면 키 자체가 없어 호출부가 `(None, None, 0)`을 받는다 — BB12대로
+    **모르는 값을 지어내지 않는다.**
     """
-    days, lows = {}, {}
+    daily = {}                       # (허브,도시) -> {날짜: 그날 그 도시 최저가}
     for o, d, fd, price in conn.execute(
             """SELECT origin, destination, fetched_date, price FROM broad_offers
-               WHERE fetched_date < ? AND price IS NOT NULL""", (cutoff,)):
+               WHERE fetched_date >= ? AND fetched_date < ? AND price IS NOT NULL""",
+            (floor, cutoff)):
         hub = ORIGIN_NORM.get(o)
         meta = dests.DEST.get(d)
         if not hub or not meta:
             continue
-        key = (hub, meta[0])
-        days.setdefault(key, set()).add(fd)
-        cur = lows.get(key)
-        if cur is None or price < cur:
-            lows[key] = price
-    return {k: (lows[k], len(days[k])) for k in days}
+        by_day = daily.setdefault((hub, meta[0]), {})
+        if fd not in by_day or price < by_day[fd]:
+            by_day[fd] = price
+    return {k: (_median(list(v.values())), min(v.values()), len(v))
+            for k, v in daily.items()}
 
 
 def _when_label(dep, today):
@@ -144,18 +157,15 @@ def build_deals_json(conn):
                          "tier": dests.tier(d), "price": price, "transfers": tr,
                          "dep": dep, "ret": ret, "seen": seen, "_oi": o}
 
-    prior = _prior_history(conn, cutoff)
+    prior = _prior_history(conn, cutoff,
+                           (today - timedelta(days=BASELINE_DAYS)).isoformat())
 
     deals = []
     for dd in best.values():
         lat, lon = dests.dest_coord(dd["d"])
-        hist = [p for (p,) in conn.execute(
-            "SELECT price FROM broad_offers WHERE origin=? AND destination=?",
-            (dd["_oi"], dd["d"]))]
-        low, obs_days = prior.get((dd["o"], dd["ko"]), (None, 0))
-        med = _median(hist) or dd["price"]
-        disc = round((med - dd["price"]) / med * 100) if med > dd["price"] else 0
-        disc = max(0, min(disc, 70))
+        med, low, obs_days = prior.get((dd["o"], dd["ko"]), (None, None, 0))
+        # 이력이 없으면 할인율도 0이다. 모르는 시세를 지어내 "몇 % 싸다"고 말하지 않는다.
+        disc = 0 if med is None or med <= dd["price"] else             max(0, min(round((med - dd["price"]) / med * 100), 70))
         dep = date.fromisoformat(dd["dep"])
         ret = date.fromisoformat(dd["ret"]) if dd["ret"] else None
         n = (ret - dep).days if ret else 0
