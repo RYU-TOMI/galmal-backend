@@ -8,6 +8,7 @@
 """
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 import discover_data
 import fetch_breadth
@@ -44,12 +45,23 @@ class DateLabelTest(unittest.TestCase):
     """
 
     def test_machine_date_is_utc(self):
-        """`fetched_date` 같은 수집 라벨 — 어디서 돌리든 같아야 한다."""
-        self.assertEqual(timeutil.today_utc(), datetime.now(UTC).date())
+        """`fetched_date` 같은 수집 라벨 — 어디서 돌리든 같아야 한다.
 
-    def test_product_date_is_kst(self):
-        """"오늘 이후 출발" 같은 사용자 기준 — 한국 전용 서비스다."""
-        self.assertEqual(timeutil.today_kst(), datetime.now(timeutil.KST).date())
+        시계를 두 번 읽어 비교하면 **자정 경계에서 하루에 한 번 깨진다.**
+        한 시점을 고정해 두 함수가 그것과 일치하는지 본다.
+        """
+        moment = datetime(2026, 9, 1, 18, 0, tzinfo=UTC)      # KST로는 9/2 새벽 3시
+        with mock.patch.object(timeutil, "datetime") as fake:
+            fake.now.side_effect = lambda tz=None: moment.astimezone(tz) if tz else moment
+            self.assertEqual(timeutil.today_utc(), moment.date())
+            self.assertEqual(timeutil.today_kst(), moment.astimezone(timeutil.KST).date())
+
+    def test_the_two_labels_differ_in_the_evening_utc(self):
+        """UTC 15:00 이후에는 두 날짜가 갈린다 — 그래서 구분해 쓴다."""
+        moment = datetime(2026, 9, 1, 18, 0, tzinfo=UTC)
+        with mock.patch.object(timeutil, "datetime") as fake:
+            fake.now.side_effect = lambda tz=None: moment.astimezone(tz) if tz else moment
+            self.assertNotEqual(timeutil.today_utc(), timeutil.today_kst())
 
     def test_the_two_can_differ_and_that_is_the_point(self):
         """UTC 15:00~23:59 구간에서 두 날짜가 갈린다 — 그래서 구분해 쓴다.

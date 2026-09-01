@@ -142,9 +142,6 @@ class WhenLabelTest(unittest.TestCase):
         self.assertEqual(self.label(2026, 8, 19), "이번 주")     # 수, -3
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class SeenConversionTest(unittest.TestCase):
     """`_seen_kst` — API의 naive `found_at`(UTC)을 KST로.
@@ -218,7 +215,13 @@ class BuildDealsSeenTest(unittest.TestCase):
         self.assertEqual(len(self.build()["deals"]), 1)
 
     def test_ghost_prices_are_dropped(self):
-        """7일 넘게 관측되지 않은 가격은 내보내지 않는다."""
+        """7일 넘게 관측되지 않은 가격은 내보내지 않는다.
+
+        ⚠️ 이 픽스처는 **현재 파이프라인이 만들 수 없는 상태**다. 수집이 96h 넘은
+        가격을 안 받고 창이 3일이라 후보의 seen 나이 상한이 정확히 7일이기 때문이다.
+        즉 이 테스트는 "지금 일어나는 일"이 아니라 **수집 정책이 넓어졌을 때
+        이 컷이 여전히 동작하는지**를 지킨다. 그게 이 상수를 남겨 둔 이유다.
+        """
         self.add("FUK", 100000, seen_days_ago=SEEN_MAX_DAYS + 1)
         self.assertEqual(self.build()["deals"], [])
 
@@ -408,3 +411,6 @@ class PriorHistoryTest(unittest.TestCase):
         self.assertEqual(deal["o"], "SEL")
         self.assertEqual(deal["low"], 200000, "인천·김포 이력이 합쳐져야 한다")
         self.assertEqual(deal["obs_days"], 2)
+
+if __name__ == "__main__":
+    unittest.main()

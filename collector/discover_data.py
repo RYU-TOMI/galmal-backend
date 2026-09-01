@@ -16,7 +16,7 @@
       (인천+김포=서울 통합).
 """
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import dests
@@ -24,13 +24,18 @@ import timeutil
 from affiliates import compare_links
 # `found_at`이 UTC라는 사실은 timeutil이 아는 유일한 곳이다 — 여기서 다시 구현하면
 # 두 곳이 어긋난다. 실제로 fetch_breadth가 그렇게 어긋나 있었다(BB11).
-from timeutil import KST
 from timeutil import parse_found_at as _seen_kst
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 STALE_DAYS = 3
-# seen(가격 관측 시각)이 이보다 오래된 딜은 내보내지 않는다 — 영원히 안 죽는
-# 유령 가격만 막는 안전선이다. 3일로 조이면 딜 26%와 소도시 롱테일이 먼저
-# 잘리므로 하지 않는다(CONTRACT.md / DECISIONS.md 2026-08-22).
+# seen(가격 관측 시각)이 이보다 오래된 딜은 내보내지 않는다 — 계약이 요구하는
+# "영원히 안 죽는 유령 가격" 안전선이다(CONTRACT.md 2026-08-22).
+#
+# ⚠️ **지금은 구조적으로 발동하지 않는다.** 후보 행의 seen 나이 상한이
+#    `MAX_AGE_HOURS`(96h=4일) + `STALE_DAYS`(3일) = **정확히 7일**이기 때문이다.
+#    수집이 4일 넘은 가격을 안 받고, 받은 뒤 창에 3일까지만 머문다.
+#    실측(2026-09-01): 창 안 493건 중 최대 6.96일, 컷 대상 0건.
+#    → 그래도 남겨 둔다. 수집 컷(`MAX_AGE_HOURS`)이나 창(`STALE_DAYS`)이 넓어지면
+#      그때부터 실제로 막는다. 없애면 그 변경이 조용히 유령 가격을 통과시킨다.
 SEEN_MAX_DAYS = 7
 
 # 산출물 보호(BB1) — 수집이 무너진 날 좋은 파일을 나쁜 파일로 덮지 않는다.
@@ -44,9 +49,14 @@ SEEN_MAX_DAYS = 7
 MIN_DEALS = 30
 MIN_RATIO = 0.5
 
-# `median`(평소 시세)을 재는 기간. `detect_deals`의 BASELINE_DAYS와 같은 관례다.
-# 창이 없으면 이력이 길어질수록 중앙값이 옛 가격에 끌려가 할인율이 부풀려진다(BB4).
-BASELINE_DAYS = 30
+# `median`·`low`·`obs_days`가 보는 이력의 **가장 오래된 경계**. 창이 없으면 이력이
+# 길어질수록 중앙값이 옛 가격에 끌려가 할인율이 부풀려진다(BB4).
+#
+# ⚠️ 실제로 보는 폭은 30일이 아니라 **27일**이다. 이 값은 `today - 30`이라는 하한이고,
+#    위쪽은 `cutoff`(= `today - STALE_DAYS`)에서 잘리기 때문이다. 즉 `obs_days`는
+#    27을 넘을 수 없다. 이름과 동작이 어긋나면 아무도 실제 창을 모른다(BB10에서 겪었다).
+HISTORY_FLOOR_DAYS = 30
+HISTORY_SPAN_DAYS = HISTORY_FLOOR_DAYS - STALE_DAYS      # = 27, 실제로 보는 폭
 
 # 정규화 출발지 → (표시명, lat, lon). 인천+김포 = 서울 통합.
 ORIGIN_HUBS = {
@@ -150,7 +160,7 @@ def build_deals_json(conn):
         """SELECT origin, destination, price, transfers, depart_date, return_date,
                   found_at
            FROM broad_offers
-           WHERE fetched_date >= ? AND depart_date >= ?""",
+           WHERE fetched_date >= ? AND depart_date >= ? AND price IS NOT NULL""",
         (cutoff, today.isoformat())).fetchall()
 
     # (정규화 출발지, 도시) 단위로 최저가 딜만 남긴다.
@@ -174,7 +184,7 @@ def build_deals_json(conn):
                          "dep": dep, "ret": ret, "seen": seen, "_oi": o}
 
     prior = _prior_history(conn, cutoff,
-                           (today - timedelta(days=BASELINE_DAYS)).isoformat())
+                           (today - timedelta(days=HISTORY_FLOOR_DAYS)).isoformat())
 
     deals = []
     for dd in best.values():

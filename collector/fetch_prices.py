@@ -10,7 +10,6 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
