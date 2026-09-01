@@ -139,6 +139,34 @@ class CityCodeTest(unittest.TestCase):
         self.assertEqual(dests.canonical("ZZZ"), "ZZZ")
         self.assertFalse(dests.is_destination(dests.canonical("ZZZ")))
 
+    def test_link_code_widens_representative_airports(self):
+        """예약 링크는 도시 코드로 넓힌다 (BB16).
+
+        광역 수집이 도시 단위라 그 딜이 나리타인지 하네다인지 모른다. 대표 공항으로
+        링크를 걸면 사용자가 클릭했을 때 **우리가 보여준 가격이 없을 수 있다.**
+        2026-09-01에 예약처 4곳을 실제로 열어 전부 도시 코드를 받는 것을 확인했다.
+        """
+        self.assertEqual(dests.link_code("NRT"), "TYO")
+        self.assertEqual(dests.link_code("KIX"), "OSA")
+        self.assertEqual(dests.link_code("JFK"), "NYC")
+        self.assertEqual(dests.link_code("CDG"), "PAR")
+
+    def test_link_code_leaves_single_airport_cities_alone(self):
+        """도시=공항인 곳은 넓힐 게 없다."""
+        for code in ("FUK", "BKK", "CJU", "DAD"):
+            with self.subTest(code=code):
+                self.assertEqual(dests.link_code(code), code)
+
+    def test_link_mapping_round_trips(self):
+        """`canonical`과 `link_code`가 서로의 역이어야 한다.
+
+        어긋나면 수집한 목적지와 링크가 가리키는 목적지가 달라진다.
+        """
+        for city, airport in dests.CITY_TO_AIRPORT.items():
+            with self.subTest(city=city):
+                self.assertEqual(dests.canonical(city), airport)
+                self.assertEqual(dests.link_code(airport), city)
+
     def test_the_big_cities_are_reachable(self):
         """회귀 방지 — 이 도시들이 다시 사라지면 발견 피드의 핵심 상품이 빠진다."""
         for city, ko in (("TYO", "도쿄"), ("OSA", "오사카"), ("PAR", "파리"),
