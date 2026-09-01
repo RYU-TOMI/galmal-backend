@@ -1,11 +1,11 @@
 [2026-09-01] 특가 10건 발견
-  ICN→FUK 2026-09-07~2026-09-09 143,734원 (ZE, 직항) — 동일 유형 시세 280,816원 대비 49% 저렴
+  ICN→FUK 2026-09-07~2026-09-09 143,734원 (ZE, 직항) — 동일 유형 시세 280,851원 대비 49% 저렴
     https://www.aviasales.com/search/ICN0709FUK09091?t=ZE17888040001788811200000120ICNFUK17889534001788958800000090FUKICN_4a7d8047b7add7c2889dd2850f3f183b_8976&search_date=30082026&expected_price_uuid=01a050a8-ff83-8030-a2af-83375038e624&static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&itinerary_key=EVg2CHno26JjSsO7KPJqww&origin_airports=0&destination_airports=1&expected_price_source=share&expected_price_currency=krw&expected_price=143734
-  GMP→CJU 2026-09-08~2026-09-16 33,054원 (LJ, 직항) — 동일 유형 시세 64,416원 대비 49% 저렴
+  GMP→CJU 2026-09-08~2026-09-16 33,054원 (LJ, 직항) — 동일 유형 시세 64,477원 대비 49% 저렴
     https://www.aviasales.com/search/GMP0809CJU16091?t=7C17888481001788852600000075GMPCJU17895549001789559400000075CJUGMP_3fca112d8d75342badb185c7c23e6bae_2061&search_date=28082026&expected_price_uuid=01a045ad-d1fd-8030-e396-48d7b13f0061&static_fare_key=TY%7CP0%7CH0%7CL0%7CCH0%7CR0%7CTBC0&itinerary_key=ZrbFyPdlJ5f-ovZQzwe5dg&origin_airports=0&destination_airports=1&expected_price_source=share&expected_price_currency=krw&expected_price=33054
-  ICN→FUK 2026-09-02~2026-09-09 146,960원 (ZE, 직항) — 동일 유형 시세 280,816원 대비 48% 저렴
+  ICN→FUK 2026-09-02~2026-09-09 146,960원 (ZE, 직항) — 동일 유형 시세 280,851원 대비 48% 저렴
     https://www.aviasales.com/search/ICN0209FUK09091?t=ZE17883738001788379200000090ICNFUK17889534001788958800000090FUKICN_e31309dca8071b46ed7f678d882b3e6a_8954&search_date=26082026&expected_price_uuid=01a03f94-5834-8050-2a73-1175ab45ba7c&static_fare_key=TY%7CP1%7CH1%7CL0%7CCH0%7CR0%7CTBC0&itinerary_key=HjjgYy-oX7IaJcaMjvsuPw&origin_airports=0&destination_airports=1&expected_price_source=share&expected_price_currency=krw&expected_price=146960
-  ICN→FUK 2026-09-29~2026-09-30 150,690원 (ZE, 직항) — 동일 유형 시세 280,816원 대비 46% 저렴
+  ICN→FUK 2026-09-29~2026-09-30 150,690원 (ZE, 직항) — 동일 유형 시세 280,851원 대비 46% 저렴
     https://www.aviasales.com/search/ICN2909FUK30091?t=ZE17907066001790712000000090ICNFUK17907678001790773200000090FUKICN_79007c5d46560e4d1a8d9193dd46dd95_9513&search_date=31082026&expected_price_uuid=01a0588c-55f2-8040-a816-7c142ddf2758&static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&itinerary_key=npmZPtKiRgHJKjxi6vEoBA&origin_airports=0&destination_airports=1&expected_price_source=share&expected_price_currency=krw&expected_price=150690
   ICN→OKA 2026-09-15~2026-09-17 218,191원 (ZE, 직항) — 동일 유형 시세 344,132원 대비 37% 저렴
     https://www.aviasales.com/search/ICN1509OKA17091?t=ZE17894718001789480800000150ICNOKA17896572001789666500000155OKAICN_e8e9a1cc967811d7c0e4a884273b152d_13773&search_date=31082026&expected_price_uuid=01a05a3c-8c95-8030-64d0-9ac7372ccd58&static_fare_key=TY%7CP0%7CH1%7CL0%7CCH0%7CR0%7CTBC0&itinerary_key=GJ1E8r7YnZwBjrnhsv-p6Q&origin_airports=0&destination_airports=1&expected_price_source=share&expected_price_currency=krw&expected_price=218191
