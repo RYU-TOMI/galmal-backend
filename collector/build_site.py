@@ -8,6 +8,7 @@
 사용: python collector/build_site.py
 """
 import html
+import os
 import sys
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
@@ -368,6 +369,24 @@ def main():
     disc = "유지(하한선 미달)" if n_disc < 0 else f"{n_disc}건"
     print(f"생성 완료: 발견 홈({n_deals}딜) + deals.json({disc}) "
           f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots")
+    _report_preserved(n_disc < 0)
+
+
+def _report_preserved(preserved):
+    """산출물 보존 여부를 GitHub Actions에 알린다(BB18).
+
+    빌드는 성공으로 끝나야 한다 — 데이터는 커밋돼야 하니까. 대신 이 신호를
+    워크플로 마지막 '상태 점검'이 읽어 잡을 실패로 표시하고, GitHub가 메일을 보낸다.
+    로컬 실행에는 `GITHUB_OUTPUT`이 없으므로 아무 일도 하지 않는다.
+    """
+    out = os.environ.get("GITHUB_OUTPUT")
+    if not out:
+        return
+    try:
+        with open(out, "a", encoding="utf-8") as f:
+            print(f"preserved={'true' if preserved else 'false'}", file=f)
+    except OSError as e:                       # 신호 실패가 빌드를 죽이면 안 된다
+        print(f"  (GITHUB_OUTPUT 기록 실패: {e})")
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ jobs:
         run: python collector/detect_deals.py | tee data/deals_latest.txt
 
       - name: 프로모션 메일 수집
+        id: mail
         continue-on-error: true   # 메일 실패가 가격 수집 커밋을 막지 않도록
         env:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
@@ -40,6 +41,7 @@ jobs:
         run: python collector/mail_ingest.py
 
       - name: 메일 LLM 파싱 (Claude API, Haiku)
+        id: parse
         continue-on-error: true   # 파싱 실패가 나머지 파이프라인을 막지 않도록
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -48,6 +50,7 @@ jobs:
           python collector/parse_mail.py
 
       - name: 구독 알림 발송
+        id: alerts
         continue-on-error: true   # 발송 실패가 나머지 파이프라인을 막지 않도록
         env:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
@@ -59,6 +62,7 @@ jobs:
         run: python collector/send_alerts.py
 
       - name: 웹 피드 생성
+        id: build
         env:
           TP_MARKER: ${{ secrets.TP_MARKER }}
           TP_TRIP_TRS: ${{ secrets.TP_TRIP_TRS }}
@@ -71,5 +75,33 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/ docs/
-          git commit -m "collect: $(date -u '+%Y-%m-%d')" || echo "변경 없음"
+          # 라벨은 KST — 읽는 사람이 전부 한국 시간으로 산다(BB13).
+          # 데이터 필드(fetched_date)는 기계가 빼는 값이라 UTC 그대로다.
+          git commit -m "collect: $(TZ=Asia/Seoul date '+%Y-%m-%d')" || echo "변경 없음"
           git push
+
+      # 커밋 **뒤**에 둔다 — 데이터는 먼저 남기고, 그다음에 잡을 실패로 표시한다.
+      # continue-on-error 스텝은 실패해도 잡이 초록불이라 몇 주째 죽어 있어도
+      # 아무도 몰랐다(BB18). 잡을 실패로 만들면 GitHub가 저장소 소유자에게 메일을 보낸다.
+      - name: 상태 점검
+        if: always()
+        run: |
+          fail=0
+          note() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          note "## 수집 결과 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') KST)"
+          for s in "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"; do
+            name="${s%%:*}"; outcome="${s##*:}"
+            if [ "$outcome" = "failure" ]; then
+              note "- ❌ $name 실패"; fail=1
+            else
+              note "- ✅ $name ($outcome)"
+            fi
+          done
+          if [ "${{ steps.build.outputs.preserved }}" = "true" ]; then
+            note "- ⚠️ deals.json 갱신 안 함 (하한선 미달) — 사이트는 이전 딜을 계속 보여준다"
+            fail=1
+          fi
+          [ "$fail" = "0" ] || {
+            echo "::error::수집은 끝났고 데이터도 커밋됐지만 위 항목이 실패했다. 요약을 볼 것."
+            exit 1
+          }

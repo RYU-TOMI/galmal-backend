@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 import db
+import timeutil
 
 API = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
 
@@ -47,7 +48,7 @@ def fetch_route(token, origin, dest):
 def main():
     token = load_token()
     conn = db.connect()
-    today = date.today().isoformat()
+    today = timeutil.today_utc().isoformat()   # 기계용 라벨 — 환경 무관(BB17)
     total = 0
     failed = []
     for origin, dest in config.ROUTES:

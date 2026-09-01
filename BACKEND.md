@@ -101,8 +101,8 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 | # | 챕터 | 범위 | 상태 |
 |---|---|---|---|
 | BE0 | 검증 기반 | 순수 함수 유닛테스트 · `deals.json` 계약 검증기 · CI test job | ✅ 완료 (테스트 73건) |
-| **BE1** | **파이프라인 신뢰성** | 수집 실패 시 사이트가 비는 문제(BB1·BB2) · 크론 실패 감지 · DB 성장(BB3) | **다음** |
-| BE2 | 데이터 품질·신선도 | `found_at` 노출(계약 v1.1) · `median` 윈도우 · 할인율 산식 | 대기 |
+| BE1 | 파이프라인 신뢰성 | 수집 실패 감지 · 산출물 보호 · 날짜 라벨 · 크론 알림 | ✅ 완료 (테스트 107건) |
+| **BE2** | **데이터 품질·신선도** | 계약 검증기 자동화 · `median` 창(BB4) · `when` 라벨(BB7·BB8) · `low`/`obs_days` · `median` null(BB12) | **진행 중** |
 | BE3 | 발견 데이터 확장 | 목적지 사전·좌표 검증 · 프론트 요청 필드 대응 | 대기 |
 | BE4 | SEO·페이지 생성 | 노선 페이지 개선 · 구조화 데이터 · 목적지 페이지 | 대기 |
 | BE5 | 수익·제휴 | Trip.com 재신청 대응 · 링크 정확도 검증 | 대기 |
@@ -124,7 +124,12 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 > 작업 중 발견했지만 **스코프가 아니라서 안 고친 것.** 해결되면 지우지 말고 `~~취소선~~ → 해결(커밋)`.
 
 ### BE1 — 파이프라인 신뢰성
-- **BB18. `continue-on-error` 스텝의 실패를 알 방법이 없다.** ⚠️ **T4 이후 중요도가 올랐다** —
+- ~~**BB18. `continue-on-error` 스텝의 실패를 알 방법이 없다.**~~ → **해결(2026-09-01, BE1 T5)**:
+  `collect.yml` 마지막에 **상태 점검** 스텝을 뒀다. 커밋 *뒤*에 두어 데이터는 먼저 남기고,
+  세 스텝 중 하나라도 실패했거나 `deals.json`이 보존됐으면 **잡을 실패로 표시**한다
+  → GitHub가 저장소 소유자에게 메일을 보낸다. 요약은 `$GITHUB_STEP_SUMMARY`에 남는다.
+  보존 신호는 `build_site.py`가 `GITHUB_OUTPUT`으로 넘기며, 로컬 실행에는 영향이 없다.
+  (원문)  ⚠️ **T4 이후 중요도가 올랐다** —
   하한선 방어(BB1)가 들어가면서 수집 실패가 **화면상 조용해졌다**(어제 데이터가 오늘 얼굴로
   나온다). 기획이 화면 쪽은 갱신 시각 상시 노출로 받기로 했지만(C-15), **운영자가 알 방법**은
   여전히 없다. 사이트가 안 비는 대신 아무도 모르는 상태가 오래갈 수 있다. `collect.yml`의 메일 수집·
@@ -226,7 +231,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   (원래 내용)  `discover_data.py:86`이 `broad_offers` 전체 이력을
   쓴다. 지금은 24일치라 무해하지만, 몇 달 뒤 "평소 시세"가 옛날 값에 끌려간다.
   `detect_deals`는 `BASELINE_DAYS=30` 창을 쓰는 것과 대비된다.
-- **BB5. `found_at`이 저장돼 있는데 계약에 안 나간다.** `broad_offers.found_at`은 있으나
+- ~~**BB5. `found_at`이 저장돼 있는데 계약에 안 나간다.**~~ → **해결(2026-08-22, BE0 T3)**:
+  `seen` 필드로 나간다. 표시가 빠져 있어 2026-09-01에 정정했다.
+  (원문)  `broad_offers.found_at`은 있으나
   `build_deals_json()`의 SELECT에 없다. → **프론트 요청 B8과 같은 항목**(§8 참조).
 
 - **BB7. `_when_label`이 이번 달 출발을 이번 달 이름으로 표시한다.** 8월에 8월 말 평일
@@ -236,7 +243,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 - **BB8. `when` 라벨에 연도 구분이 없다.** `f"{dep.month}월"`이라 이듬해 출발도 `"1월"`·`"3월"`로
   나간다. 2026-08-21자 `deals.json`의 2027년 출발 12건이 전부 이렇다(하노이 2027-01-01 →
   `"1월"`, 멜버른 2027-03-01 → `"3월"`). 사용자가 지나간 달로 읽을 수 있다.
-- **BB9. `dests.py` docstring의 통제 어휘와 실제 태그가 다르다.** docstring은 9종
+- ~~**BB9. `dests.py` docstring의 통제 어휘와 실제 태그가 다르다.**~~ → **해결(2026-08-22)**:
+  어휘 24종 확장 때 docstring을 함께 고쳤다. 표시가 빠져 있어 2026-09-01에 정정했다.
+  (원문)  docstring은 9종
   (`해변 도시 자연 온천 쇼핑 미식 액티비티 휴양 문화`)을 선언하는데 실제로는 12종이 쓰인다.
   어휘 밖 3종은 `야시장`(TPE)·`유적`(REP/RGN/DEL/IST/FCO)·`트레킹`(KTM).
   `CONTRACT.md`가 태그를 "필터·사진 색 선택에 사용"이라 명시하므로 프론트에 영향이 갈 수 있다.
@@ -290,7 +299,10 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 참고: `discount=0`인 딜 23건 중 22건은 표본 4건 이상으로 **시세가 제대로 계산된**
     정직한 0이다(프론트 B24는 도장 문구 문제이지 데이터 문제가 아님을 실측으로 확인).
 
-- **BB13. `fetched_date`와 collect 커밋 라벨이 UTC 날짜라 하루 밀려 보인다.**
+- ~~**BB13. `fetched_date`와 collect 커밋 라벨이 UTC 날짜라 하루 밀려 보인다.**~~
+  → **해결(2026-09-01, BE1 T5)**: 커밋 라벨을 `TZ=Asia/Seoul`로 바꿔 KST로 찍는다.
+  `fetched_date`는 UTC 유지이며 그 사실을 계약에 명시하도록 기획에 요청했다.
+  (원문) 
   크론이 22:10 UTC에 돌아 `date.today()`(러너 UTC)로 `fetched_date`를 찍고,
   커밋 메시지도 `date -u`를 쓴다. 그래서 **KST 08-21 아침 7시에 성공한 수집이
   `2026-08-20`으로 기록**된다. 한국 전용 서비스라 읽는 사람은 전부 KST로 해석한다.
@@ -307,9 +319,21 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
       산다. UTC/KST 사고 3건 중 첫 번째가 정확히 이 라벨을 KST로 읽어서 났다.
     - 기존 행은 건드리지 않는다(되돌릴 수 없는 데이터).
 
-- **BB17. `fetched_date`·`date.today()`가 아직 naive다.** T2에서 `found_at` 쪽 시간대는
+- ~~**BB17. `fetched_date`·`date.today()`가 아직 naive다.**~~ → **해결(2026-09-01, BE1 T5)**:
+  `timeutil.today_utc()`(기계용)와 `today_kst()`(제품용)로 갈랐다. 수집 라벨은
+  UTC로 고정해 크론·로컬이 같은 값을 남기고, "오늘 이후 출발"은 KST로 판단한다.
+  (원문)  T2에서 `found_at` 쪽 시간대는
   `timeutil`로 단일화했지만, 날짜 라벨은 여전히 러너 로컬 날짜다(BB13과 같은 뿌리).
   `timeutil.now_kst()`가 생겼으니 BB13을 정할 때 함께 정리할 수 있다.
+
+- **BB19. ⚠️ 계약 검증기가 필드 목록을 하드코딩해 계약을 따라가지 못한다.**
+  (2026-09-01 발견, **BE2 최우선**)
+  태그 어휘는 `CONTRACT.md` 표를 파싱하는데 **필드 목록(`REQUIRED`)은 하드코딩**이다.
+  그래서 기획이 계약에 필드를 추가해도 검증기가 모르고 **CI가 조용히 초록불**이다.
+  - 실제로 발생: 계약에 `low`·`obs_days`가 추가됐는데(PH4) 생산자가 안 내보내고 있고,
+    검증기도 안 잡는다. `seen` 때와 같은 상황인데 이번엔 **경보조차 울리지 않는다.**
+  - 계약의 deal 필드 표는 파싱 가능함을 확인했다(22개 필드가 정확히 읽힌다).
+  - → 필드 목록도 계약에서 읽게 고친다. 그래야 "계약이 단일 출처"가 진짜가 된다.
 
 ### 미분류
 - **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
