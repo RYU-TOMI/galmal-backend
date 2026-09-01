@@ -98,23 +98,40 @@ class WhenLabelTest(unittest.TestCase):
     def test_january_of_a_later_year_is_not_next_month(self):
         """'다음 달'은 달뿐 아니라 **연도까지** 맞아야 한다.
 
-        2026-12 기준 '다음 달'은 2027-01뿐이다. 2028-01은 달이 같아도
-        `nxt_year` 조건에서 걸러져 월 이름으로 떨어진다.
+        2026-12 기준 '다음 달'은 2027-01뿐이다. 2028-01은 달이 같아도 걸러진다.
         """
-        self.assertEqual(_when_label(date(2028, 1, 4), date(2026, 12, 15)), "1월")
+        self.assertEqual(_when_label(date(2028, 1, 4), date(2026, 12, 15)),
+                         "2028년 1월")
 
-    # ---- 아래 둘은 현재 동작 박제. 올바른 사양이 아니다. ----
+    # ---- BB7·BB8 수정 후 사양 ----
 
-    def test_current_month_is_labelled_with_its_own_name(self):
-        """BB7: 8월에 8월 말 평일 출발이면 '8월'. 사용자에게 정보가 없는 라벨이다.
+    def test_this_month_has_its_own_label(self):
+        """BB7 해결: 이번 달 출발은 '이번 달'.
 
-        조건 순서상 주말도(월요일) 이번 주도(+9일) 다음 달도 아니라 월 이름으로 떨어진다.
+        예전엔 '8월'로 나왔다. 오늘이 8월인데 '8월'은 아무 말도 아니고,
+        월초에는 딜의 3분의 1이 이 상태였다(2026-09-01 실측 44/126).
+        '이번 주'(7일)와 '다음 달' 사이가 비어 있던 것이 원인이다.
         """
-        self.assertEqual(self.label(2026, 8, 31), "8월")         # 월, +9
+        self.assertEqual(self.label(2026, 8, 31), "이번 달")      # 월, +9
+        # 같은 달이어도 7일 이내면 '이번 주'가 먼저다 — 더 구체적인 쪽을 쓴다.
+        self.assertEqual(self.label(2026, 8, 25), "이번 주")      # 화, +3
 
-    def test_month_label_ignores_the_year(self):
-        """BB8: 이듬해 출발도 연도 없이 '3월'. 지나간 3월과 구분되지 않는다."""
-        self.assertEqual(self.label(2027, 3, 1), "3월")
+    def test_next_year_is_marked_as_such(self):
+        """BB8 해결: 이듬해 출발은 '내년 N월'.
+
+        예전엔 '3월'이라 지나간 3월과 구분되지 않았다. 출발일 범위가 약 1년이라
+        '7월'이 지난 7월이 아니라 내년 7월인 경우가 실제로 있었다.
+        """
+        self.assertEqual(self.label(2027, 3, 1), "내년 3월")
+        self.assertEqual(self.label(2027, 7, 1), "내년 7월")
+
+    def test_two_years_out_spells_the_year(self):
+        """2년 이상 뒤는 '내년'이 아니다. 현재 데이터엔 없지만 방어적으로 둔다."""
+        self.assertEqual(self.label(2028, 3, 1), "2028년 3월")
+
+    def test_same_year_later_months_keep_the_bare_month(self):
+        """같은 해 2개월 이후는 그대로 월 이름 — 연도가 자명하다."""
+        self.assertEqual(self.label(2026, 11, 20), "11월")
 
     def test_past_departure_falls_into_this_week(self):
         """과거 날짜는 '이번 주'가 된다(`delta <= 7`이 음수도 통과).
