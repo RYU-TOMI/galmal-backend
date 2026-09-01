@@ -63,11 +63,13 @@ def main():
     today = date.today().isoformat()
     now = timeutil.now_kst()      # aware — naive와 섞어 빼지 않는다
     kept = 0
+    failed = []
     for origin in ORIGINS:
         try:
             rows = fetch_origin(token, origin)
         except Exception as e:
             print(f"  {origin}: 수집 실패 ({e})")
+            failed.append(origin)
             continue
         n_origin = 0
         for r in rows:
@@ -95,7 +97,23 @@ def main():
         time.sleep(0.5)
     conn.commit()
     conn.close()
-    print(f"완료: {kept}건 저장 ({today})")
+    print(f"완료: {kept}건 저장 ({today})"
+          + (f" · 실패 {len(failed)}/{len(ORIGINS)} 공항 {failed}" if failed else ""))
+
+    # 일부 실패는 넘어간다 — 나머지 공항 데이터는 그대로 쓸모가 있다.
+    # 전부 실패했거나 한 건도 못 건졌으면 **종료 코드를 1로 낸다**(BB2).
+    #
+    # 왜 중요한가: 예전엔 5개 공항이 다 죽어도 exit 0으로 끝나서, 워크플로가
+    # 그대로 진행돼 빈 산출물을 커밋·배포했다. 스텝이 제대로 실패하면 잡이 멈춰
+    # 커밋 자체가 안 되고 **사이트는 어제 상태로 남는다** — 그게 안전한 쪽이다.
+    if len(failed) == len(ORIGINS):
+        raise SystemExit(
+            f"광역 수집 실패: {len(ORIGINS)}개 공항이 모두 실패했다. "
+            "토큰 만료·API 장애·응답 형식 변경을 의심할 것.")
+    if kept == 0:
+        raise SystemExit(
+            "광역 수집 실패: 호출은 됐으나 저장한 행이 0건이다. "
+            "목적지 코드 체계 변경(BB15 참조)이나 신선도 컷을 의심할 것.")
 
 
 if __name__ == "__main__":
