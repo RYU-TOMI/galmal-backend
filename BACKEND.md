@@ -213,12 +213,15 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   전면 교체했고, docstring도 24종·상위/하위 구조로 다시 썼다. 12종을 거치지 않고
   한 번에 갔다(기획 권고).
 
-- **BB10. 광역 수집 창이 의도(3일)와 다르게 실제 4일이다.** `fetch_breadth.py:69-72`가
+- ~~**BB10. 광역 수집 창이 의도(3일)와 다르게 실제 4일이다.**~~ → **해결(2026-09-01, BE1 T2)**:
+  `MAX_AGE_HOURS = 96`으로 이름과 동작을 일치시켰다. 96h 유지는 의도된 선택이며
+  정책 변경이 아니다(72h로 조이면 딜 26%·소도시 롱테일 손실). 원문: `fetch_breadth.py:69-72`가
   `age = (now - found).days`로 나이를 재는데 `timedelta.days`는 **내림**이라
   `age > 3`은 95시간까지 통과시킨다. 실측으로도 수집분 최대 나이가 매일 91~95h이고
   96h를 넘는 행은 10일치에서 0건이다. `MAX_AGE_DAYS = 3`이라는 이름과 실제 동작(96h)이 어긋난다.
   `CONTRACT.md`가 "최근 3일 수집분"이라 적은 것도 엄밀히는 4일이다.
-- **BB11. ⚠️ `fetch_breadth`가 시간대가 다른 두 값을 빼서 매일 딜을 버린다.**
+- ~~**BB11. ⚠️ `fetch_breadth`가 시간대가 다른 두 값을 빼서 매일 딜을 버린다.**~~
+  → **해결(2026-09-01, BE1 T2)**: `timeutil`로 단일화. 재수집에서 8건이 살아났다. 원문:
   (2026-08-28 실측으로 심각도 상향)
   `now = datetime.now()`는 naive 로컬 시각인데 `found_at`은 UTC다. **9시간이 부풀려져**
   신선도 컷을 통과해야 할 딜이 잘린다.
@@ -266,6 +269,10 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     비교와 기존 행 전부에 영향이 간다. 되돌릴 수 없는 데이터라 신중히 — BE1에서 판단한다.
   - 최소 조치안: 커밋 메시지만 KST로 바꾸고(`date -u -d '+9 hours'`), `fetched_date`는
     UTC로 두되 그 사실을 `CONTRACT.md`·`BACKEND.md`에 명시.
+
+- **BB17. `fetched_date`·`date.today()`가 아직 naive다.** T2에서 `found_at` 쪽 시간대는
+  `timeutil`로 단일화했지만, 날짜 라벨은 여전히 러너 로컬 날짜다(BB13과 같은 뿌리).
+  `timeutil.now_kst()`가 생겼으니 BB13을 정할 때 함께 정리할 수 있다.
 
 ### 미분류
 - **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.

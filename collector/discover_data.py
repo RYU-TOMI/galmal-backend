@@ -15,13 +15,16 @@
       (인천+김포=서울 통합).
 """
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import dests
+import timeutil
 from affiliates import compare_links
-
-KST = timezone(timedelta(hours=9))
+# `found_at`이 UTC라는 사실은 timeutil이 아는 유일한 곳이다 — 여기서 다시 구현하면
+# 두 곳이 어긋난다. 실제로 fetch_breadth가 그렇게 어긋나 있었다(BB11).
+from timeutil import KST
+from timeutil import parse_found_at as _seen_kst
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 STALE_DAYS = 3
 # seen(가격 관측 시각)이 이보다 오래된 딜은 내보내지 않는다 — 영원히 안 죽는
@@ -45,28 +48,6 @@ def _median(vals):
     if not n:
         return None
     return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) // 2
-
-
-def _seen_kst(raw):
-    """API의 `found_at`을 KST aware datetime으로. 변환 불가면 None.
-
-    원본은 **오프셋 없는 UTC 문자열**이다. 그대로 KST처럼 다루면 모든 가격이
-    9시간씩 늙어 보인다. 근거(2026-08-22 실측): UTC로 해석해야 매일 가장 신선한
-    가격의 나이가 0h 부근으로 떨어진다 — 캐시가 방금 관측한 값을 돌려주는
-    자연스러운 그림이다. KST로 보면 최신값조차 8.8h 된 것이 되고, 최대 나이가
-    수집 필터 자신의 컷(96h)을 넘어 저장 자체가 불가능해진다.
-
-    이미 오프셋이 붙어 오는 경우(향후 API 변경)도 그대로 존중한다.
-    """
-    if not raw:
-        return None
-    try:
-        dt = datetime.fromisoformat(raw)
-    except (TypeError, ValueError):
-        return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(KST)
 
 
 def _when_label(dep, today):

@@ -20,15 +20,21 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
+import timeutil
 from dests import ORIGINS, canonical, is_destination
 
 API = "https://api.travelpayouts.com/v2/prices/latest"
-MAX_AGE_DAYS = 3   # 발견 피드 신선도 기준
+
+# 발견 피드 신선도 기준. **시간 단위**로 둔다 — 예전엔 `MAX_AGE_DAYS = 3`에
+# `timedelta.days`(내림)를 써서 이름은 3일인데 실제로는 95시간59분까지 통과했다(BB10).
+# 96h를 유지하는 건 의도된 선택이다: 72h로 조이면 딜 26%와 소도시 롱테일이 먼저
+# 잘린다(`DECISIONS.md` 2026-08-06). 이름과 동작을 일치시킨 것이지 정책 변경이 아니다.
+MAX_AGE_HOURS = 96
 
 
 def load_token():
@@ -55,7 +61,7 @@ def main():
     token = load_token()
     conn = db.connect()
     today = date.today().isoformat()
-    now = datetime.now()
+    now = timeutil.now_kst()      # aware — naive와 섞어 빼지 않는다
     kept = 0
     for origin in ORIGINS:
         try:
@@ -71,11 +77,10 @@ def main():
             if not is_destination(dest):        # 품질 필터: 사전에 있는 목적지만
                 continue
             found = r.get("found_at", "")
-            try:
-                age = (now - datetime.fromisoformat(found)).days
-            except (ValueError, TypeError):
-                continue
-            if age > MAX_AGE_DAYS:               # 신선도 필터
+            # found_at은 오프셋 없는 **UTC** 문자열이다. timeutil이 그 사실을 아는
+            # 유일한 곳이며, 여기서 직접 파싱하면 또 9시간이 어긋난다(BB11).
+            age = timeutil.age_hours(found, now)
+            if age is None or age > MAX_AGE_HOURS:   # 신선도 필터
                 continue
             conn.execute(
                 """INSERT OR REPLACE INTO broad_offers
