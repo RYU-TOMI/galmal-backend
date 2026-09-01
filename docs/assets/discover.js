@@ -7,7 +7,7 @@
   if (!D || !WORLD || !svg || !window.d3 || !d3.geoEquirectangular) return;
 
   var SVGNS = "http://www.w3.org/2000/svg";
-  var W = 1000, H = 680, MINOR_SCALE = 1200;
+  var W = 1000, H = 680;
   var VIEWS = { near: { lon: 132, lat: 35.5, scale: 1500 },
                 sea: { lon: 117, lat: 19, scale: 720 },
                 far: { lon: 78, lat: 30, scale: 230 } };
@@ -83,8 +83,14 @@
     if (anyFilter()) {
       CITY.forEach(function (c, i) { c._i = i; out.push(c); });
     } else {
-      var upto = STAGES.slice(0, stageIdx + 1), showMinor = VIEWS[STAGES[stageIdx]].scale >= MINOR_SCALE;
-      CITY.forEach(function (c, i) { if (upto.indexOf(c.haul) >= 0 && (showMinor || c.tier === "major")) { c._i = i; out.push(c); } });
+      // LOD — 이번 단계가 연 거리대는 전부, 이전 단계는 major 만. (SPEC §CH1)
+      // 사용자가 그 단계를 누른 건 그 거리대를 보겠다는 뜻이다. 그 거리대를 숨기지 않는다.
+      CITY.forEach(function (c, i) {
+        var si = STAGES.indexOf(c.haul);
+        if (si < 0 || si > stageIdx) return;                // 아직 안 연 거리대
+        if (si < stageIdx && c.tier !== "major") return;    // 이전 거리대는 맥락이라 major 만
+        c._i = i; out.push(c);
+      });
     }
     var cmp = { value: function (a, b) { return num(a.price) - num(b.price); },
                 imminent: function (a, b) { var x = depkey(a), y = depkey(b); return x < y ? -1 : x > y ? 1 : 0; },
