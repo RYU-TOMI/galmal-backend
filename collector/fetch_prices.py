@@ -49,11 +49,13 @@ def main():
     conn = db.connect()
     today = date.today().isoformat()
     total = 0
+    failed = []
     for origin, dest in config.ROUTES:
         try:
             rows = fetch_route(token, origin, dest)
         except Exception as e:
             print(f"  {origin}-{dest}: 수집 실패 ({e})")
+            failed.append(f"{origin}-{dest}")
             continue
         for r in rows:
             conn.execute(
@@ -71,7 +73,17 @@ def main():
         time.sleep(0.3)  # rate limit(200/h/IP) 여유
     conn.commit()
     conn.close()
-    print(f"완료: {total}건 수집 ({today})")
+    print(f"완료: {total}건 수집 ({today})"
+          + (f" · 실패 {len(failed)}/{len(config.ROUTES)} 노선" if failed else ""))
+
+    # 광역 수집과 같은 정책(BB2): 일부 실패는 넘어가고, 전부 실패하거나 한 건도
+    # 못 건지면 종료 코드 1. 조용히 성공한 척하면 빈 산출물이 배포된다.
+    if len(failed) == len(config.ROUTES):
+        raise SystemExit(
+            f"노선 수집 실패: {len(config.ROUTES)}개 노선이 모두 실패했다. "
+            "토큰 만료·API 장애를 의심할 것.")
+    if total == 0:
+        raise SystemExit("노선 수집 실패: 호출은 됐으나 받은 행이 0건이다.")
 
 
 if __name__ == "__main__":

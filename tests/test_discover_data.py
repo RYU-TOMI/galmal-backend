@@ -19,7 +19,8 @@ from unittest import mock
 
 import db
 import discover_data
-from discover_data import SEEN_MAX_DAYS, _median, _seen_kst, _when_label
+from discover_data import (MIN_DEALS, MIN_RATIO, SEEN_MAX_DAYS, _median,
+                           _seen_kst, _when_label)
 
 
 class MedianTest(unittest.TestCase):
@@ -220,3 +221,94 @@ class BuildDealsSeenTest(unittest.TestCase):
         self.assertEqual(out["deals"], [])
         self.assertEqual(out["origins"], {})
         self.assertIn("updated", out)
+
+
+class ArtifactGuardTest(unittest.TestCase):
+    """수집이 무너진 날 좋은 산출물을 나쁜 것으로 덮지 않는가 (BB1 / 기획 F1).
+
+    화면이 완전한 막다른 길이 되는 걸 생성 쪽에서 막는다. 파일을 안 쓰면
+    `build_index()`가 기존 것을 읽어 인라인하므로 사이트는 어제 딜을 계속 보여 준다.
+    """
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.executescript(db.SCHEMA)
+        self.today = date.today()
+
+    def add(self, n, origin="ICN"):
+        """서로 다른 **도시** n곳을 넣는다.
+
+        중복 제거 키가 `(허브, 한글도시명)`이라 공항 코드로 세면 안 된다 —
+        도쿄(NRT/HND)·오사카(KIX/ITM)처럼 한 도시에 공항이 둘인 곳이 6군데다.
+        """
+        import dests
+        seen_ko, codes = set(), []
+        for c in dests.DEST:
+            ko = dests.DEST[c][0]
+            if dests.dest_coord(c) and ko not in seen_ko:
+                seen_ko.add(ko)
+                codes.append(c)
+            if len(codes) == n:
+                break
+        fresh = (datetime.now(timezone.utc) - timedelta(hours=1)).replace(tzinfo=None)
+        for i, code in enumerate(codes):
+            self.conn.execute(
+                """INSERT INTO broad_offers (fetched_date, origin, destination, price,
+                                             transfers, depart_date, return_date, found_at)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (self.today.isoformat(), origin, code, 100000 + i, 0,
+                 (self.today + timedelta(days=30)).isoformat(),
+                 (self.today + timedelta(days=33)).isoformat(), fresh.isoformat()))
+        return len(codes)
+
+    def build_into(self, tmp):
+        with mock.patch.object(discover_data, "DOCS", Path(tmp)):
+            return discover_data.build_deals_json(self.conn)
+
+    def seed_previous(self, tmp, count):
+        """이전 산출물을 흉내 낸다."""
+        d = Path(tmp) / "data"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "deals.json").write_text(json.dumps(
+            {"updated": "2026-09-01 07:10", "origins": {},
+             "deals": [{"price": i} for i in range(count)]}), encoding="utf-8")
+
+    def test_empty_day_preserves_the_previous_artifact(self):
+        """딜 0건이어도 기존 파일을 덮지 않는다 — 이게 F1의 생성 쪽 방어다."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.seed_previous(tmp, 100)
+            self.assertEqual(self.build_into(tmp), -1)
+            kept = json.loads((Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(kept["deals"]), 100, "이전 산출물이 남아 있어야 한다")
+            self.assertEqual(kept["updated"], "2026-09-01 07:10",
+                             "updated도 예전 시각 그대로 — 어제 데이터에 오늘 도장을 찍지 않는다")
+
+    def test_a_sharp_drop_is_treated_as_an_accident(self):
+        """절반 이하로 떨어지면 사고로 본다(실측 평소 변동은 최대 -12.5%)."""
+        n = self.add(MIN_DEALS + 5)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.seed_previous(tmp, int(n / MIN_RATIO) + 10)
+            self.assertEqual(self.build_into(tmp), -1)
+
+    def test_a_normal_day_writes_through(self):
+        """평소 변동 범위면 그대로 쓴다."""
+        n = self.add(MIN_DEALS + 20)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.seed_previous(tmp, n + 3)
+            self.assertEqual(self.build_into(tmp), n)
+
+    def test_no_previous_artifact_always_writes(self):
+        """지킬 이전 산출물이 없으면 적은 건수라도 쓴다 — 그게 최선이다."""
+        self.add(2)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(self.build_into(tmp), 2)
+
+    def test_a_degraded_previous_does_not_lock_us_out(self):
+        """이전 파일이 이미 하한선 미만이면 검사를 걸지 않는다.
+
+        안 그러면 한 번 망가진 파일이 영원히 보존돼 정상 데이터가 못 들어온다.
+        """
+        self.add(3)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.seed_previous(tmp, 5)          # 이전도 하한선 미만
+            self.assertEqual(self.build_into(tmp), 3)

@@ -363,7 +363,10 @@ def main():
     n_deals = build_index(conn, route_index)
     build_seo(route_index)
     conn.close()
-    print(f"생성 완료: 발견 홈({n_deals}딜) + deals.json({n_disc}건) "
+    # n_disc < 0 = 하한선 미달로 갱신하지 않음(BB1). 기존 산출물이 그대로 인라인되므로
+    # 홈은 정상 동작하며, 사이트는 어제 딜을 계속 보여 준다.
+    disc = "유지(하한선 미달)" if n_disc < 0 else f"{n_disc}건"
+    print(f"생성 완료: 발견 홈({n_deals}딜) + deals.json({disc}) "
           f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots")
 
 
