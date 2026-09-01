@@ -58,7 +58,8 @@ VARIANTS = [
     ("D1", "날짜를 한 줄로", [ROW_CITY, ROW_PRICE, ROW_DMAIN, ROW_TAGS], 62,
      "두 단의 이득은 <b>위계</b>지 줄 수가 아니다. 색·굵기·자릿수 정렬로 같은 위계를 한 줄에 낸다.", "dsub"),
     ("D2", "태그를 사진 위로", [ROW_CITY, ROW_PRICE, ROW_DMAIN, ROW_DSUB], 62,
-     "태그를 썸네일 위에 얹어 <b>세로를 안 먹게</b> 한다. 대신 작은 사진엔 1개만 들어간다.", "tagover"),
+     "태그가 <b>세로를 안 먹는다.</b> 작은 썸네일엔 아예 안 넣고, "
+     "히어로처럼 <b>사진이 큰 자리에만</b> 얹는다.", "tagover"),
     ("D3", "둘 다", [ROW_CITY, ROW_PRICE, ROW_DMAIN], 62,
      "D1 + D2. 정보는 거의 그대로인데 세로만 줄었다.", "both"),
     ("D4", "한 줄 리스트", [ROW_PRICE, ROW_DMAIN], 40,
@@ -67,7 +68,7 @@ VARIANTS = [
      "날짜를 한 줄로 줄이고, <b>비는 오른쪽에 태그를 앉힌다.</b> "
      "태그 개수가 그대로라 &lsquo;즐길 게 많다&rsquo;는 신호가 남는다.", "datetag"),
 ]
-RECOMMEND = "D5"
+RECOMMEND = "D2"   # 2026-09-01 사용자 확정
 
 
 def card_h(rows, thumb):
@@ -142,8 +143,9 @@ h2 .n{font-size:.68rem;background:var(--ink);color:#fff;border-radius:5px;paddin
 .stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px}
 .stamp.t3{transform:rotate(-9deg);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
  color:#fff;font-size:.62rem;padding:2px 8px;box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(242,96,63,.2)}
-.ovtag{position:absolute;left:4px;bottom:4px;font-size:.5rem;font-weight:800;color:#fff;
- background:#0007;border-radius:4px;padding:1px 5px;white-space:nowrap}
+.phtags{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:3px;flex-wrap:wrap}
+.ovtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.5);
+ border-radius:4px;padding:1px 6px;white-space:nowrap}
 .hero{flex-direction:column;gap:0}
 .pick{position:absolute;left:8px;top:8px;background:#fff;color:var(--accent);font-weight:900;
  font-size:.6rem;padding:2px 7px;border-radius:99px}
@@ -179,7 +181,10 @@ def render_card(d, v, hero=False):
     thumb_px = v[3]
     stamp = ('<span class="stamp %s">%d%%&darr;</span>' % (t, d["discount"])) if t else ""
     bdg = '<span class="bdg">&#9992; 직항</span>' if direct(d) else ""
-    ov = ('<span class="ovtag">%s</span>' % tg[0]) if vid in ("tagover", "both") and tg else ""
+    # 2026-09-01 확정: 사진 위 태그는 "큰 사진"에만. 작은 썸네일엔 태그를 안 넣는다.
+    ov = ("" if not (vid in ("tagover", "both") and tg and hero)
+          else '<div class="phtags">%s</div>'
+               % "".join('<span class="ovtag">%s</span>' % x for x in tg[:4]))
 
     if hero:
         th = ('<div class="thumb" style="width:100%%;height:104px;margin-bottom:9px">'
@@ -280,7 +285,7 @@ html = (
     "<li><b>날짜 두 단의 이득은 &lsquo;위계&rsquo;지 &lsquo;줄 수&rsquo;가 아니다.</b> "
     "색&middot;굵기&middot;자릿수 정렬로 같은 위계를 한 줄에 낼 수 있다(D1). 잃는 건 거의 없다.</li>"
     "<li><b>태그를 사진 위로 올리면</b> 세로를 안 먹는다(D2). 대신 62px 썸네일엔 <b>1개만</b> 들어간다 &mdash; "
-    "&lsquo;즐길 게 많으면 태그도 많아진다&rsquo;는 신호를 잃는다 &mdash; <b>이미 확정한 결정을 깬다.</b></li>"
+    "작은 카드에선 &lsquo;태그 개수 = 즐길 거리&rsquo; 신호를 <b>스크롤 중에 못 읽는다.</b> 그 신호는 <b>히어로와 확장 상세에서만</b> 살아 있다.</li>"
     "<li><b>D4는 잃는 게 크다.</b> 태그와 도장이 사라지면 &lsquo;왜 여기인가&rsquo;와 &lsquo;얼마나 싼가&rsquo;를 "
     "카드에서 못 읽는다. 발견 서비스에서 그건 가격보다 중요할 수 있다.</li>"
     "<li><b>D5가 답이다.</b> 날짜를 한 줄로 줄이면 그 줄 오른쪽이 <b>통째로 빈다.</b> "
@@ -288,13 +293,14 @@ html = (
     "포기하는 게 없다.</li>"
     "</ul>"
     "<div class=callout style='border-left-color:#2E7D74'>"
-    "<b style='color:#2E7D74'>D5를 추천한다.</b> 129px &rarr; <b>93px</b>(&minus;28%), "
-    "히어로 아래 3.0장 &rarr; <b>4.1장</b>(+37%).<br>"
-    "D3&middot;D4가 더 빽빽하지만 둘 다 <b>이미 확정한 결정을 깬다</b> &mdash; "
-    "태그 개수가 곧 &lsquo;즐길 게 얼마나 많은가&rsquo;라는 신호이고(2026-08-22 확정), "
-    "그걸 사진 위 1개로 줄이면 신호가 사라진다.<br>"
-    "<b>남은 질문 하나</b> &mdash; 날짜에서 &lsquo;이번 주말&rsquo; 같은 <code>when</code> 라벨이 빠진다. "
-    "그건 <b>필터 도크가 이미 하는 일</b>이라 카드에서 빼도 된다고 본다.</div>"
+    "<b style='color:#2E7D74'>D2로 확정</b>(2026-09-01). 129px &rarr; <b>103px</b>(&minus;20%), "
+    "히어로 아래 3.0장 &rarr; <b>3.8장</b>(+27%).<br>"
+    "규칙은 <b>&lsquo;사진이 큰 자리에만 사진 위 태그&rsquo;</b>다 &mdash; "
+    "작은 썸네일(62px)은 태그를 담기엔 작아서 아예 넣지 않고, "
+    "히어로&middot;확장 상세처럼 사진이 전폭인 자리에만 얹는다. "
+    "날짜 두 단은 <b>그대로 남긴다</b>(가독성 때문에 바꾼 것이라).<br>"
+    "<b>잃는 것</b> &mdash; 작은 카드에선 &lsquo;태그 개수 = 즐길 거리&rsquo; 신호를 못 읽는다. "
+    "그 신호는 히어로와 상세에 남는다. 상세 설계는 <b>detail.html</b>.</div>"
     "<p class=foot>생성 <b>design/build_density.py</b> &middot; 데이터 <b>docs/data/deals.json</b>"
     "(서울 " + str(len(deals)) + "건) &middot; 확정 스펙 <b>../SPEC.md</b> &sect;CH3</p>"
     "</div></body></html>")
