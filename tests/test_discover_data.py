@@ -315,3 +315,79 @@ class ArtifactGuardTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             self.seed_previous(tmp, 5)          # 이전도 하한선 미만
             self.assertEqual(self.build_into(tmp), 3)
+
+
+class PriorHistoryTest(unittest.TestCase):
+    """`low`·`obs_days` — 이전 관측 기간의 최저가와 관측 일수.
+
+    **오늘(이번 수집 창)을 빼는 게 핵심이다.** `price`가 이미 최근 3~4일 중
+    최저가라, 그걸 포함하고 "최저냐"를 물으면 동어반복이 된다 — 실측으로 41%가
+    "최저"로 나왔고, 빼고 재면 신기록 22% / 낙폭 5% 이상은 7%로 떨어진다.
+    """
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.executescript(db.SCHEMA)
+        self.today = date.today()
+
+    def add(self, price, days_ago, origin="ICN", dest="FUK"):
+        fresh = (datetime.now(timezone.utc) - timedelta(hours=1)).replace(tzinfo=None)
+        self.conn.execute(
+            """INSERT OR REPLACE INTO broad_offers
+               (fetched_date, origin, destination, price, transfers,
+                depart_date, return_date, found_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            ((self.today - timedelta(days=days_ago)).isoformat(), origin, dest, price, 0,
+             (self.today + timedelta(days=30)).isoformat(),
+             (self.today + timedelta(days=33)).isoformat(), fresh.isoformat()))
+
+    def build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(discover_data, "DOCS", Path(tmp)),                     contextlib.redirect_stdout(io.StringIO()):
+                discover_data.build_deals_json(self.conn)
+                raw = (Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8")
+        return json.loads(raw)["deals"][0]
+
+    def test_today_is_excluded_from_low(self):
+        """오늘 값이 제일 싸도 `low`에 들어가지 않는다 — 그래야 비교가 성립한다."""
+        self.add(200000, days_ago=10)
+        self.add(150000, days_ago=8)
+        self.add(90000, days_ago=0)            # 오늘, 최저가
+        deal = self.build()
+        self.assertEqual(deal["price"], 90000)
+        self.assertEqual(deal["low"], 150000, "오늘 값이 low에 섞이면 안 된다")
+        self.assertLess(deal["price"], deal["low"], "신기록으로 판정 가능해야 한다")
+
+    def test_the_whole_window_is_excluded_not_just_today(self):
+        """수집 창(3일) 전체가 빠진다. 창 안의 값은 `price` 후보이지 비교 대상이 아니다."""
+        self.add(300000, days_ago=10)
+        self.add(120000, days_ago=2)           # 창 안 — low에 들어가면 안 된다
+        self.add(100000, days_ago=0)
+        self.assertEqual(self.build()["low"], 300000)
+
+    def test_obs_days_counts_prior_observation_days(self):
+        for d in (5, 6, 7, 8):
+            self.add(200000 + d, days_ago=d)
+        self.add(100000, days_ago=0)
+        self.assertEqual(self.build()["obs_days"], 4)
+
+    def test_no_history_yields_null_and_zero(self):
+        """계약: 이력이 없으면 `low`는 null, `obs_days`는 0."""
+        self.add(100000, days_ago=0)
+        deal = self.build()
+        self.assertIsNone(deal["low"])
+        self.assertEqual(deal["obs_days"], 0)
+
+    def test_history_is_grouped_by_city_not_airport(self):
+        """알갱이는 `(허브, 도시)` — 딜의 중복 제거 키와 같아야 한다.
+
+        인천·김포는 같은 서울 허브이므로 이력이 합쳐진다. 안 그러면
+        "17일 중 최저"가 그 카드가 가리키는 도시의 말이 아니게 된다.
+        """
+        self.add(500000, days_ago=10, origin="ICN")
+        self.add(200000, days_ago=9, origin="GMP")   # 같은 서울 허브
+        self.add(100000, days_ago=0, origin="ICN")
+        deal = self.build()
+        self.assertEqual(deal["o"], "SEL")
+        self.assertEqual(deal["low"], 200000, "인천·김포 이력이 합쳐져야 한다")
+        self.assertEqual(deal["obs_days"], 2)

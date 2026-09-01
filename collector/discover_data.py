@@ -7,7 +7,8 @@
   "origins": { "SEL": {"name":"서울","lat":..,"lon":..}, ... },
   "deals": [ {
      "o","d","ko","country","region","haul","tier","tags":[...],"lat","lon",
-     "price","transfers","dep","ret","nights","median","discount","when","seen"
+     "price","transfers","dep","ret","nights","median","discount","when",
+     "low","obs_days","seen"
   }, ... ]
 }
 정책: 최근 3일 수집 + 미래 출발만, dests 사전(좌표) 있는 목적지만(데이터 게이팅),
@@ -70,6 +71,34 @@ def _previous_deal_count():
         return None
 
 
+def _prior_history(conn, cutoff):
+    """`(허브, 도시)` → `(이전 기간 최저가, 관측 일수)`.
+
+    **"이전 기간"은 이번 수집 창(`cutoff` 이후)을 뺀 그 앞이다.** 오늘 값을 포함하면
+    "역대 최저냐"가 동어반복이 된다 — `deals.json`의 `price`가 이미 최근 3~4일 중
+    최저가라서, 그걸 넣고 최저인지 물으면 41%가 "최저"로 나온다(2026-09-01 실측).
+    이력이 없으면 호출부가 `(None, 0)`으로 받는다.
+
+    알갱이가 `(허브, 한글도시명)`인 이유: 딜의 중복 제거 키와 같아야 한다. 딜 하나가
+    도시 하나를 가리키므로 이력도 도시 단위로 봐야 "17일 중 최저"가 그 카드의 말이 된다.
+    ⚠️ `median`은 아직 `(실공항, IATA)` 단위라 알갱이가 다르다 — BB4에서 함께 정리한다.
+    """
+    days, lows = {}, {}
+    for o, d, fd, price in conn.execute(
+            """SELECT origin, destination, fetched_date, price FROM broad_offers
+               WHERE fetched_date < ? AND price IS NOT NULL""", (cutoff,)):
+        hub = ORIGIN_NORM.get(o)
+        meta = dests.DEST.get(d)
+        if not hub or not meta:
+            continue
+        key = (hub, meta[0])
+        days.setdefault(key, set()).add(fd)
+        cur = lows.get(key)
+        if cur is None or price < cur:
+            lows[key] = price
+    return {k: (lows[k], len(days[k])) for k in days}
+
+
 def _when_label(dep, today):
     delta = (dep - today).days
     if 0 <= delta <= 9 and dep.weekday() >= 4:   # 금·토·일 출발이 임박
@@ -115,12 +144,15 @@ def build_deals_json(conn):
                          "tier": dests.tier(d), "price": price, "transfers": tr,
                          "dep": dep, "ret": ret, "seen": seen, "_oi": o}
 
+    prior = _prior_history(conn, cutoff)
+
     deals = []
     for dd in best.values():
         lat, lon = dests.dest_coord(dd["d"])
         hist = [p for (p,) in conn.execute(
             "SELECT price FROM broad_offers WHERE origin=? AND destination=?",
             (dd["_oi"], dd["d"]))]
+        low, obs_days = prior.get((dd["o"], dd["ko"]), (None, 0))
         med = _median(hist) or dd["price"]
         disc = round((med - dd["price"]) / med * 100) if med > dd["price"] else 0
         disc = max(0, min(disc, 70))
@@ -135,6 +167,10 @@ def build_deals_json(conn):
             "dep": dd["dep"], "ret": dd["ret"],
             "nights": (f"{n}박{n + 1}일" if n else ""),
             "median": med, "discount": disc, "when": _when_label(dep, today),
+            # 이전 관측 기간의 최저가와 관측 일수. 프론트가 `price < low`로 신기록을
+            # 판정하고 `(1 - price/low)`로 낙폭까지 계산한다. 임계값은 프론트 파생이라
+            # 이력이 쌓여 비율이 변해도 계약을 안 건드리고 조정할 수 있다.
+            "low": low, "obs_days": obs_days,
             # 절대 시각만 준다 — "3시간 전" 같은 문구를 구우면 정적 페이지라
             # 다음 날 방문자에게 거짓말이 된다. 나이 계산은 프론트 몫.
             "seen": dd["seen"].isoformat() if dd["seen"] else None,
