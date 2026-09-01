@@ -133,10 +133,12 @@ D1 = (BAR % '<span class="spill2 on">아무때 &#9662;</span>'
       + '<div class="pv"><div class="pvg">언제<span class="line"></span></div>'
       + chips([("아무때", N)] + [(k, wc.get(k, 0)) for k in ["이번 주", "이번 주말", "다음 달"]]
               + [("날짜 지정", "")], on="아무때")
-      + '<div class="warn">현행 칩엔 <b>이번 달</b>이 없다. '
-        '<b>이번 달 ' + str(wc.get("이번 달", 0)) + '건 · 그 이후 ' + str(later) + '건 = '
-        + str(_unreach) + '건(' + _unreach_pct + '%)</b>이 어느 칩에도 안 걸린다 &mdash; '
-        '<b>넷 중 하나가 필터로 도달 불가</b>다.</div></div>')
+      + '<div class="warn">현행 칩엔 <b>이번 달</b>도 <b>그 이후</b>도 없다. '
+        '<b>이번 달 ' + str(wc.get("이번 달", 0)) + '건 + 그 이후 ' + str(later) + '건 = '
+        + str(_unreach) + '건(' + _unreach_pct + '%)</b> &mdash; '
+        '<b>절반이 넘는 딜을 &lsquo;그것만&rsquo; 골라낼 수가 없다.</b><br>'
+        '<span style="color:var(--sub)">보이긴 한다(<code>아무때</code>로). '
+        '못 하는 건 <b>좁히는 것</b>이다.</span></div></div>')
 
 D2 = (BAR % '<span class="spill2 on">이번 달 &middot; 3~4박 &#9662;</span>'
       + '<div class="pv"><div class="pvg">언제<span class="line"></span></div>'
