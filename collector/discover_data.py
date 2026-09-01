@@ -181,7 +181,10 @@ def build_deals_json(conn):
         lat, lon = dests.dest_coord(dd["d"])
         med, low, obs_days = prior.get((dd["o"], dd["ko"]), (None, None, 0))
         # 이력이 없으면 할인율도 0이다. 모르는 시세를 지어내 "몇 % 싸다"고 말하지 않는다.
-        disc = 0 if med is None or med <= dd["price"] else             max(0, min(round((med - dd["price"]) / med * 100), 70))
+        if med is None or med <= dd["price"]:
+            disc = 0
+        else:
+            disc = max(0, min(round((med - dd["price"]) / med * 100), 70))
         dep = date.fromisoformat(dd["dep"])
         ret = date.fromisoformat(dd["ret"]) if dd["ret"] else None
         n = (ret - dep).days if ret else 0
@@ -200,8 +203,14 @@ def build_deals_json(conn):
             # 절대 시각만 준다 — "3시간 전" 같은 문구를 구우면 정적 페이지라
             # 다음 날 방문자에게 거짓말이 된다. 나이 계산은 프론트 몫.
             "seen": dd["seen"].isoformat() if dd["seen"] else None,
-            # 예약처 비교 링크는 실제 공항코드(_oi: ICN/GMP/PUS…)로 — SEL은 공항이 아님
-            "links": compare_links(dd["_oi"], dd["d"], dd["dep"], dd["ret"]),
+            # 예약처 비교 링크:
+            #   출발 — 실제 공항코드(_oi: ICN/GMP/PUS…). SEL은 공항이 아니고,
+            #          우리가 그 공항을 지정해 물었으므로 아는 값이다.
+            #   목적 — 도시 코드로 넓힌다(NRT→TYO). 광역 수집이 도시 단위라
+            #          어느 공항인지 모르는데 하나로 좁히면 우리가 보여준 가격이
+            #          검색 결과에 없을 수 있다. 예약처 4곳 모두 도시 코드를 받는다.
+            "links": compare_links(dd["_oi"], dests.link_code(dd["d"]),
+                                   dd["dep"], dd["ret"]),
         })
 
     deals.sort(key=lambda x: x["price"])
