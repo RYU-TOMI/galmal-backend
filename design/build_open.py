@@ -6,6 +6,8 @@
 소유: 기획 세션. 산출물 design/open.html
 """
 import json, io, os, math
+import sys, os as _os
+sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
@@ -13,7 +15,8 @@ D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), en
 TOP = ["해변", "도시", "미식", "자연", "문화", "온천"]
 SUB = {"리조트", "스노클링", "서핑", "섬", "야경", "쇼핑", "마천루", "골목",
        "야시장", "길거리음식", "화산", "트레킹", "사막", "폭포", "사원", "유적", "고성", "미술관"}
-TIERS = [(35, "t3"), (25, "t2"), (15, "t1")]
+# 임계값은 _fmt.py 한 곳에만 둔다 — 여기서 다시 적으면 갈라진다(2026-09-01)
+from _fmt import TIERS
 
 
 def tier(d):

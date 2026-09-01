@@ -1,0 +1,248 @@
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>갈래말래 — 날짜·예산 필터</title><style>
+:root{--ink:#17201F;--sub:#6C7B78;--line:#E3EAE8;--soft:#F2F6F5;
+ --accent:#F2603F;--coast:#2E7D74;--sea:#EAF1F0;--land:#DCE6E3;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+ color:var(--ink);background:#E4EDEB}
+.wrap{max-width:1320px;margin:0 auto;padding:44px 26px 90px}
+h1{font-size:1.9rem;letter-spacing:-.03em;margin:0 0 6px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--sub);margin:0 0 26px;max-width:860px;line-height:1.75}
+h2{font-size:1.12rem;margin:56px 0 10px;display:flex;align-items:center;gap:10px}
+h2 .n{font-size:.68rem;background:var(--ink);color:#fff;border-radius:5px;padding:2px 7px;font-weight:800}
+.note{color:var(--sub);font-size:.88rem;line-height:1.75;margin:0 0 18px;max-width:900px}
+.app{width:1200px;border:1px solid #cfdad7;border-radius:16px;overflow:hidden;
+ background:var(--card);box-shadow:0 14px 40px rgba(20,50,45,.14);position:relative}
+.hdr{display:flex;align-items:center;gap:20px;height:56px;padding:0 18px;
+ background:var(--card);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}
+.logo i{font-style:normal;color:var(--accent)}
+.nav{display:flex;gap:15px;font-size:.82rem;font-weight:800}
+.nav .a{color:var(--ink);border-bottom:2px solid var(--accent);padding-bottom:2px}
+.nav .m{color:var(--sub)}
+.origin{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:5px 13px;font-size:.8rem;font-weight:800}
+.body{display:flex;height:640px}
+.stage{width:820px;flex:none;position:relative;background:var(--sea);overflow:hidden}
+.land{position:absolute;background:var(--land);border-radius:44% 56% 38% 62%/52% 42% 58% 48%}
+svg.arcs{position:absolute;inset:0;pointer-events:none;z-index:1}
+.pin{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18);z-index:2}
+.pin.on{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;box-shadow:0 0 0 7px rgba(242,96,63,.28);z-index:4}
+.pin.hid{background:#B9A9A4;box-shadow:0 0 0 3px rgba(120,100,95,.14)}
+.pin.orig{background:var(--coast);box-shadow:0 0 0 4px rgba(46,125,116,.2);
+ width:13px;height:13px;margin:-6.5px 0 0 -6.5px}
+.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+ background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;z-index:3}
+.plab.orig{background:var(--coast);color:#fff}
+.stagebar{position:absolute;left:16px;top:14px;display:flex;gap:6px;z-index:7}
+.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.74rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 도크 공통 */
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--sub)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip.new{border-color:var(--accent);color:var(--accent);background:#FFF4F1}
+.brange{flex:1;height:4px;border-radius:99px;background:var(--line);position:relative}
+.brange i{position:absolute;left:0;top:0;bottom:0;width:74%;border-radius:99px;background:var(--accent)}
+/* F0 */
+.dock0{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:9px 13px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1)}
+.fdrow{display:flex;align-items:center;gap:9px;margin:4px 0}
+.fdlabel{font-size:.66rem;font-weight:800;color:var(--sub);width:36px;flex:none}
+.bval{font-size:.66rem;font-weight:800}
+/* F1 */
+.f1bar{position:absolute;right:12px;top:12px;display:flex;gap:6px;z-index:8}
+.fbtn{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.fbtn.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbtn .x{opacity:.7;margin-left:4px}
+.pop1{position:absolute;right:12px;top:50px;width:262px;background:#fff;border:1px solid var(--line);
+ border-radius:13px;padding:11px 12px;box-shadow:0 14px 34px rgba(16,44,38,.24);z-index:9}
+.pop1 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* F3 */
+.rail{position:absolute;left:12px;top:54px;bottom:54px;width:104px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:10px 9px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1);overflow:hidden}
+.rail .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:7px 0 4px}
+.rail .fchip{display:block;text-align:center;margin:3px 0;padding:3px 4px}
+/* ── 아래 바 재설계 ── */
+.bar{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff5;
+ border:1px solid var(--line);border-radius:12px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.12);display:flex;align-items:center;gap:8px;padding:0 12px}
+.bar.h44{height:44px}.bar.h52{height:52px}
+.bar .sep{width:1px;height:20px;background:var(--line);flex:none}
+.bar .cnt{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.srch{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);
+ border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:0}
+.srch .mag{color:var(--sub);font-size:.82rem;flex:none}
+.srch .ph{font-size:.74rem;color:var(--sub);font-weight:600;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.srch .cur{width:1px;height:14px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;
+ font-size:.66rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:4px}
+.ac{position:absolute;left:16px;bottom:72px;width:290px;background:#fff;
+ border:1px solid var(--line);border-radius:12px;padding:9px 10px;z-index:9;
+ box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.ac .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:2px 0 7px}
+.ac .row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;font-size:.72rem}
+.ac .row.on{background:var(--soft)}
+.ac .row b{font-weight:800}
+.ac .row .n{margin-left:auto;font-size:.62rem;color:var(--sub);font-weight:700}
+.pop2{position:absolute;bottom:70px;width:250px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:11px 12px;z-index:9;box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.pop2 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* 상세 */
+.pop{position:absolute;width:224px;z-index:10;transform:translate(-50%,-100%)}
+.pop:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;
+ border:8px solid transparent;border-top-color:#fff}
+.det{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 16px 40px rgba(16,44,38,.3)}
+.det .ph{height:94px;position:relative;background:linear-gradient(140deg,#b9d1cc,#dce8e5)}
+.phtags{position:absolute;left:7px;right:7px;bottom:7px;display:flex;gap:3px;flex-wrap:wrap}
+.phtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.52);
+ border-radius:4px;padding:1px 6px;white-space:nowrap}
+.cityover{position:absolute;left:9px;bottom:24px;color:#fff;font-weight:900;font-size:.98rem;
+ text-shadow:0 1px 7px #0009;letter-spacing:-.02em}
+.closex{position:absolute;right:7px;top:7px;width:20px;height:20px;border-radius:99px;
+ background:rgba(6,20,18,.45);color:#fff;font-size:.66rem;font-weight:900;
+ display:flex;align-items:center;justify-content:center}
+.db{padding:10px}
+.dsec{font-size:.55rem;font-weight:800;color:var(--sub);margin:9px 0 5px;padding-top:8px;
+ border-top:1px dashed var(--line)}
+.cmp{display:flex;align-items:center;gap:6px;font-size:.57rem;margin:3px 0}
+.cmp .bar{flex:1;height:6px;border-radius:99px;background:var(--soft);overflow:hidden}
+.cmp .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.cmp .bar.mut i{background:#c3cfcc}
+.cmp b{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.59rem}
+.rec2{font-size:.58rem;font-weight:800;color:var(--accent);margin-top:5px}
+.lnk{display:flex;justify-content:space-between;background:var(--soft);border-radius:7px;
+ padding:5px 8px;font-size:.58rem;font-weight:800;margin-top:4px}
+.lnk .p{font-variant-numeric:tabular-nums}
+.go{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;
+ font-size:.66rem;border-radius:8px;padding:8px 0}
+.ad{font-size:.48rem;color:var(--sub);line-height:1.5;margin-top:6px;text-align:center}
+/* 패널 */
+.panel{width:380px;flex:none;background:var(--sea);border-left:1px solid var(--line);
+ padding:0 10px;position:relative;overflow:hidden}
+.pfilter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-top:10px}
+.pfhead{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;font-weight:800}
+.pfhead span{font-size:.64rem;color:var(--sub);font-weight:700}
+.fhead{padding:12px 2px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.fhead b{font-size:.98rem;letter-spacing:-.02em}
+.fhead span{font-size:.66rem;color:var(--sub);font-weight:700}
+.sortbar{display:flex;gap:5px;padding-bottom:9px}
+.spill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 11px;
+ font-size:.66rem;font-weight:800;color:var(--sub)}
+.spill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.feed{display:flex;flex-direction:column;gap:9px}
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px;overflow:hidden}
+.fcard.on{border-color:var(--accent);box-shadow:0 5px 16px rgba(242,96,63,.2)}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.76rem;margin-top:5px}
+.dsub{font-size:.64rem;margin-top:2px}
+.bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px;
+ box-shadow:0 2px 6px rgba(242,96,63,.34)}
+.stamp.t3{transform:rotate(-9deg) scale(1.04);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.64rem;padding:2px 8px;
+ box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(242,96,63,.2),0 4px 12px rgba(198,71,42,.34)}
+/* 신기록 — 도장과 형태를 가른다: 기울기·테두리 없음 */
+.rec{flex:none;font-size:.6rem;font-weight:900;color:var(--accent);white-space:nowrap}
+.hero{flex-direction:column;gap:0;padding:0}
+.hero .ph{width:100%;height:104px;position:relative;background:linear-gradient(140deg,#c6dbd6,#e4edea)}
+.hero .hb{padding:10px}
+.pick{position:absolute;left:9px;top:9px;background:#fff;color:var(--accent);font-weight:900;
+ font-size:.6rem;padding:2px 8px;border-radius:99px;box-shadow:0 2px 6px #0002}
+.cut{position:absolute;left:0;right:0;bottom:0;height:74px;pointer-events:none;
+ background:linear-gradient(transparent,var(--sea) 66%)}
+.b{position:absolute;width:21px;height:21px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.64rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+ box-shadow:0 2px 8px #0004;z-index:20}
+.b.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
+ border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;font-weight:700;font-size:.74rem;color:var(--sub);padding:11px 12px;
+ border-bottom:1px solid var(--line);background:var(--soft)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.win{color:var(--accent);font-weight:900}
+.num2{display:inline-flex;width:20px;height:20px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.62rem;font-weight:900;align-items:center;justify-content:center;margin-right:7px}
+.num2.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.callout{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);
+ border-radius:10px;padding:16px 18px;margin:18px 0;font-size:.92rem;line-height:1.8;max-width:900px}
+.callout b{color:var(--accent)}
+ul.k{margin:12px 0 0;padding-left:19px;color:var(--sub);font-size:.89rem;max-width:900px}
+ul.k li{margin:8px 0}ul.k b{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
+
+.dmain{font-variant-numeric:tabular-nums;font-weight:800}
+.dmain .wd{font-weight:700;color:var(--sub)}
+.dmain .arw{color:var(--sub);margin:0 1px;font-weight:700}
+.dsub{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sub)}
+
+.wrapF{max-width:1060px;margin:0 auto;padding:44px 26px 90px}
+.pair{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin-bottom:34px}
+.opt{width:498px}
+.ohd{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.oid{font-size:.64rem;font-weight:900;background:var(--ink);color:#fff;border-radius:4px;padding:2px 7px}
+.onm{font-weight:800;font-size:.92rem}
+.rec{font-size:.55rem;font-weight:900;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.no{font-size:.55rem;font-weight:900;background:var(--sub);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.odesc{color:var(--sub);font-size:.78rem;line-height:1.62;min-height:56px;margin:5px 0 10px}
+.hold{background:var(--sea);border:1px solid #cfdad7;border-radius:14px;padding:16px}
+.barline{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sbar{flex:1;background:#fff;border:1px solid var(--line);border-radius:11px;height:46px;
+ display:flex;align-items:center;gap:8px;padding:0 12px}
+.mag{color:var(--sub);font-size:.86rem}
+.ph{font-size:.78rem;color:var(--sub);font-weight:600}
+.spill2{background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:5px 12px;
+ font-size:.72rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.spill2.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pv{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 13px;
+ box-shadow:0 10px 26px rgba(16,44,38,.15)}
+.pvg{font-size:.62rem;font-weight:800;color:var(--sub);margin:11px 2px 7px;display:flex;gap:7px;align-items:center}
+.pvg:first-child{margin-top:1px}
+.pvg .line{flex:1;height:1px;background:var(--line)}
+.chips2{display:flex;gap:6px;flex-wrap:wrap}
+.ch{background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:5px 12px;
+ font-size:.76rem;font-weight:800;color:var(--ink);display:inline-flex;align-items:baseline;gap:6px}
+.ch .n{font-size:.66rem;color:var(--sub);font-weight:700;font-variant-numeric:tabular-nums}
+.ch.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ch.on .n{color:#fff9}
+.ch.dim{opacity:.45}
+.ch.dim .n{color:var(--sub)}
+/* 슬라이더 */
+.sl{position:relative;height:6px;background:var(--line);border-radius:99px;margin:16px 4px 8px}
+.sl i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--accent)}
+.sl .kn{position:absolute;top:-6px;width:18px;height:18px;border-radius:99px;background:#fff;
+ border:2px solid var(--accent);box-shadow:0 2px 6px #0002;margin-left:-9px}
+.slv{display:flex;justify-content:space-between;font-size:.68rem;font-weight:800;color:var(--sub)}
+.hist{display:flex;align-items:flex-end;gap:2px;height:44px;margin:4px 4px 0}
+.hist i{flex:1;background:#C9DAD6;border-radius:2px 2px 0 0;min-height:2px}
+.hist i.on{background:var(--accent)}
+.warn{background:#FFF4F1;border:1px solid #F6C9BB;border-radius:9px;padding:9px 11px;
+ font-size:.74rem;line-height:1.6;margin-top:10px}
+.warn b{color:var(--accent)}
+.ok2{background:#F1F8F4;border:1px solid #C6E3D2;border-radius:9px;padding:9px 11px;
+ font-size:.74rem;line-height:1.6;margin-top:10px}
+.ok2 b{color:#1E7A50}
+</style></head><body><div class=wrapF><h1>날짜 &middot; 예산 &mdash; <em>검색 바 오른쪽 알약 둘</em></h1><p class=lede>검색창에 <b>안 넣기로 한 둘</b>이다 &mdash; 값이 <b>범위</b>라 타이핑으로 고르기 나쁘다. 실제 126건 분포로 그렸고 <b>건수는 전부 실측</b>이다.</p><div class=callout><b>먼저 &mdash; 지금 둘 다 구멍이 있다.</b><br><b>날짜</b>: 칩에 <code>이번 달</code>도 <code>그 이후</code>도 없어 <b>77건(61%)</b>을 <b>골라낼 수가 없다</b> &mdash; 보이긴 하지만 좁히지를 못한다.<br><b>예산</b>: 슬라이더 범위가 10만~100만인데 실제는 33,004~1,380,799원이라 <b>18건이 밖</b>에 있다.<br><b>그리고 <code>nights</code>를 아무도 안 쓰고 있었다</b> &mdash; 주말 2박3일과 일주일 휴가를 못 가른다.</div><h2><span class="n">날짜</span></h2><div class="pair"><div class="opt"><div class="ohd"><span class="oid">D1</span><span class="onm">현행 + 이번 달만 추가</span><span class="no">현행</span></div><div class="odesc">칩 다섯을 그대로 두고 <code>이번 달</code>만 넣는다. 가장 작은 변화지만 <b>&lsquo;그 이후&rsquo;가 여전히 없다.</b></div><div class="hold"><div class="barline"><div class="sbar"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요?</span></div><span class="spill2 on">아무때 &#9662;</span></div><div class="pv"><div class="pvg">언제<span class="line"></span></div><div class="chips2"><span class="ch on">아무때<span class="n">126</span></span><span class="ch">이번 주<span class="n">11</span></span><span class="ch">이번 주말<span class="n">7</span></span><span class="ch">다음 달<span class="n">31</span></span><span class="ch">날짜 지정<span class="n"></span></span></div><div class="warn">현행 칩엔 <b>이번 달</b>도 <b>그 이후</b>도 없다. <b>이번 달 44건 + 그 이후 33건 = 77건(61%)</b> &mdash; <b>절반이 넘는 딜을 &lsquo;그것만&rsquo; 골라낼 수가 없다.</b><br><span style="color:var(--sub)">보이긴 한다(<code>아무때</code>로). 못 하는 건 <b>좁히는 것</b>이다.</span></div></div></div></div><div class="opt"><div class="ohd"><span class="oid">D2</span><span class="onm">언제 &times; 며칠 &mdash; 두 축</span><span class="rec">추천</span></div><div class="odesc"><code>when</code> 어휘를 그대로 칩으로 쓰고(빈 구간이 없어진다), <b>&lsquo;며칠&rsquo; 축을 새로 넣는다.</b> 데이터에 이미 있는데 안 쓰던 것이다.</div><div class="hold"><div class="barline"><div class="sbar"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요?</span></div><span class="spill2 on">이번 달 &middot; 3~4박 &#9662;</span></div><div class="pv"><div class="pvg">언제<span class="line"></span></div><div class="chips2"><span class="ch">아무때<span class="n">126</span></span><span class="ch">이번 주말<span class="n">7</span></span><span class="ch">이번 주<span class="n">11</span></span><span class="ch on">이번 달<span class="n">44</span></span><span class="ch">다음 달<span class="n">31</span></span><span class="ch">그 이후<span class="n">33</span></span><span class="ch">날짜 지정<span class="n"></span></span></div><div class="pvg">며칠<span class="line"></span></div><div class="chips2"><span class="ch">상관없어<span class="n">126</span></span><span class="ch on">1~3박<span class="n">48</span></span><span class="ch">4~6박<span class="n">27</span></span><span class="ch">7~13박<span class="n">35</span></span><span class="ch">2주 이상<span class="n">15</span></span></div><div class="ok2"><b>&lsquo;며칠&rsquo;은 지금 필터에 없다.</b> <code>nights</code> 필드가 이미 있는데 안 쓰고 있었다 &mdash; <b>주말 2박3일</b>과 <b>일주일 휴가</b>는 전혀 다른 여행인데 지금은 못 가른다.</div></div></div></div><div class="opt"><div class="ohd"><span class="oid">D3</span><span class="onm">달력</span></div><div class="odesc">직접 날짜를 고른다. 정확하지만 <b>결정을 사용자에게 떠넘긴다.</b></div><div class="hold"><div class="barline"><div class="sbar"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요?</span></div><span class="spill2 on">9/8 ~ 9/16 &#9662;</span></div><div class="pv"><div class="pvg">직접 고르기<span class="line"></span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:.66rem;text-align:center;font-weight:700;color:var(--sub);padding:2px"><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div><div>일</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">1</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">2</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">3</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">4</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">5</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">6</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">7</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">8</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">9</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">10</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">11</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">12</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">13</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">14</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">15</div><div style="padding:5px 0;border-radius:6px;background:var(--accent);color:#fff;font-weight:900">16</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">17</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">18</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">19</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">20</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">21</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">22</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">23</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">24</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">25</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">26</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">27</div><div style="padding:5px 0;border-radius:6px;color:var(--ink)">28</div></div><div class="warn">달력은 <b>목적지가 정해진 사람</b>의 도구다. 우리 사용자는 <b>날짜가 먼저 정해져 있고 목적지를 찾는다</b> &mdash; &lsquo;휴가가 10월 셋째 주&rsquo; 같은. 그건 <b>칩으로 충분</b>하고, 달력은 <b>&lsquo;날짜 지정&rsquo;을 눌렀을 때만</b> 있으면 된다.</div></div></div></div></div><h2><span class="n">예산</span></h2><div class="pair"><div class="opt"><div class="ohd"><span class="oid">B1</span><span class="onm">슬라이더</span><span class="no">현행</span></div><div class="odesc">10만~100만 범위를 손으로 민다. <b>범위 밖 딜이 18건</b>이고, 누르기 전엔 몇 곳이 남는지 모른다.</div><div class="hold"><div class="barline"><div class="sbar"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요?</span></div><span class="spill2 on">100만 이하 &#9662;</span></div><div class="pv"><div class="pvg">예산<span class="line"></span></div><div class="sl"><i style="width:100%"></i><span class="kn" style="left:100%"></span></div><div class="slv"><span>10만</span><span>100만</span></div><div class="warn">범위가 <b>10만~100만</b>인데 실제 딜은 <b>33,004 ~ 1,380,799원</b>이다. <b>18건(14%)이 슬라이더 밖</b>에 있다 &mdash; 오른쪽 끝까지 밀어도 안 나온다. 게다가 값이 <b>40배 범위</b>라 선형 슬라이더는 눈금 대부분을 <b>딜이 거의 없는 고가 구간</b>에 쓴다.</div></div></div></div><div class="opt"><div class="ohd"><span class="oid">B2</span><span class="onm">프리셋 + 건수</span><span class="rec">추천</span></div><div class="odesc"><b>30만 / 50만 / 100만 / 상관없어</b> 넷. 실제 분포에서 경계를 뽑았고 <b>건수를 같이 보인다.</b></div><div class="hold"><div class="barline"><div class="sbar"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요?</span></div><span class="spill2 on">50만 이하 &#9662;</span></div><div class="pv"><div class="pvg">예산<span class="line"></span></div><div class="chips2"><span class="ch">30만 이하<span class="n">47</span></span><span class="ch on">50만 이하<span class="n">77</span></span><span class="ch">100만 이하<span class="n">111</span></span><span class="ch">상관없어<span class="n">126</span></span></div><div class="ok2"><b>건수를 같이 보인다</b> &mdash; 누르기 전에 <b>몇 곳이 남는지</b> 안다. 지금 슬라이더는 밀어봐야 안다.<br>경계는 실제 분포에서 뽑았다 &mdash; 중앙값 <b>387,387원</b>, <b>30만 37% · 50만 61% · 100만 88%</b>.</div></div></div></div><div class="opt"><div class="ohd"><span class="oid">B3</span><span class="onm">히스토그램 슬라이더</span></div><div class="odesc">딜이 몰린 곳을 막대로 보이고 로그 눈금을 쓴다. 정보량은 가장 많지만 <b>정밀 조작</b>이 필요하다.</div><div class="hold"><div class="barline"><div class="sbar"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요?</span></div><span class="spill2 on">50만 이하 &#9662;</span></div><div class="pv"><div class="pvg">예산<span class="line"></span></div><div class="hist"><i class="on" style="height:7%"></i><i class="on" style="height:15%"></i><i class="on" style="height:4%"></i><i class="on" style="height:4%"></i><i class="on" style="height:4%"></i><i class="on" style="height:4%"></i><i class="on" style="height:4%"></i><i class="on" style="height:4%"></i><i class="on" style="height:4%"></i><i class="on" style="height:23%"></i><i class="on" style="height:30%"></i><i class="on" style="height:30%"></i><i class="on" style="height:30%"></i><i class="on" style="height:100%"></i><i class="on" style="height:69%"></i><i class="on" style="height:92%"></i><i class="on" style="height:84%"></i><i class="on" style="height:53%"></i><i class="on" style="height:61%"></i><i class="" style="height:30%"></i><i class="" style="height:46%"></i><i class="" style="height:61%"></i><i class="" style="height:69%"></i><i class="" style="height:61%"></i><i class="" style="height:46%"></i><i class="" style="height:53%"></i></div><div class="sl" style="margin-top:2px"><i style="width:69%"></i><span class="kn" style="left:69%"></span></div><div class="slv"><span>33,004</span><span>50만</span><span>1,380,799</span></div><div class="ok2">막대가 <b>딜이 실제로 어디 몰려 있는지</b> 보여준다. 눈금은 <b>로그</b>라 저가 구간이 뭉치지 않는다.<br>다만 <b>손으로 정밀하게 맞춰야</b> 하고, 모바일에서 얇은 손잡이를 끄는 건 어렵다.</div></div></div></div></div><h2><span class=n>왜</span>D2 + B2</h2><ul class=k><li><b>칩을 <code>when</code> 어휘와 맞춘다.</b> 화면에 뜨는 라벨과 고르는 칩이 같은 말이면 배울 게 없다. 빈 구간도 사라진다.</li><li><b>&lsquo;며칠&rsquo;이 진짜 빠진 축이다.</b> 데이터에 <code>nights</code>가 있는데 안 쓰고 있었다. 실측 <b>1~3박 48건 · 4~6박 27건 · 7~13박 35건 · 2주 이상 15건</b> &mdash; 고르게 퍼져 있어 필터로서 값이 있다.</li><li><b>예산은 프리셋이 맞다.</b> 값이 40배 범위라 선형 슬라이더는 눈금을 낭비하고, 사람은 애초에 <b>&lsquo;30만 안쪽&rsquo;</b>처럼 어림으로 생각한다.</li><li><b>건수를 보이는 게 핵심이다.</b> 지금은 필터를 걸고 나서야 결과를 안다. <b>누르기 전에 아는 것</b>과 후에 아는 것은 다르다 &mdash; 0곳이 될 칩을 누르게 두지 않는다.</li><li><b>달력은 &lsquo;날짜 지정&rsquo; 안에만.</b> 달력은 목적지가 정해진 사람의 도구다. 우리 사용자는 반대다 &mdash; 날짜가 먼저 있고 목적지를 찾는다.</li></ul><p class=note>&#9888; <b>칩 개수가 늘어난다</b>(언제 6 + 며칠 5). 팝오버 안이라 지도를 안 가리지만, 모바일에서 두 줄이 될지는 폭을 봐야 안다. 이 세션엔 브라우저가 없어 확인을 못 한다.</p><p class=foot>생성 <b>design/build_filters.py</b> &middot; 데이터 <b>docs/data/deals.json</b> &middot; 검색 바 <b>search.html</b> &middot; 확정 홈 <b>home.html</b></p></div></body></html>

@@ -1,50 +1,4 @@
-# -*- coding: utf-8 -*-
-"""발견 홈 셸 렌더러 — 도크만 갈아끼울 수 있게 함수로 뺐다.
-
-home.html(확정 정리)과 dock.html(도크 4안 비교)이 같은 함수를 쓴다.
-같은 화면을 두 번 그리면 하나는 틀어진다.
-소유: 기획 세션.
-"""
-import os, sys
-
-BASE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, BASE)
-from _fmt import (tier, direct, card_tags, money, daterange, datesub,
-                  DATE_CSS, TOP)
-
-SW, SH = 820, 640          # 지도 무대
-PANEL_W = 380
-
-# ── 각 도크가 무대에서 차지하는 사각형 (left, top, right, bottom) ──
-BOXES = {
-    "F0": (16, SH - 104, SW - 16, SH - 14),
-    "F1": (SW - 236, 12, SW - 12, 46),
-    "F2": None,
-    "F3": (12, 54, 116, SH - 54),
-    # ── 아래 바 재설계 (2026-09-01, 위치는 F0 유지 · 크기와 조작을 바꾼다) ──
-    "G0": (16, SH - 104, SW - 16, SH - 14),   # 현행 3줄 · 90px
-    "G1": (16, SH - 58, SW - 16, SH - 14),    # 알약 3개 · 44px
-    "G2": (16, SH - 66, SW - 16, SH - 14),    # 검색 한 줄 · 52px
-    "G3": (16, SH - 58, SW - 16, SH - 14),    # 검색 + 알약 · 44px
-    # ── 확정 (2026-09-01): 검색 바 + 날짜·예산 알약 ──
-    "FIN": (16, SH - 66, SW - 16, SH - 14),   # 52px
-}
-
-DOCK_H = {"G0": 90, "G1": 44, "G2": 52, "G3": 44, "FIN": 52}
-
-DOCK_NAME = {
-    "FIN": "확정 — 검색 바 + 날짜·예산",
-    "G0": "현행 — 3줄 다 펼침",
-    "G1": "알약 셋 + 팝오버",
-    "G2": "검색 한 줄",
-    "G3": "검색 + 알약",
-    "F0": "하단 전폭 판",
-    "F1": "우상단 알약 + 팝오버",
-    "F2": "패널 상단으로",
-    "F3": "좌측 세로 레일",
-}
-
-CSS = """
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>갈래말래 — 검색 바</title><style>
 :root{--ink:#17201F;--sub:#6C7B78;--line:#E3EAE8;--soft:#F2F6F5;
  --accent:#F2603F;--coast:#2E7D74;--sea:#EAF1F0;--land:#DCE6E3;--card:#fff}
 *{box-sizing:border-box}
@@ -239,123 +193,58 @@ ul.k{margin:12px 0 0;padding-left:19px;color:var(--sub);font-size:.89rem;max-wid
 ul.k li{margin:8px 0}ul.k b{color:var(--ink)}
 code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
 .foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
-""" + DATE_CSS
 
+.dmain{font-variant-numeric:tabular-nums;font-weight:800}
+.dmain .wd{font-weight:700;color:var(--sub)}
+.dmain .arw{color:var(--sub);margin:0 1px;font-weight:700}
+.dsub{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sub)}
 
-# ── 신기록 판정 (SPEC.md §CH3, 2026-09-01 확정) ────────────────
-OBS_FLOOR = 14
-
-
-DROP_FLOOR = 0.05
-
-
-def record(d):
-    """신기록 — 조건 넷 (SPEC.md §CH3).
-
-    `low`가 있고 · `obs_days >= 14` · `price < low`(타이기록은 아니다) ·
-    **낙폭이 5% 이상**. 마지막 조건이 핵심이다 — `0.8% 더 쌈`은 기술적으로 신기록이지만
-    사용자에겐 같은 가격이고, 그런 게 문구의 신뢰를 깎는다.
-    """
-    lo = d.get("low")
-    if lo is None or d.get("obs_days", 0) < OBS_FLOOR or d["price"] >= lo:
-        return False
-    return (1.0 - float(d["price"]) / lo) >= DROP_FLOOR
-
-
-def claim(d):
-    """카드는 '왜 싼가'를 한 번만 말한다 — 도장 우선, 없으면 신기록."""
-    t = tier(d)
-    if t:
-        return '<span class="stamp %s">%d%%&darr;</span>' % (t, d["discount"])
-    if record(d):
-        return '<span class="rec">%d일 최저</span>' % d.get("obs_days", 0)
-    return ""
-
-
-CHIPS_MOOD = "".join('<span class="fchip%s">%s</span>' % (" new" if t == "문화" else "", t)
-                     for t in TOP)
-CHIPS_DATE = "".join('<span class="fchip%s">%s</span>' % (" on" if t == "아무때" else "", t)
-                     for t in ["아무때", "이번 주", "이번 주말", "다음 달", "날짜 지정"])
-
-
-MOODS_N = {"해변": 41, "도시": 82, "미식": 52, "자연": 28, "문화": 56, "온천": 15}
-
-
-def dock_html(kind):
-    # ── 확정안 (2026-09-01) ────────────────────────────────────
-    # 검색 한 줄이 주인공. 날짜·예산은 값이 "범위"라 타이핑으로 고르기 나빠
-    # 오른쪽 알약 + 팝오버로 뺐다.
-    if kind == "FIN":
-        return ('<div class="bar h52">'
-                '<span class="srch"><span class="mag">&#9906;</span>'
-                '<span class="ph">어디로 갈까요? &nbsp;해변 · 야경 · 온천 · 다낭&hellip;</span></span>'
-                '<span class="sep"></span>'
-                '<span class="fbtn">아무때 &#9662;</span>'
-                '<span class="fbtn">예산 &#9662;</span></div>')
-    # ── 아래 바 재설계 ─────────────────────────────────────────
-    if kind == "G1":
-        return ('<div class="bar h44">'
-                '<span class="fbtn">아무때 &#9662;</span>'
-                '<span class="fbtn act">문화<span class="x">&times;</span></span>'
-                '<span class="fbtn">74만 이하 &#9662;</span>'
-                '<span class="cnt">56곳</span></div>'
-                '<div class="pop2" style="left:120px"><div class="t">분위기</div>'
-                '<div class="chips">' + CHIPS_MOOD + '</div></div>')
-    if kind == "G2":
-        return ('<div class="bar h52">'
-                '<span class="srch"><span class="mag">&#9906;</span>'
-                '<span class="tok">문화<span class="x">&times;</span></span>'
-                '<span class="cur"></span>'
-                '<span class="ph">해변, 야경, 온천&hellip; 어떤 여행이 좋아요?</span></span>'
-                '<span class="sep"></span>'
-                '<span class="fbtn">아무때 &#9662;</span>'
-                '<span class="fbtn">74만 &#9662;</span></div>'
-                '<div class="ac"><div class="t">분위기</div>'
-                + "".join('<div class="row%s"><b>%s</b><span class="n">%d곳</span></div>'
-                          % (" on" if k == "문화" else "", k, v)
-                          for k, v in list(MOODS_N.items())[:5])
-                + '</div>')
-    if kind == "G3":
-        return ('<div class="bar h44">'
-                '<span class="srch" style="max-width:300px"><span class="mag">&#9906;</span>'
-                '<span class="ph">분위기·도시 검색</span></span>'
-                '<span class="tok">문화<span class="x">&times;</span></span>'
-                '<span class="sep"></span>'
-                '<span class="fbtn">아무때 &#9662;</span>'
-                '<span class="fbtn">74만 이하 &#9662;</span>'
-                '<span class="cnt">56곳</span></div>')
-    if kind in ("F0", "G0"):
-        return ('<div class="dock0">'
-                '<div class="fdrow"><span class="fdlabel">날짜</span>'
-                '<div class="chips">' + CHIPS_DATE + '</div></div>'
-                '<div class="fdrow"><span class="fdlabel">분위기</span>'
-                '<div class="chips">' + CHIPS_MOOD + '</div></div>'
-                '<div class="fdrow"><span class="fdlabel">예산</span>'
-                '<span class="brange"><i></i></span><span class="bval">74만 이하</span></div></div>')
-    if kind == "F1":
-        return ('<div class="f1bar">'
-                '<span class="fbtn">날짜 &#9662;</span>'
-                '<span class="fbtn act">문화<span class="x">&times;</span></span>'
-                '<span class="fbtn">예산 &#9662;</span></div>'
-                '<div class="pop1"><div class="t">분위기</div>'
-                '<div class="chips">' + CHIPS_MOOD + '</div></div>')
-    if kind == "F3":
-        return ('<div class="rail"><div class="t">날짜</div>'
-                '<span class="fchip on">아무때</span><span class="fchip">이번 주</span>'
-                '<span class="fchip">주말</span><span class="fchip">다음 달</span>'
-                '<div class="t">분위기</div>'
-                + "".join('<span class="fchip%s">%s</span>' % (" new" if t == "문화" else "", t)
-                          for t in TOP)
-                + '</div>')
-    return ""
-
-
-def panel_filter(kind):
-    if kind != "F2":
-        return ""
-    return ('<div class="pfilter"><div class="pfhead"><span>필터</span>'
-            '<span>문화 &middot; 74만 이하</span></div>'
-            '<div class="chips" style="margin-top:8px">' + CHIPS_MOOD + '</div>'
-            '<div class="chips" style="margin-top:5px">' + CHIPS_DATE + '</div>'
-            '<div class="fdrow" style="margin-top:7px"><span class="fdlabel">예산</span>'
-            '<span class="brange"><i></i></span><span class="bval">74만</span></div></div>')
+.wrapS{max-width:1000px;margin:0 auto;padding:44px 26px 90px}
+.state{margin:0 0 46px}
+.slab{display:flex;align-items:baseline;gap:9px;margin-bottom:9px}
+.sid{font-size:.66rem;font-weight:900;background:var(--ink);color:#fff;border-radius:4px;padding:2px 8px}
+.snm{font-weight:800;font-size:.95rem}
+.sdesc{color:var(--sub);font-size:.82rem;line-height:1.65;margin:0 0 12px;max-width:800px}
+.hold{background:var(--sea);border:1px solid #cfdad7;border-radius:14px;padding:18px;position:relative}
+.sbar{background:#fff;border:1px solid var(--line);border-radius:12px;height:52px;
+ display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 4px 14px rgba(20,50,45,.08)}
+.sbar.focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.14)}
+.sfield{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+.mag{color:var(--sub);font-size:.9rem;flex:none}
+.ph{font-size:.82rem;color:var(--sub);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.typed{font-size:.82rem;font-weight:700;color:var(--ink)}
+.cur{width:1.5px;height:16px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:3px 9px;
+ font-size:.72rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:5px}
+.tok.sub{background:var(--coast)}
+.vsep{width:1px;height:22px;background:var(--line);flex:none}
+.spill2{background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:5px 12px;
+ font-size:.72rem;font-weight:800;color:var(--sub);white-space:nowrap;flex:none}
+.cnt{font-size:.72rem;font-weight:800;color:var(--sub);white-space:nowrap;flex:none;margin-left:2px}
+/* 드롭다운 */
+.dd{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:12px;
+ padding:11px 12px;box-shadow:0 10px 30px rgba(16,44,38,.16)}
+.ddg{font-size:.62rem;font-weight:800;color:var(--sub);margin:9px 2px 6px;
+ display:flex;align-items:center;gap:7px}
+.ddg:first-child{margin-top:2px}
+.ddg .line{flex:1;height:1px;background:var(--line)}
+.ddrow{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;font-size:.8rem}
+.ddrow.on{background:#FFF4F1}
+.ddrow .nm{font-weight:800}
+.ddrow .mt{color:var(--sub);font-size:.72rem;font-weight:700}
+.ddrow .rt{margin-left:auto;font-size:.74rem;color:var(--sub);font-weight:700;
+ font-variant-numeric:tabular-nums;white-space:nowrap}
+.ddrow .rt b{color:var(--accent);font-weight:900}
+.ddchips{display:flex;gap:5px;flex-wrap:wrap;padding:2px 2px 4px}
+.ddchip{background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:4px 11px;font-size:.74rem;font-weight:800;color:var(--ink)}
+.ddchip .n{color:var(--sub);font-weight:700;margin-left:5px;font-size:.68rem}
+.ddchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ddchip.on .n{color:#fff9}
+.empty{padding:14px 8px;text-align:center}
+.empty .big{font-size:.86rem;font-weight:800;margin-bottom:5px}
+.empty .sml{font-size:.76rem;color:var(--sub);line-height:1.6}
+.kbd{font-family:ui-monospace,Consolas,monospace;font-size:.72rem;background:var(--soft);
+ border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-weight:700}
+</style></head><body><div class=wrapS><h1>검색 바 &mdash; <em>다섯 가지 상태</em></h1><p class=lede><b>G2 채택 확정</b>(2026-09-01). 아래 바 하나로 분위기와 목적지를 같이 찾는다. 서울 출발 69건 실데이터로 그렸다.</p><div class=callout><b>내가 반대했던 이유는 설계로 풀린다.</b><br>&ldquo;검색창은 무엇을 찾을지 아는 사람의 도구인데 우리 사용자는 모르는 채로 온다&rdquo;고 했는데, <b>누르면 어휘가 다 펼쳐지게</b> 하면 그 문제가 사라진다(S2). 모르는 사람은 <b>고르고</b>, 아는 사람은 <b>친다</b>.<br>그리고 검색이라서 <b>도시 이름을 같이 찾을 수 있다</b> &mdash; &lsquo;다낭 얼마지?&rsquo;라고 오는 사람이 지금은 갈 데가 없었다.</div><div class="state"><div class="slab"><span class="sid">S1</span><span class="snm">평소</span></div><p class="sdesc">한 줄이고 <b>52px</b>이다. 플레이스홀더가 <b>무엇을 칠 수 있는지</b> 보여준다 &mdash; 분위기와 도시 이름을 <b>같이</b> 예로 든다. 날짜·예산은 오른쪽 알약으로 남긴다.</p><div class="hold"><div class="sbar"><span class="sfield"><span class="mag">&#9906;</span><span class="ph">어디로 갈까요? &nbsp;해변 · 야경 · 온천 · 다낭&hellip;</span></span><span class="vsep"></span><span class="spill2">아무때 &#9662;</span><span class="spill2">100만 이하 &#9662;</span><span class="cnt">69곳</span></div></div></div><div class="state"><div class="slab"><span class="sid">S2</span><span class="snm">눌렀을 때 &mdash; 타이핑 없이도 다 보인다</span></div><p class="sdesc">🔑 <b>이게 검색을 채택할 수 있게 만드는 부분이다.</b> 검색창은 원래 &lsquo;무엇을 찾을지 아는 사람&rsquo;의 도구인데, 우리 사용자는 그걸 모르는 채로 온다.<br><b>누르기만 하면 어휘가 다 펼쳐지므로</b> 모르는 사람은 고르고 아는 사람은 친다. 현행 도크가 늘 보여주던 걸 <b>필요할 때만</b> 보여주는 셈이라 잃는 게 없다.</p><div class="hold"><div class="sbar focus"><span class="sfield"><span class="mag">&#9906;</span><span class="cur"></span><span class="ph">어디로 갈까요?</span></span><span class="vsep"></span><span class="spill2">아무때 &#9662;</span><span class="spill2">100만 이하 &#9662;</span><span class="cnt">69곳</span></div><div class="dd"><div class="ddg">분위기<span class="line"></span></div><div class="ddchips"><span class="ddchip">해변<span class="n">23</span></span><span class="ddchip">도시<span class="n">43</span></span><span class="ddchip">미식<span class="n">24</span></span><span class="ddchip">자연<span class="n">21</span></span><span class="ddchip">문화<span class="n">32</span></span><span class="ddchip">온천<span class="n">6</span></span></div><div class="ddg">이런 것도<span class="line"></span></div><div class="ddchips"><span class="ddchip">야경<span class="n">5</span></span><span class="ddchip">리조트<span class="n">13</span></span><span class="ddchip">골목<span class="n">11</span></span><span class="ddchip">유적<span class="n">10</span></span><span class="ddchip">야시장<span class="n">6</span></span><span class="ddchip">쇼핑<span class="n">15</span></span><span class="ddchip">사원<span class="n">8</span></span><span class="ddchip">트레킹<span class="n">4</span></span></div><div class="ddg">오늘의 발견<span class="line"></span></div><div class="ddrow"><span class="nm">제주</span><span class="mt">한국</span><span class="rt"><b>33,004원</b></span></div></div></div></div><div class="state"><div class="slab"><span class="sid">S3</span><span class="snm">치는 중 &mdash; 분위기와 목적지가 같이</span></div><p class="sdesc"><b>&lsquo;사&rsquo; 한 글자에 분위기와 도시가 함께 걸린다</b>(사막·사원 · 사이판). 결과를 <b>두 무리로 갈라</b> 무엇을 고르는지 헷갈리지 않게 한다.<br><b>분위기는 필터, 목적지는 이동</b>이다 &mdash; 다른 동작이라 자리를 나눴다.</p><div class="hold"><div class="sbar focus"><span class="sfield"><span class="mag">&#9906;</span><span class="typed">사</span><span class="cur"></span></span><span class="vsep"></span><span class="spill2">아무때 &#9662;</span><span class="spill2">100만 이하 &#9662;</span><span class="cnt">69곳</span></div><div class="dd"><div class="ddg">분위기<span class="line"></span></div><div class="ddchips"><span class="ddchip">사막<span class="n">2</span></span><span class="ddchip">사원<span class="n">8</span></span></div><div class="ddg">목적지<span class="line"></span></div><div class="ddrow on"><span class="nm">사이판</span><span class="mt">사이판</span><span class="rt"><b>225,578원</b> &middot; 이번 주말</span></div></div></div></div><div class="state"><div class="slab"><span class="sid">S4</span><span class="snm">고른 뒤</span></div><p class="sdesc">고른 건 입력창 안에 <b>토큰</b>으로 남는다. 상위 어휘는 코랄, 하위 어휘는 청록이라 <b>어느 층인지</b>가 색으로 보인다. 오른쪽 <b>결과 수</b>가 필터가 한 일을 말해준다.</p><div class="hold"><div class="sbar"><span class="sfield"><span class="mag">&#9906;</span><span class="tok">문화<span class="x">&times;</span></span><span class="tok sub">유적<span class="x">&times;</span></span><span class="cur"></span></span><span class="vsep"></span><span class="spill2">이번 달 &#9662;</span><span class="spill2">100만 이하 &#9662;</span><span class="cnt">10곳</span></div></div></div><div class="state"><div class="slab"><span class="sid">S5</span><span class="snm">없을 때</span></div><p class="sdesc"><b>빈손으로 돌려보내지 않는다.</b> 다른 출발지에 그 도시가 있으면 알려준다 &mdash; <code>FLOWS.md</code> <b>F5</b>와 같은 처리다.</p><div class="hold"><div class="sbar focus"><span class="sfield"><span class="mag">&#9906;</span><span class="typed">광저우</span><span class="cur"></span></span><span class="vsep"></span><span class="spill2">아무때 &#9662;</span><span class="spill2">100만 이하 &#9662;</span><span class="cnt">69곳</span></div><div class="dd"><div class="empty"><div class="big">서울 출발 광저우 딜은 오늘 없어요</div><div class="sml"><b>부산 출발</b>이면 오늘 있어요 &mdash; <b>290,795원</b></div></div></div></div></div><h2><span class=n>규칙</span>정한 것</h2><table><tr><th style='width:190px'>무엇을</th><th>어떻게</th></tr><tr><td class=k>검색 대상</td><td><b>상위 어휘 6</b> + <b>하위 어휘 18</b> + <b>도시 이름</b>. 나라 이름은 넣지 않는다 &mdash; &lsquo;일본&rsquo;을 치면 결과가 너무 넓어 고르는 재미가 사라진다</td></tr><tr><td class=k><b>분위기 vs 목적지</b></td><td><b>분위기는 필터</b>(누르면 토큰이 되고 피드가 줄어든다), <b>목적지는 이동</b>(누르면 그 딜의 상세가 열린다 &mdash; 지도가 스르륵 움직이는 그 동작 그대로). <b>동작이 다르므로 결과를 두 무리로 가른다</b></td></tr><tr><td class=k>토큰 색</td><td>상위는 <b>코랄</b>, 하위는 <b>청록</b>. <code>문화</code>와 <code>유적</code>이 같은 층이 아님을 색으로 보인다</td></tr><tr><td class=k>여러 개 고르기</td><td><b>AND</b>다 &mdash; <code>문화</code>+<code>유적</code>은 둘 다 가진 곳. 결과 수가 옆에 있어 <b>0곳이 되는 걸 즉시 안다</b></td></tr><tr><td class=k>날짜·예산</td><td>검색창에 <b>안 넣는다.</b> 값이 <b>범위</b>라 타이핑으로 고르기 나쁘다. 오른쪽 알약 + 팝오버로 남긴다</td></tr><tr><td class=k>결과 없음</td><td>다른 출발지에 그 도시가 있으면 <b>제안한다</b>(F5). 없으면 다른 분위기를 권한다</td></tr><tr><td class=k>키보드</td><td><span class=kbd>&darr;</span><span class=kbd>&uarr;</span> 이동 · <span class=kbd>Enter</span> 선택 · <span class=kbd>Esc</span> 닫기 · <span class=kbd>Backspace</span>는 빈 칸에서 <b>마지막 토큰을 지운다</b></td></tr><tr><td class=k>모바일</td><td>바를 누르면 <b>전체 화면 검색</b>으로 올라온다. 좁은 폭에 드롭다운을 얹으면 지도가 다 덮인다</td></tr></table><h2><span class=n>남은</span>정할 것</h2><ul class=k><li><b>도시가 여러 출발지에 있으면</b> 어느 걸 여나 &mdash; 지금 출발지 우선, 없으면 다른 출발지를 제안(S5)으로 잡았다. 확정 필요.</li><li><b>검색 결과에도 도장을 보이나</b> &mdash; 지금은 가격만 뒀다. 도장까지 넣으면 목록이 무거워진다.</li><li><b>최근 검색 기억</b> &mdash; <code>localStorage</code>가 필요하고, 지금 URL 상태만 쓰기로 한 것과 결이 다르다. 뒤로 미룬다.</li></ul><p class=note>&#9888; <b>이 세션엔 브라우저가 없어 실제 렌더를 못 본다.</b> 겹치거나 어색한 곳이 있으면 알려주면 고친다.</p><p class=foot>생성 <b>design/build_search.py</b> &middot; 데이터 <b>docs/data/deals.json</b> &middot; 위치·크기 비교 <b>dockbar.html</b> &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b></p></div></body></html>
