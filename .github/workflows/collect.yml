@@ -94,7 +94,7 @@ jobs:
             git add docs/
           else
             echo "::warning::사이트 생성 실패 — data/만 커밋하고 docs/는 어제 것을 유지한다"
-          fi docs/
+          fi
           # 라벨은 KST — 읽는 사람이 전부 한국 시간으로 산다(BB13).
           # 데이터 필드(fetched_date)는 기계가 빼는 값이라 UTC 그대로다.
           git commit -m "collect: $(TZ=Asia/Seoul date '+%Y-%m-%d')" || echo "변경 없음"
