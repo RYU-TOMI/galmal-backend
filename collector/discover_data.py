@@ -13,7 +13,8 @@
 }
 정책: 최근 3일 수집 + 미래 출발만, dests 사전(좌표) 있는 목적지만(데이터 게이팅),
       seen(가격 관측 시각)이 7일 넘은 딜 제외, (출발지, 도시) 단위 최저가 1건
-      (인천+김포=서울 통합).
+      (인천+김포=서울 통합). `d`는 도시 코드(NRT→TYO) — 광역 수집이 도시 단위라
+      공항을 모른다. 내부 판정(좌표·tier·노선)은 공항 코드로 한다.
 """
 import json
 from datetime import date, timedelta
@@ -232,7 +233,13 @@ def build_deals_json(conn, routes=None):
         ret = date.fromisoformat(dd["ret"]) if dd["ret"] else None
         n = (ret - dep).days if ret else 0
         deals.append({
-            "o": dd["o"], "d": dd["d"], "ko": dd["ko"], "country": dd["country"],
+            # `d`는 **도시 코드**다(NRT→TYO). 광역 수집이 도시 단위라 어느 공항인지
+            # 모르는데 `NRT`라고 쓰면 "이 딜은 나리타행"이라고 주장하는 셈이다.
+            # URL 딥링크 `#SEL-TYO`가 도쿄를 가리키는 것도 이쪽이 맞다.
+            # ⚠️ 내부 판정은 계속 공항 코드(`dd["d"]`)로 한다 — 좌표·tier·노선 페이지
+            #    매칭은 전부 공항 단위이고, 도시 코드로는 사전을 못 찾는다.
+            "o": dd["o"], "d": dests.link_code(dd["d"]),
+            "ko": dd["ko"], "country": dd["country"],
             "region": dd["region"], "haul": dd["haul"], "tier": dd["tier"],
             "tags": dd["tags"], "lat": lat, "lon": lon,
             "price": dd["price"], "transfers": dd["transfers"],
