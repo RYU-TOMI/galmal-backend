@@ -19,17 +19,28 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 수집기 둘은 **서로 다른 API**를 쓴다(v3/prices_for_dates vs v2/prices/latest).
+      # 하드 실패로 두면 한쪽 장애가 멀쩡한 다른 쪽까지 못 돌게 하고, 이미 모은
+      # 행이 커밋 전에 버려져 30일 baseline에 영구 구멍이 난다.
+      # 빈 산출물 배포는 하한선 방어(BB1)가 이미 막으므로, 여기선 계속 진행하고
+      # 마지막 '상태 점검'이 잡을 실패로 표시한다 — 데이터는 살리고 알림은 받는다.
       - name: 가격 수집 (노선 상세)
+        id: prices
+        continue-on-error: true
         env:
           TP_TOKEN: ${{ secrets.TP_TOKEN }}
         run: python collector/fetch_prices.py
 
       - name: 광역 수집 (발견 피드)
+        id: breadth
+        continue-on-error: true
         env:
           TP_TOKEN: ${{ secrets.TP_TOKEN }}
         run: python collector/fetch_breadth.py
 
       - name: 특가 판정
+        id: detect
+        continue-on-error: true   # 파생 산출물이라 실패가 수집분을 버릴 이유가 없다
         run: python collector/detect_deals.py | tee data/deals_latest.txt
 
       - name: 프로모션 메일 수집
@@ -63,6 +74,7 @@ jobs:
 
       - name: 웹 피드 생성
         id: build
+        continue-on-error: true   # 실패해도 data/는 커밋한다(아래 커밋 스텝 참조)
         env:
           TP_MARKER: ${{ secrets.TP_MARKER }}
           TP_TRIP_TRS: ${{ secrets.TP_TRIP_TRS }}
@@ -71,10 +83,18 @@ jobs:
         run: python collector/build_site.py
 
       - name: 데이터·사이트 커밋
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ docs/
+          git add data/
+          # 사이트 생성이 실패했으면 docs/는 커밋하지 않는다 — 반쯤 쓰인 산출물이
+          # 배포되면 안 된다. 대신 수집한 데이터는 남겨 이력에 구멍을 내지 않는다.
+          if [ "${{ steps.build.outcome }}" = "success" ]; then
+            git add docs/
+          else
+            echo "::warning::사이트 생성 실패 — data/만 커밋하고 docs/는 어제 것을 유지한다"
+          fi docs/
           # 라벨은 KST — 읽는 사람이 전부 한국 시간으로 산다(BB13).
           # 데이터 필드(fetched_date)는 기계가 빼는 값이라 UTC 그대로다.
           git commit -m "collect: $(TZ=Asia/Seoul date '+%Y-%m-%d')" || echo "변경 없음"
@@ -112,7 +132,9 @@ jobs:
           fail=0
           note() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
           note "## 수집 결과 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') KST)"
-          for s in "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"; do
+          # 수집·판정·빌드까지 전부 continue-on-error가 됐으므로, 여기서 안 보면
+          # 무엇이 죽어도 잡이 초록불로 끝난다 — BB18을 되돌리는 셈이다.
+          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "사이트 생성:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"; do
             name="${s%%:*}"; outcome="${s##*:}"
             if [ "$outcome" = "failure" ]; then
               note "- ❌ $name 실패"; fail=1
