@@ -36,9 +36,10 @@ HAULS = {"short", "mid", "long"}
 TIERS = {"major", "minor"}
 HUBS = {"SEL", "PUS", "TAE", "CJU"}
 
-REQUIRED = ("o", "d", "ko", "country", "region", "haul", "tier", "tags",
-            "lat", "lon", "price", "transfers", "dep", "ret", "nights",
-            "median", "discount", "when", "seen", "links")
+# 필드 목록을 여기 하드코딩하지 않는다(BB19). 하드코딩하면 기획이 계약에 필드를
+# 추가해도 검증기가 모르고 **CI가 조용히 초록불**이 된다. 실제로 `low`·`obs_days`가
+# 그렇게 통과했다 — "계약이 단일 출처"가 반쯤만 참이었다.
+# 표의 타입 열도 읽어 `|null` 표기에서 nullable 여부를 뽑는다.
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 UPDATED_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
@@ -49,6 +50,45 @@ TAG_ROW_RE = re.compile(
     r"^\|\s*\*{0,2}`([^`]+)`\*{0,2}\s*\|\s*\d+\s*\|"
     r"\s*(?:\*{0,2}`([^`]+)`\*{0,2}|[—-]+)\s*\|", re.M)
 KST_OFFSET = timedelta(hours=9)
+
+
+def _cells(line):
+    r"""마크다운 표 한 줄을 셀로 자른다.
+
+    타입 열에 `string\|null`처럼 **이스케이프된 파이프**가 들어 있다. 그냥
+    `split("|")`하면 거기서 잘려 `string\`만 읽히고 nullable 판정이 틀어진다.
+    """
+    return [c.replace(r"\|", "|").strip()
+            for c in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
+
+
+def contract_fields():
+    """`CONTRACT.md`의 deal 필드 표에서 `{필드: nullable 여부}`를 읽는다.
+
+    계약이 단일 출처가 되려면 **필드 목록도** 여기서 나와야 한다. 그래야 기획이
+    필드를 추가한 순간 검증기가 요구하기 시작하고, 생산자가 안 채우면 CI가 잡는다.
+    """
+    body = CONTRACT.read_text(encoding="utf-8")
+    if "## deal 객체" not in body:
+        raise AssertionError("CONTRACT.md에서 '## deal 객체' 절을 찾지 못했다. "
+                             "계약이 재편됐다면 이 파서도 함께 고쳐야 한다.")
+    table = body.split("## deal 객체")[1].split("### ")[0]
+    fields = {}
+    for line in table.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = _cells(line)
+        if len(cells) < 2:
+            continue
+        names = re.findall(r"`([^`]+)`", cells[0])     # `lat` `lon` 처럼 한 칸에 둘인 행
+        if not names:
+            continue
+        nullable = "null" in cells[1]
+        for name in names:
+            fields[name] = nullable
+    if len(fields) < 10:
+        raise AssertionError(f"deal 필드 표에서 {len(fields)}개만 읽었다. 표 형식 변경 의심.")
+    return fields
 
 
 def contract_vocab():
@@ -83,9 +123,10 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def validate(payload, vocab, parent=None):
+def validate(payload, vocab, parent=None, fields=None):
     """계약 위반 목록을 문자열 리스트로 돌려준다. 비어 있으면 통과."""
     parent = parent or {}
+    fields = fields if fields is not None else contract_fields()
     errs = []
 
     for key in ("updated", "origins", "deals"):
@@ -118,10 +159,15 @@ def validate(payload, vocab, parent=None):
 
     for i, dl in enumerate(deals):
         at = f"deals[{i}]"
-        missing = [k for k in REQUIRED if k not in dl]
+        missing = [k for k in fields if k not in dl]
         if missing:
             errs.append(f"{at} 필드 누락: {missing}")
             continue
+
+        wrongly_null = sorted(k for k, nullable in fields.items()
+                              if not nullable and dl.get(k) is None)
+        if wrongly_null:
+            errs.append(f"{at} null이 허용되지 않는 필드가 null이다: {wrongly_null}")
 
         if dl["o"] not in origins:
             errs.append(f"{at}.o={dl['o']!r}가 origins에 없다")
@@ -220,6 +266,29 @@ def validate(payload, vocab, parent=None):
 
 class ContractParsingTest(unittest.TestCase):
     """검증기가 딛고 선 계약서 자체가 읽히는가."""
+
+    def test_field_table_is_readable(self):
+        """필드 목록이 계약에서 나와야 검증기가 계약을 따라간다(BB19).
+
+        하드코딩하면 기획이 필드를 추가해도 검증기가 모르고 CI가 조용히 통과한다.
+        실제로 `low`·`obs_days`가 그렇게 며칠 방치됐다.
+        """
+        fields = contract_fields()
+        self.assertGreaterEqual(len(fields), 15, "필드가 비정상적으로 적다")
+        for core in ("o", "d", "price", "links"):
+            self.assertIn(core, fields)
+
+    def test_escaped_pipes_do_not_break_nullable_detection(self):
+        """타입 열의 `string\|null`을 제대로 읽는가.
+
+        마크다운에서 파이프를 `\|`로 이스케이프하는데, 순진하게 자르면 거기서
+        끊겨 `string\`만 읽힌다. 그러면 nullable 필드를 필수로 오판한다.
+        """
+        fields = contract_fields()
+        for nullable in ("ret", "seen", "low"):
+            self.assertTrue(fields.get(nullable), f"{nullable}은 null 허용이어야 한다")
+        for required in ("o", "d", "price", "obs_days"):
+            self.assertFalse(fields.get(required), f"{required}은 필수여야 한다")
 
     def test_vocabulary_is_readable(self):
         self.assertGreaterEqual(len(contract_tags()), 5, "어휘가 비정상적으로 적다")
