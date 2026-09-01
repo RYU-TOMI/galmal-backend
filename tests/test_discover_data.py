@@ -9,6 +9,8 @@
    해당 케이스에 BB 번호를 달아 두었다(`BACKEND.md` 곁가지 백로그).
    BE2에서 고치면 이 테스트들이 실패하면서 무엇이 바뀌었는지 알려준다.
 """
+import contextlib
+import io
 import json
 import sqlite3
 import tempfile
@@ -262,7 +264,8 @@ class ArtifactGuardTest(unittest.TestCase):
         return len(codes)
 
     def build_into(self, tmp):
-        with mock.patch.object(discover_data, "DOCS", Path(tmp)):
+        # 보존 경고를 삼킨다 — 테스트 출력에서 진짜 실패가 묻히지 않게.
+        with mock.patch.object(discover_data, "DOCS", Path(tmp)),                 contextlib.redirect_stdout(io.StringIO()):
             return discover_data.build_deals_json(self.conn)
 
     def seed_previous(self, tmp, count):
