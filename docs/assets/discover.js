@@ -225,6 +225,16 @@
       return "rgb(" + lerp(LIGHT[0], DEEP[0], t) + "," + lerp(LIGHT[1], DEEP[1], t) + "," + lerp(LIGHT[2], DEEP[2], t) + ")"; };
   }
 
+  function matchCount(vis) { var n = 0; for (var i = 0; i < vis.length; i++) if (!dimmed(vis[i])) n++; return n; }
+  // 필터 중에는 단계 버튼을 **치운다** — 비활성으로 두지 않는다. 필터 중에는 "거리 단계"라는
+  // 개념 자체가 성립하지 않기 때문이다. 자리에는 `전 지역에서 찾는 중` 한 줄이 들어간다.
+  function syncStageBar() {
+    var bar = document.querySelector(".stagebar"); if (!bar) return;
+    var on = anyFilter();
+    bar.classList.toggle("allregions", on);
+    var note = bar.querySelector(".allnote");
+    if (on && !note) { note = document.createElement("span"); note.className = "allnote"; note.textContent = "전 지역에서 찾는 중"; bar.appendChild(note); }
+  }
   var PIN_R = 6, MINOR_R = 2.5;   // major 지름 12px · minor 지름 5px (SPEC §CH1)
 
   // ---- 라벨 겹침 회피: 4방향 후보 + 실패 시 라벨만 생략 (SPEC §CH1, B3/B15) ----
@@ -258,7 +268,11 @@
         y0 = H / 2 - band.vbH / 2, y1 = H / 2 + band.vbH / 2;
     var placed = [];
     // 배치 순서 = 우선순위: major 먼저, 같은 등급이면 가격 낮은 순. 싼 딜이 우리가 파는 것이다.
-    var cands = vis.filter(function (c) { return c.tier !== "minor"; })
+    // 라벨은 major 에게만, 그리고 **필터 중에는 매칭에게만** 준다.
+    // 밀도를 만드는 건 점이 아니라 글자다 — 비매칭을 LOD 로 추려도 59→44개로 효과가 없는데,
+    // 라벨을 매칭에게만 주면 매칭 라벨이 거의 다 살아남는다(실측 84~100%). (SPEC §CH2)
+    var filtering = anyFilter();
+    var cands = vis.filter(function (c) { return c.tier !== "minor" && !(filtering && dimmed(c)); })
                    .sort(function (a, b) { return num(a.price) - num(b.price); });
     vis.forEach(function (c) { c._lab = null; });
     cands.forEach(function (c) {
@@ -278,7 +292,10 @@
   function render() {
     if (!ORIGIN) return;
     tweenId++; svg.classList.remove("tweening");  // 진행 중 트윈이 있으면 무효화
-    var v = viewOf(STAGES[stageIdx]);
+    // 필터 중에는 항상 `아주 멀리` 뷰다. "전 지역 매칭"이 확정 스펙인데 가까운 단계에서
+    // 필터를 켜면 매칭 딜이 화면 밖에 있다 — 피드엔 뜨는데 지도엔 없는 상태(F15)가 재현된다.
+    // 실측(서울 `해변` 22건): 화면 안이 가까운 곳 10 · 조금 더 멀리 16 · 아주 멀리 22. (SPEC §CH2)
+    var v = viewOf(anyFilter() ? "far" : STAGES[stageIdx]);
     setXform(v); CURV = v;                        // path 는 그대로 두고 transform 만 바꾼다
     var O = pt(ORIGIN.lon, ORIGIN.lat); ORIGIN.x = O[0]; ORIGIN.y = O[1];
     og.innerHTML = '<circle class="origin-ring" cx="' + O[0] + '" cy="' + O[1] + '" r="9"/>' +
@@ -304,7 +321,7 @@
     });
     // 카드 피드
     feed.innerHTML = '<div class="feedhead"><div class="fh-top"><b>오늘의 발견</b><span>' +
-      (anyFilter() ? "전 지역에서 찾는 중" : ORIGIN.n + " 출발 · " + vis.length + "곳") + "</span></div>" +
+      (anyFilter() ? "조건에 맞는 " + matchCount(vis) + "곳" : ORIGIN.n + " 출발 · " + vis.length + "곳") + "</span></div>" +
       '<div class="sortbar">' +
       '<button class="spill' + (sortMode === "value" ? " on" : "") + '" data-sort="value">가성비순</button>' +
       '<button class="spill' + (sortMode === "imminent" ? " on" : "") + '" data-sort="imminent">임박순</button>' +
@@ -334,7 +351,7 @@
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
-    syncStepper(); syncDateChips(); syncNightChips();
+    syncStepper(); syncDateChips(); syncNightChips(); syncStageBar();
   }
 
   // ---- 전환 트윈 (SPEC §CH1 / B2) ----
@@ -487,6 +504,13 @@
   hc.addEventListener("click", function (e) { e.stopPropagation(); if (expandedI === null && active !== null) expand(active); });
 
   // ---- 단계 · 필터 도크 ----
+  // 필터를 켜고 끌 때도 단계 전환과 같은 모션으로 움직인다(400ms · cubic-out · 배율 로그 보간).
+  // 필터를 끄면 stageIdx 가 그대로라 직전 단계로 돌아온다. (SPEC §CH2)
+  function applyFilter() {
+    var from = CURV;
+    updCount(); collapse(); render();
+    if (from && CURV && !reduceMotion() && from.scale !== CURV.scale) tweenTo(from, CURV, 400);
+  }
   function setStage(idx) {
     var from = CURV;                              // 지금 화면에 적용된 뷰
     stageIdx = idx; collapse(); render();         // 목적지 단계의 딜 집합·좌표로 전부 그린다
@@ -543,10 +567,10 @@
     }
   }
   function setActiveDate(mode) { dateMode = mode; for (var k = 0; k < dateEls.length; k++) dateEls[k].classList.toggle("on", dateEls[k].getAttribute("data-date") === mode); if (customBox) customBox.classList.toggle("show", mode === "custom"); }
-  for (var di = 0; di < dateEls.length; di++) (function (el) { el.addEventListener("click", function () { if (el.disabled) return; setActiveDate(el.getAttribute("data-date")); if (dateMode !== "custom") dateCustom = null; updCount(); collapse(); render(); }); })(dateEls[di]);
+  for (var di = 0; di < dateEls.length; di++) (function (el) { el.addEventListener("click", function () { if (el.disabled) return; setActiveDate(el.getAttribute("data-date")); if (dateMode !== "custom") dateCustom = null; applyFilter(); }); })(dateEls[di]);
   var cds = document.getElementById("cdStart"), cde = document.getElementById("cdEnd");
   function readCustom() { var lo = cds && cds.value ? cds.value : "0000-00-00", hi = cde && cde.value ? cde.value : "9999-99-99"; dateCustom = (lo === "0000-00-00" && hi === "9999-99-99") ? null : [lo, hi]; }
-  [cds, cde].forEach(function (inp) { if (inp) inp.addEventListener("change", function () { setActiveDate("custom"); readCustom(); updCount(); collapse(); render(); }); });
+  [cds, cde].forEach(function (inp) { if (inp) inp.addEventListener("change", function () { setActiveDate("custom"); readCustom(); applyFilter(); }); });
   // ---- 며칠 칩 — 날짜 칩과 같은 규칙(건수 표시 · 0곳 비활성) ----
   var nightEls = document.querySelectorAll(".fchip.nights");
   function syncNightChips() {
@@ -565,12 +589,12 @@
       if (el.disabled) return;
       nightsMode = el.getAttribute("data-nights");
       for (var k = 0; k < nightEls.length; k++) nightEls[k].classList.toggle("on", nightEls[k].getAttribute("data-nights") === nightsMode);
-      updCount(); collapse(); render();
+      applyFilter();
     });
   })(nightEls[ni]);
   var moodEls = document.querySelectorAll(".fchip.moodf");
-  for (var mi = 0; mi < moodEls.length; mi++) (function (el) { el.addEventListener("click", function () { var m = el.dataset.mood; mood = (mood === m ? null : m); for (var k = 0; k < moodEls.length; k++) moodEls[k].classList.toggle("on", moodEls[k].dataset.mood === mood); updCount(); collapse(); render(); }); })(moodEls[mi]);
-  if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = budgetLabel(); updCount(); collapse(); render(); });
+  for (var mi = 0; mi < moodEls.length; mi++) (function (el) { el.addEventListener("click", function () { var m = el.dataset.mood; mood = (mood === m ? null : m); for (var k = 0; k < moodEls.length; k++) moodEls[k].classList.toggle("on", moodEls[k].dataset.mood === mood); applyFilter(); }); })(moodEls[mi]);
+  if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = budgetLabel(); applyFilter(); });
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
   if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작

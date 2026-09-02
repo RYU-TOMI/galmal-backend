@@ -62,7 +62,11 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 /* 4방향 후보가 다 막히면 라벨만 생략한다. 핀은 남는다. 활성 시에만 덮어 그린다 (SPEC §CH1) */
 .plabel.off{display:none}
 .pin.act .plabel.off{display:block}
-.stagebar{position:absolute;left:18px;bottom:18px;display:flex;gap:6px}
+.stagebar{position:absolute;left:18px;bottom:18px;display:flex;gap:6px;align-items:center}
+/* 필터 중에는 단계 버튼을 치우고 한 줄로 바꾼다 — 거리 단계 개념이 성립하지 않는다 (SPEC §CH2) */
+.stagebar.allregions .pill{display:none}
+.stagebar .allnote{display:none;background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;font-size:.78rem;font-weight:700;color:var(--sub);box-shadow:0 2px 8px rgba(20,40,40,.10)}
+.stagebar.allregions .allnote{display:inline-block}
 /* 거리 단계 스테퍼 — 줌이 아니다. ＋=한 단계 멀리, －=한 단계 가까이 (SPEC §CH1) */
 .stepper{position:absolute;right:16px;top:16px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,40,.12)}
 .stepper button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:52px;height:44px;border:0;background:none;color:var(--ink);cursor:pointer;font:inherit;padding:0}
