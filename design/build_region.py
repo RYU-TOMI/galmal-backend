@@ -259,10 +259,17 @@ svg += '</g></svg>'
 BAR = ('<div class="rbar"><span class="rpill" id="back">가까운 곳</span>'
        '<span class="rpill">조금 더 멀리</span>'
        '<span class="rpill on" id="far">아주 멀리</span></div>')
-BAR2 = '<div class="rbar2">' + "".join(
+# 대륙 셋에 안 담기는 장거리 딜 — 두바이·콜롬보(etc) · 호놀룰루·사이판(island)
+REST4 = [d for d in SEL if d["haul"] == "long" and d.get("region") in ("etc", "island")]
+
+BAR2 = ('<div class="rbar2">' + "".join(
     '<span class="rpill sub" data-go="%s">%s<span class="n">%d</span></span>'
     % (k, KO[k], len([d for d in SEL if d.get("region") == k and d["haul"] == "long"]))
-    for k in PICK if k in AFF) + '</div>'
+    for k in PICK if k in AFF)
+    # 21건은 고를 수 있는데 4건만 못 고르면 막다른 길이 된다(SPEC §CH1).
+    # 가리킬 한 곳이 없으므로 이 칩만 **지도를 안 움직인다.**
+    + '<span class="rpill sub" data-go="rest4">그 외<span class="n">%d</span></span>' % len(REST4)
+    + '</div>')
 
 JS = """
 var AFF = __AFF__, PINS = __PINS__, SW = __SW__, SH = __SH__;
@@ -275,31 +282,39 @@ PINS.forEach(function (p, i) {
   el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
   el.dataset.i = i; layer.appendChild(el); p.el = el;
   var lb = document.createElement('span');
-  lb.className = 'plab'; lb.textContent = p.ko;
+  lb.className = 'rplab'; lb.textContent = p.ko;
   lb.style.left = p.x + 'px'; lb.style.top = p.y + 'px';
   layer.appendChild(lb); p.lb = lb;
 });
 var og = document.createElement('span');
-og.className = 'pin org';
+og.className = 'rpin org';
 og.style.left = __OX__ + 'px'; og.style.top = __OY__ + 'px';
 layer.appendChild(og);
 
+function inRegion(p, r) {
+  if (!r) return true;
+  // 「그 외」는 대륙이 아니라 남은 장거리 딜 묶음이다.
+  if (r === 'rest4') return p.haul === 'long' && (p.r === 'etc' || p.r === 'island');
+  return p.r === r;
+}
+
 function apply(r) {
   cur = r;
-  var a = r ? AFF[r] : [1, 0, 0, 0];
+  // 「그 외」에는 확대할 대상이 없다 — 넷을 다 담으면 결국 전 지구다.
+  var a = (r && AFF[r]) ? AFF[r] : [1, 0, 0, 0];
   zoom.style.transform = 'translate(' + a[1] + 'px,' + a[2] + 'px) scale(' + a[0] + ')';
-  og.style.opacity = r ? 0 : 1;
   PINS.forEach(function (p) {
     var x = a[0] * p.x + a[1], y = a[0] * p.y + a[2];
     p.el.style.left = x + 'px'; p.el.style.top = y + 'px';
     p.lb.style.left = x + 'px'; p.lb.style.top = y + 'px';
-    var inreg = !r || p.r === r;
+    var inreg = inRegion(p, r);
     p.el.style.opacity = inreg ? (p.t === 'major' ? 1 : .5) : .12;
-    p.lb.classList.toggle('on', !!r && p.r === r);
+    p.lb.classList.toggle('on', !!r && inreg);
   });
   document.querySelectorAll('.reg').forEach(function (g) {
     g.classList.toggle('on', g.dataset.r === r);
   });
+  og.style.opacity = (r && r !== 'rest4') ? 0 : 1;
   document.querySelectorAll('[data-go]').forEach(function (b) {
     b.classList.toggle('on', b.dataset.go === r);
   });
