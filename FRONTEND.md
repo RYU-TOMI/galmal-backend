@@ -77,6 +77,28 @@ git checkout -- docs/data docs/routes docs/sitemap.xml   # 백엔드 산출물 �
 > 돌리면 그날 DB로 `deals.json`이 재생성되어 **픽스처가 바뀌고**(예: 103건→94건),
 > 노선 페이지 26개 + sitemap까지 전부 커밋 노이즈가 된다. 그건 백엔드 세션의 산출물이다.
 
+#### 🔴 재빌드 뒤 반드시 — `index.html` 인라인 데이터를 커밋본으로 맞춘다
+
+**`docs/data/deals.json`만 되돌리면 안 된다.** `index.html`은 딜을 **인라인**하므로,
+되돌린 뒤에도 **내 로컬 DB로 만들어진 딜이 페이지 안에 남는다.**
+
+실제로 당했다(2026-09-02, CH2 T1): 재빌드가 **121건**을 인라인했는데 커밋본은 **127건**이었다.
+`updated` 시각만 맞췄으면 **121건 데이터에 127건 시각표**가 붙어 더 나빠질 뻔했다.
+
+```python
+# git 의 커밋본을 원본으로 삼아 index.html 의 window.__DEALS 를 통째로 교체한다
+raw = subprocess.run(['git','show','HEAD:docs/data/deals.json'],capture_output=True).stdout.decode()
+h = re.sub(r'(window\.__DEALS=)\{.*?\}(;</script>)', lambda m: m.group(1)+raw.strip()+m.group(2), h, flags=re.S)
+```
+
+**확인할 것** — 셋 다 통과해야 커밋한다.
+1. 인라인 딜 수 = `git show HEAD:docs/data/deals.json` 의 딜 수
+2. 인라인 `updated` = 커밋본 `updated`
+3. 딜 배열이 **바이트 동일**(`inl['deals'] == com['deals']`)
+
+> **작업 트리의 `deals.json` 을 "커밋본"이라고 읽지 말 것.** 재빌드가 이미 덮어썼다.
+> 반드시 `git show HEAD:...` 로 읽는다 — 그렇게 안 해서 검증이 항상 통과하던 적이 있다(T1).
+
 ### ⚠️ 확인 절차는 렌더 경로 **전체**를 재현하고 낸다
 함수 하나만 격리해 테스트하고 "화면에 이게 보일 것"이라고 안내하면 **거의 틀린다.**
 2026-09-01 B25 수정 때 확인 절차를 **두 번 연속 틀리게** 안내했다.

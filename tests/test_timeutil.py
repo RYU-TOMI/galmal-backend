@@ -6,8 +6,10 @@
 구현해서 생겼다. 그래서 이 파일이 검사하는 건 변환 결과만이 아니라
 **두 곳이 같은 함수를 쓰고 있는지**다 — 갈라지는 순간이 사고의 시작이다.
 """
+import re
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from unittest import mock
 
 import discover_data
@@ -34,6 +36,49 @@ class SingleSourceTest(unittest.TestCase):
         now = datetime(2026, 8, 18, 21, 17, 35, tzinfo=timeutil.KST)  # 정확히 9시간 뒤
         self.assertEqual(discover_data._seen_kst(raw), timeutil.parse_found_at(raw))
         self.assertAlmostEqual(timeutil.age_hours(raw, now), 9.0, places=6)
+
+
+class NaiveTodayDebtTest(unittest.TestCase):
+    """`date.today()`가 남아 있는 모듈을 **명시적으로 세어 둔다** (BE4 T1).
+
+    `date.today()`는 실행 환경의 로컬 날짜다. 크론(UTC 러너)과 로컬(KST)이 서로
+    다른 값을 남기므로, 같은 명령이 환경에 따라 다른 데이터를 만든다. 그래서
+    `timeutil.today_utc()` / `today_kst()`로 용도를 갈라 쓴다.
+
+    이 테스트는 **새 위반을 막는 것**이지 기존 부채를 고치라는 게 아니다.
+    아래 목록에 없는 모듈에서 `date.today()`가 나오면 실패한다. 모듈을 옮길
+    때마다 목록에서 지우면 되고, 목록이 비면 이 테스트째로 지워도 된다.
+    """
+
+    # 아직 timeutil로 옮기지 않은 모듈 (BB25). detect_deals.py는 코드 주석으로
+    # 위험을 이미 인지하고 있다 — "Actions 러너는 UTC라 date.today()와 어긋날 수 있음".
+    KNOWN_DEBT = {"detect_deals.py", "send_alerts.py"}
+
+    # timeutil 자신은 docstring에서 `date.today()`를 **쓰지 말라고 설명**한다.
+    # 규칙을 적어 둔 곳이 규칙 위반으로 잡히면 안 된다.
+    EXEMPT = {"timeutil.py"}
+
+    COLLECTOR = Path(__file__).resolve().parent.parent / "collector"
+    PATTERN = re.compile(r"(?<![A-Za-z_.])date\.today\(\)")
+
+    def test_no_new_naive_today(self):
+        offenders = sorted(
+            f.name for f in self.COLLECTOR.glob("*.py")
+            if f.name not in self.KNOWN_DEBT and f.name not in self.EXEMPT
+            and self.PATTERN.search(f.read_text(encoding="utf-8")))
+        self.assertEqual(
+            offenders, [],
+            f"date.today() 대신 timeutil을 쓸 것 — 위반 모듈: {offenders}")
+
+    def test_debt_list_is_still_accurate(self):
+        """부채가 해소됐는데 목록에 남아 있으면 목록이 거짓말이 된다."""
+        stale = sorted(
+            name for name in self.KNOWN_DEBT
+            if not self.PATTERN.search(
+                (self.COLLECTOR / name).read_text(encoding="utf-8")))
+        self.assertEqual(
+            stale, [],
+            f"이미 옮겼으니 KNOWN_DEBT에서 지울 것: {stale}")
 
 
 class DateLabelTest(unittest.TestCase):
