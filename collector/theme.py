@@ -275,13 +275,21 @@ def jsonld_block(payload):
     return f'<script type="application/ld+json">{body}</script>'
 
 
-def page(title, description, canonical_path, body, extra_script="", jsonld=None):
+def page(title, description, canonical_path, body, extra_script="", jsonld=None,
+         og_title=None, og_description=None):
     """공통 <head>/<body> 셸. canonical_path 예: '/' 또는 '/routes/ICN-FUK.html'
 
     `jsonld` — schema.org 구조화 데이터(dict 또는 list). **화면에 실제로 있는 것만
     적는다** — 보이지 않는 내용을 마크업하면 구글이 스팸으로 본다.
+
+    `og_title`·`og_description` — 생략하면 `title`·`description`을 쓴다. **자리가
+    다르면 문구도 다르다**: `<title>`은 검색 결과라 검색어가 들어가고, `og:title`은
+    카톡 말풍선이라 이미 아는 사람이 친구에게 보내는 자리다. 검색어를 그대로 넣으면
+    광고처럼 읽힌다(`COPY.md` §2c).
     """
     url = BASE_URL + canonical_path
+    og_title = og_title or title
+    og_description = og_description or description
     return f"""<!doctype html>
 <html lang="ko">
 <head>
@@ -292,8 +300,8 @@ def page(title, description, canonical_path, body, extra_script="", jsonld=None)
 <link rel="canonical" href="{url}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE_NAME}">
-<meta property="og:title" content="{title}">
-<meta property="og:description" content="{description}">
+<meta property="og:title" content="{og_title}">
+<meta property="og:description" content="{og_description}">
 <meta property="og:url" content="{url}">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:image" content="{OG_IMAGE}">

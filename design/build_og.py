@@ -100,7 +100,10 @@ HTML = """<meta charset="utf-8">
 <link rel="stylesheet"
  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
+  /* 헤드리스 크롬의 --virtual-time-budget은 **진행 중인 CSS 전환을 중간에 얼린다.**
+     프론트가 이것 때문에 멀쩡한 카드를 반투명 버그로 오진할 뻔했다(2026-09-03).
+     구워내는 이미지에는 전환이 있을 이유가 없으니 아예 끈다. */
+  *{margin:0;padding:0;box-sizing:border-box;transition:none!important;animation:none!important}
   html,body{width:%(W)dpx;height:%(H)dpx;overflow:hidden}
   body{background:#F4F8F7;position:relative;
     font-family:'Pretendard Variable',Pretendard,'Malgun Gothic',sans-serif;color:#20353A}
