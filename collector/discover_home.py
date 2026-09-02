@@ -58,7 +58,9 @@ FILTER_DOCK = """
             <button type="button" class="fchip moodf" data-mood="온천">온천<i></i></button>
           </div></div>
         <div class="fdrow"><span class="fdlabel">예산</span>
-          <div class="budgetwrap"><input id="budget" type="range" min="100000" max="1000000" step="50000" value="1000000"><b id="budgetVal">제한 없음</b></div>
+          <div class="budgetwrap">
+            <div class="btrack"><div class="bhist" id="bhist" aria-hidden="true"></div><input id="budget" type="range" min="100000" max="1000000" step="50000" value="1000000"></div>
+            <b id="budgetVal">제한 없음</b></div>
           <div class="chips">
             <button type="button" class="fchip budget" data-budget="300000">30만<i></i></button>
             <button type="button" class="fchip budget" data-budget="500000">50만<i></i></button>

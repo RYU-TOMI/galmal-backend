@@ -95,8 +95,16 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .fchip.date i,.fchip.nights i,.fchip.moodf i,.fchip.budget i{font-style:normal;font-size:.62rem;font-weight:600;opacity:.62;margin-left:4px}
 .fchip.date.on i,.fchip.nights.on i,.fchip.moodf.on i,.fchip.budget.on i{opacity:.85}
 .fchip:disabled{opacity:.38;cursor:default}
-.budgetwrap{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--sub)}
-.budgetwrap input{flex:1;accent-color:var(--accent);cursor:pointer}.budgetwrap b{color:var(--ink)}
+.budgetwrap{display:flex;align-items:flex-end;gap:8px;font-size:.78rem;font-weight:700;color:var(--sub)}
+.budgetwrap b{color:var(--ink);white-space:nowrap}
+/* 히스토그램은 슬라이더 **위에** 깐다 — 딜이 어디 몰려 있나를 보고 손잡이를 옮긴다.
+   눈금은 트랙과 같은 **선형**이다(2026-09-03 확정). 손잡이가 같은 거리를 가면 같은 금액이 움직인다. */
+.btrack{flex:1;min-width:0}
+.btrack input{width:100%;display:block;accent-color:var(--accent);cursor:pointer}
+/* 손잡이는 트랙 끝까지 못 간다(반지름만큼 안쪽에서 멈춘다) → 막대띠도 같은 만큼 물린다 */
+.bhist{display:flex;align-items:flex-end;gap:1px;height:24px;margin:0 9px 3px}
+.bhist span{flex:1;min-height:2px;background:var(--line);border-radius:2px 2px 0 0}
+.bhist span.in{background:var(--accent);opacity:.5}
 .customdates{display:none;gap:6px;align-items:center;margin-top:8px;font-size:.72rem;color:var(--sub)}
 .customdates.show{display:flex}
 .customdates input{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font:inherit;font-size:.72rem;color:var(--ink);accent-color:var(--accent)}

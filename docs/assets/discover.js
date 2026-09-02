@@ -663,7 +663,37 @@
     if (bval) bval.textContent = budgetLabel();
     syncBudgetChips(); applyFilter();
   }
+  // ---- 예산 히스토그램 (SPEC §CH2, 2026-09-03 확정: 트랙·히스토그램 **둘 다 선형**) ----
+  // 로그를 안 쓰는 이유는 기획이 재보고 뒤집었다 — "고가 구간이 비어 있다"가 사실이 아니었다.
+  // 서울 70~130만에 29건(41%)이 있고, 정작 빈 곳은 5만~11만(1건)인데 로그는 하필 그 구간을 늘린다.
+  // 그리고 로그 트랙은 돈으로 안 읽힌다 — 같은 거리를 밀었는데 값이 딴판으로 뛰면 가격 축이 아니다.
+  // 막대를 5만 칸마다 세우면 딜이 적은 허브에서 잡음이 된다(대구 11건 → 24칸 중 16칸이 빔).
+  // 14를 목표로 칸을 묶으면 서울·부산·대구 10만 칸, 제주 5만 칸으로 떨어진다.
+  var bhist = document.getElementById("bhist"), HIST_BARS = 14;
+  function drawHist() {
+    if (!bhist) return;
+    if (!bslider || !CITY.length) { bhist.innerHTML = ""; return; }
+    var mn = +bslider.min, mx = +bslider.max, i;
+    // 막대 한 칸 = 슬라이더 한 칸(5만). 손잡이가 멈추는 자리와 막대 경계가 어긋나지 않게 한다.
+    // 칸이 너무 많아 막대가 얇아지면 몇 칸씩 묶는다 — 묶어도 경계는 여전히 슬라이더 칸 위다.
+    var steps = Math.max(1, Math.round((mx - mn) / STEP));
+    var group = Math.ceil(steps / HIST_BARS), n = Math.ceil(steps / group), w = STEP * group;
+    var cnt = [], hi = 0;
+    for (i = 0; i < n; i++) cnt.push(0);
+    for (i = 0; i < CITY.length; i++) {
+      // 트랙 최저는 최저가를 5만 올림한 값이라 **가장 싼 딜이 트랙 밖(왼쪽)일 수 있다** → 첫 칸에 넣는다.
+      var k = Math.floor((num(CITY[i].price) - mn) / w);
+      cnt[k < 0 ? 0 : (k >= n ? n - 1 : k)]++;
+    }
+    for (i = 0; i < n; i++) if (cnt[i] > hi) hi = cnt[i];
+    var html = "";
+    for (i = 0; i < n; i++)
+      html += '<span class="' + (!budgetOn() || mn + i * w < budget ? "in" : "") +
+              '" style="height:' + (hi ? Math.round(cnt[i] / hi * 100) : 0) + '%"></span>';
+    bhist.innerHTML = html;
+  }
   function syncBudgetChips() {
+    drawHist();
     if (!budgEls) return;            // resetBudget 이 이 줄보다 먼저 돌 수 있다(var 는 값이 늦게 들어온다)
     for (var k = 0; k < budgEls.length; k++) {
       var el = budgEls[k], a = el.getAttribute("data-budget"), cnt = el.querySelector("i");
