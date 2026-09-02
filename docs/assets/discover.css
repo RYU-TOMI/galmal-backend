@@ -51,6 +51,9 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .arc{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;filter:drop-shadow(0 .5px 1px #f2603f33)}
 .origin-dot{fill:var(--ink)}.origin-ring{fill:none;stroke:var(--ink);stroke-width:1.5;opacity:.35}
 .pin{cursor:pointer}.pin .halo{opacity:.16}.pin .core{stroke:#fff;stroke-width:2.2;transition:r .12s}
+/* minor 는 숨기지 않고 낮춘다 — 작게·반투명·후광 없음·라벨 없음 (SPEC §CH1) */
+.pin.minor{opacity:.5}.pin.minor .core{stroke-width:1.2}
+.pin.minor:hover,.pin.minor.act{opacity:1}
 .pin.act .core{stroke-width:3;r:9}.pin.act .halo{opacity:.28}
 .plabel{font-size:13px;font-weight:800;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3px;pointer-events:none}
 .plabel.minor{font-size:11px;font-weight:700;fill:#4a6a66}

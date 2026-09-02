@@ -84,12 +84,15 @@
     if (anyFilter()) {
       CITY.forEach(function (c, i) { c._i = i; out.push(c); });
     } else {
-      // LOD — 이번 단계가 연 거리대는 전부, 이전 단계는 major 만. (SPEC §CH1)
-      // 사용자가 그 단계를 누른 건 그 거리대를 보겠다는 뜻이다. 그 거리대를 숨기지 않는다.
+      // LOD — 무대 안에 들어오면 전부 그린다. 등급으로 숨기지 않는다. (SPEC §CH1, 2026-09-01 개정)
+      // 숨기면 피드엔 있는데 지도엔 없는 딜이 생기고(F15), '더 멀리 갔는데 점이 줄어드는' 일이
+      // 생긴다(대구 12→9). 밀도는 minor 핀을 낮춰서 푼다 — 지우지 않는다.
+      // 무대 밖은 자연히 안 보이는 것이지 감추는 게 아니다. 축소할수록 늘기만 한다.
+      var b = usableBand(), x0 = W / 2 - b.vbW / 2, x1 = W / 2 + b.vbW / 2,
+          y0 = H / 2 - b.vbH / 2, y1 = H / 2 + b.vbH / 2;
       CITY.forEach(function (c, i) {
-        var si = STAGES.indexOf(c.haul);
-        if (si < 0 || si > stageIdx) return;                // 아직 안 연 거리대
-        if (si < stageIdx && c.tier !== "major") return;    // 이전 거리대는 맥락이라 major 만
+        var p = proj([c.lon, c.lat]);
+        if (p[0] < x0 || p[0] > x1 || p[1] < y0 || p[1] > y1) return;
         c._i = i; out.push(c);
       });
     }
@@ -131,7 +134,9 @@
   }
   function farView() {
     var a = farArc(), b = usableBand();
-    var s = Math.max(FAR_MIN_SCALE, b.half / (a.arc / 2 * Math.PI / 180));
+    // 단계는 갈수록 넓어져야 한다. 딜이 좁은 범위에 몰린 허브(제주: 호 33.5°)는 계산값이
+    // 1376까지 올라가 '조금 더 멀리'(720)보다 더 확대돼 표시가 8→5로 줄었다. sea 배율로 막는다.
+    var s = Math.min(VIEWS.sea.scale, Math.max(FAR_MIN_SCALE, b.half / (a.arc / 2 * Math.PI / 180)));
     // 지구 세로(πs)가 화면보다 짧으면 위아래에 바다만 남는다. 그럴 땐 지구를 세로 중앙에
     // 두어 여백이 위아래로 고르게 나뉘게 한다(적도 중심). 넘칠 땐 딜이 몰린 위도로 맞춘다.
     var lat = (Math.PI * s < b.vbH) ? 0 : FAR_LAT;
@@ -145,7 +150,7 @@
       return "rgb(" + lerp(LIGHT[0], DEEP[0], t) + "," + lerp(LIGHT[1], DEEP[1], t) + "," + lerp(LIGHT[2], DEEP[2], t) + ")"; };
   }
 
-  var PIN_R = 6;
+  var PIN_R = 6, MINOR_R = 2.5;   // major 지름 12px · minor 지름 5px (SPEC §CH1)
   function render() {
     if (!ORIGIN) return;
     var v = viewOf(STAGES[stageIdx]);
@@ -159,10 +164,13 @@
     vis.forEach(function (c) { var p = proj([c.lon, c.lat]); c.x = p[0]; c.y = p[1]; c._col = colorOf(c.price); });
     pins.innerHTML = "";
     vis.forEach(function (c) {
-      var g = document.createElementNS(SVGNS, "g"); g.setAttribute("class", "pin" + (dimmed(c) ? " dim" : "")); g.dataset.i = c._i;
-      g.innerHTML = '<circle class="halo" cx="' + c.x + '" cy="' + c.y + '" r="' + (PIN_R * 1.6) + '" fill="' + c._col + '"/>' +
-        '<circle class="core" cx="' + c.x + '" cy="' + c.y + '" r="' + PIN_R + '" fill="' + c._col + '"/>' +
-        '<text class="plabel' + (c.tier === "minor" ? " minor" : "") + '" x="' + c.x + '" y="' + (c.y + PIN_R + 11) + '" text-anchor="middle">' + c.n + "</text>";
+      // minor 는 지우지 않고 낮춘다 — 작게·반투명·후광 없음. 라벨도 major 만 단다.
+      var mn = c.tier === "minor", r = mn ? MINOR_R : PIN_R;
+      var g = document.createElementNS(SVGNS, "g");
+      g.setAttribute("class", "pin" + (mn ? " minor" : "") + (dimmed(c) ? " dim" : "")); g.dataset.i = c._i;
+      g.innerHTML = (mn ? "" : '<circle class="halo" cx="' + c.x + '" cy="' + c.y + '" r="' + (PIN_R * 1.6) + '" fill="' + c._col + '"/>') +
+        '<circle class="core" cx="' + c.x + '" cy="' + c.y + '" r="' + r + '" fill="' + c._col + '"/>' +
+        (mn ? "" : '<text class="plabel" x="' + c.x + '" y="' + (c.y + PIN_R + 11) + '" text-anchor="middle">' + c.n + "</text>");
       (function (el, i) { el.addEventListener("mouseenter", function () { highlight(i, true); });
         el.addEventListener("click", function (e) { e.stopPropagation(); expand(i); }); })(g, c._i);
       pins.appendChild(g);
