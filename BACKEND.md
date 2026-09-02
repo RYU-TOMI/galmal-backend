@@ -462,6 +462,25 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - `tests/test_timeutil.py`의 `NaiveTodayDebtTest.KNOWN_DEBT`에 두 파일이 적혀 있다.
     **새 위반은 테스트가 막고**, 옮기면 목록에서 지우면 된다. 목록이 비면 테스트째 지운다.
 
+- **BB26. 지역 어휘가 두 개다 — `labels.REGION_NAME` vs `dests.REGION_NAME`.** (2026-09-02, BE4 T3에서 발견)
+  `labels`는 대양주를 **"미주·대양주"에 합치고** 괌을 **"국내·괌"에 넣는다.**
+  `dests`에는 `island`(휴양·섬)·`oc`(대양주)가 따로 있다. `CONTRACT.md`가 계약으로
+  들고 있는 enum은 **`dests` 쪽**이다.
+  - 지금 어긋나는 건 **GUM·SYD 둘뿐**이다. `region_of()`가 `REGION`에 있는 코드는
+    건드리지 않고 없는 것만 `dests`로 폴백하기 때문이다.
+  - **안 고친 이유**: `"국내·괌"`·`"미주·대양주"`는 **사용자가 보는 문자열**이라
+    `COPY.md` 소관이다. 통합하면 노선 페이지 브레드크럼 표시가 바뀐다 → 기획 판단.
+  - `tests/test_labels.py`의 `test_known_taxonomy_divergence_is_only_these_two`가
+    **새로 갈라지는 것만** 실패로 잡는다. 기획이 정하면 그 테스트를 지우면 된다.
+
+- **BB27. `build_site.py`에 죽은 코드가 있다.** (2026-09-02, BE4 T3에서 발견)
+  발견 홈으로 갈아타기 전 옛 사이트의 잔재다. **안 고쳤다** — 지우는 것 자체는
+  쉽지만 BE4 스코프 밖이고, 잘못 지우면 조용히 페이지가 비므로 따로 다룬다.
+  - `deal_card()` — 호출처 없음. 여기서만 쓰는 `sparkline()`도 사실상 죽었다.
+  - `mail_deal_rows()` · `mail_rows()` — 호출처 없음.
+  - `REGION_CHIPS` — import만 하고 안 쓴다.
+  - 지울 때 `charts.py`·`mail_deals` 테이블 사용처가 같이 비는지 확인할 것.
+
 ---
 
 ## 8. 다른 세션에서 받은 요청 / 보낼 것
