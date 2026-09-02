@@ -235,6 +235,20 @@
     var note = bar.querySelector(".allnote");
     if (on && !note) { note = document.createElement("span"); note.className = "allnote"; note.textContent = "전 지역에서 찾는 중"; bar.appendChild(note); }
   }
+  // ---- 카드 태그: "사진이 큰 자리에만, 사진 위에" (SPEC §CH2, 2026-09-01 확정) ----
+  // 표시 태그 = **하위 전부 + 상위 1개**(하위 없으면 상위 2개), 최대 4개.
+  // 개수를 고정하지 않는다 — 태그 개수가 곧 "즐길 게 얼마나 많은가"라는 신호다.
+  // 하위는 반드시 상위를 동반하므로 `야시장`을 보고 `미식` 필터를 눌러도 잡힌다.
+  var TAG_TOP = ["해변", "도시", "미식", "자연", "문화", "온천"];
+  function cardTags(tags) {
+    var sub = [], top = [], i;
+    for (i = 0; i < tags.length; i++) (TAG_TOP.indexOf(tags[i]) < 0 ? sub : top).push(tags[i]);
+    return (sub.length ? sub.concat(top.slice(0, 1)) : top.slice(0, 2)).slice(0, 4);
+  }
+  function ovTags(c) {
+    var t = cardTags(c.tags);
+    return t.length ? '<div class="phtags">' + t.map(function (x) { return '<span class="ovtag">' + x + "</span>"; }).join("") + "</div>" : "";
+  }
   var PIN_R = 6, MINOR_R = 2.5;   // major 지름 12px · minor 지름 5px (SPEC §CH1)
 
   // ---- 라벨 겹침 회피: 4방향 후보 + 실패 시 라벨만 생략 (SPEC §CH1, B3/B15) ----
@@ -355,12 +369,13 @@
       var hero = (c === heroCity);
       var card = document.createElement("div"); card.className = "fcard" + (hero ? " hero" : "") + (dimmed(c) ? " dim" : ""); card.dataset.i = c._i;
       card.innerHTML =
-        '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' : "") + "</div>" +
+        // 작은 썸네일(62px)엔 태그를 안 넣는다 — 사진이 태그를 담기엔 작다.
+        // 히어로(104px 전폭)에만 사진 위로 얹는다. 그래서 작은 카드가 세로를 20% 덜 먹는다.
+        '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c) : "") + "</div>" +
         '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b><span class="stamp">' + c.disc + "</span></div>" +
         '<div class="fprice"><small>₩</small>' + c.price + ' <span class="tilde">~</span></div>' +
         '<div class="fdate"><span class="when">' + c.when + "</span>" + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
         '<div class="fwhy">' + c.why + "</div>" +
-        '<div class="ftags">' + c.tags.map(function (t) { return '<span class="tag">' + t + "</span>"; }).join("") + "</div>" +
         (hero ? '<div class="gorow"><button class="go">갈래 → 자세히 보기</button></div>' : "") +
         "</div>";
       (function (el, i) { el.addEventListener("mouseenter", function () { highlight(i, false); });
@@ -448,12 +463,11 @@
     arc.getBoundingClientRect(); arc.style.transition = "stroke-dashoffset .42s ease"; arc.style.strokeDashoffset = 0;
   }
   function svgToClient(x, y) { var pt = svg.createSVGPoint(); pt.x = x; pt.y = y; return pt.matrixTransform(svg.getScreenCTM()); }
-  function photoHTML(c) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span><span class="cityname">' + c.n + "</span></div>"; }
+  function photoHTML(c) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span>' + ovTags(c) + '<span class="cityname">' + c.n + "</span></div>"; }
   function bodyTop(c) {
     return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span><span class="stamp">특가 ' + c.disc + "</span></div>" +
       '<div class="hc-date">' + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
-      '<div class="hc-why">' + c.why + "</div>" +
-      '<div class="hc-tags">' + c.tags.map(function (t) { return '<span class="tag">' + t + "</span>"; }).join("") + "</div>";
+      '<div class="hc-why">' + c.why + "</div>";
   }
   function priceCompare(c) {
     // 실데이터: 평소 시세(중앙값) 대비 발견가. 할인 없으면 생략.

@@ -41,7 +41,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
 .when{background:var(--accent);color:#fff;font-weight:800;font-size:.62rem;padding:2px 8px;border-radius:99px}
 .fwhy{font-size:.72rem;color:var(--sub);margin-top:5px;line-height:1.4}
-.ftags{display:flex;gap:4px;margin-top:7px}.tag{font-size:.6rem;background:var(--soft);border-radius:99px;padding:2px 7px;color:var(--sub);font-weight:700}
+/* 태그는 사진이 큰 자리에만 — 사진 위에 얹는다 (SPEC §CH2, design/density.html) */
+.phtags{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:3px;flex-wrap:wrap}
+.ovtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.5);border-radius:4px;padding:1px 6px;white-space:nowrap}
 .gorow{display:flex;gap:7px;margin-top:11px}
 .go{flex:1;background:var(--accent);color:#fff;border:0;font-weight:800;font-size:.8rem;border-radius:9px;padding:9px 0;cursor:pointer}
 /* 지도 무대 */
@@ -107,10 +109,11 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .hc-photo{height:92px;position:relative;background-size:cover;background-position:center}
 .hc-photo .cityname{position:absolute;left:10px;bottom:7px;color:#fff;font-weight:900;font-size:1.05rem;text-shadow:0 1px 6px #0009;letter-spacing:-.02em}
 .hc-photo .ph-tag{position:absolute;right:8px;top:8px;font-size:.54rem;color:#fff9;background:#0004;border-radius:5px;padding:1px 5px}
+/* 호버카드 사진은 아래에 도시명이 앉아 있다 → 태그를 위로 올린다(오른쪽 배지 폭만큼 비켜서) */
+.hc-photo .phtags{top:7px;bottom:auto;left:8px;right:62px}
 .hc-body{padding:9px 12px 11px}.hc-row{display:flex;align-items:baseline;justify-content:space-between}
 .hc-price{font-weight:900;font-size:1.22rem;color:var(--accent);letter-spacing:-.02em}.hc-price small{font-size:.7rem;font-weight:900}.hc-price .tilde{font-size:.7rem;color:var(--sub);font-weight:700}
 .hc-why{font-size:.64rem;color:var(--ink);opacity:.82;margin-top:2px;line-height:1.38}
-.hc-tags{display:flex;gap:4px;margin-top:7px}
 .hc-cta{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;font-size:.72rem;border-radius:8px;padding:7px 0}
 .hc-date{font-size:.66rem;color:var(--sub);font-weight:700;margin-top:3px}
 /* 확장(클릭) 상세 카드 */
