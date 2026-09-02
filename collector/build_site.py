@@ -324,9 +324,21 @@ def route_page(conn, origin, dest):
          "isPartOf": {"@type": "WebSite", "name": SITE_NAME, "url": f"{BASE_URL}/"}},
     ]
 
+    # 링크 미리보기 문구는 `<title>`과 다르다(`COPY.md` §2c). 카톡 말풍선은 이미 아는
+    # 사람이 친구에게 보내는 자리라 `· 시세 추이 | 갈래말래`가 붙으면 어색하다.
+    #
+    # 🔴 **가격을 넣지 않는다.** `인천 → 도쿄 14만원부터`가 훨씬 잘 눌리지만
+    # **카톡은 미리보기를 캐시한다** — 내일 값이 바뀌어도 말풍선은 어제 가격을 계속
+    # 보여주고, 들어가 보니 다른 가격이면 그게 우리가 가장 안 하기로 한 것이다.
+    # 본문에는 가격이 있다. 본문은 매일 다시 그려지고 캐시되지 않는다.
+    og_title = f"{label} 항공권, 지금 얼마?"
+    og_desc = (f"최근 30일 수집한 가격으로 본 {label} 왕복 시세. "
+               "언제 가면 싼지 월·요일별로 비교했습니다.")
+
     (DOCS / "routes").mkdir(parents=True, exist_ok=True)
     (DOCS / "routes" / f"{code}.html").write_text(
-        page(title, desc, f"/routes/{code}.html", body, jsonld=structured),
+        page(title, desc, f"/routes/{code}.html", body, jsonld=structured,
+             og_title=og_title, og_description=og_desc),
         encoding="utf-8")
     return code, cheapest
 

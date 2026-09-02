@@ -43,7 +43,7 @@ def structured(html):
 
 
 def visible_crumb(html):
-    """화면의 `특가 피드 › 일본 › 인천 → 도쿄`를 단계 목록으로."""
+    """화면의 `발견 › 일본 › 인천 → 도쿄`를 단계 목록으로."""
     m = CRUMB_RE.search(html)
     if not m:
         return None
@@ -136,6 +136,68 @@ class RoutePageStructuredDataTest(unittest.TestCase):
             with self.subTest(page=name):
                 for raw in JSONLD_RE.findall(html):
                     self.assertNotIn("</script>", raw)
+
+
+PRICE_RE = re.compile(r"\d{1,3}(?:,\d{3})+\s*원")
+META_RE = re.compile(r'<meta (?:property|name)="([^"]+)" content="([^"]*)"')
+
+
+class LinkPreviewTest(unittest.TestCase):
+    """카톡 말풍선에 들어갈 문구 (`COPY.md` §2c).
+
+    🔴 **가격을 넣지 않는다.** `인천 → 도쿄 14만원부터`가 훨씬 잘 눌리지만
+    **카톡은 미리보기를 캐시한다.** 내일 값이 바뀌어도 말풍선은 어제 가격을 계속
+    보여주고, 들어가 보니 다른 가격이면 그건 우리가 가장 안 하기로 한 것이다.
+
+    본문에는 가격이 있다 — 본문은 매일 다시 그려지고 캐시되지 않는다.
+    **캐시되는 자리와 안 되는 자리에 같은 규칙을 쓰면 안 된다**는 게 요지고,
+    이 테스트는 그 경계를 지킨다. 누군가 "전환율 높이자"며 넣으면 여기서 걸린다.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pages = {p.name: p.read_text(encoding="utf-8") for p in route_pages()}
+        if not cls.pages:
+            raise unittest.SkipTest("노선 페이지가 아직 생성되지 않았다")
+
+    @staticmethod
+    def meta(html):
+        return dict(META_RE.findall(html))
+
+    def test_preview_text_never_carries_a_price(self):
+        """캐시되는 자리에 오늘 가격을 박으면 내일 거짓말이 된다."""
+        for name, html in self.pages.items():
+            m = self.meta(html)
+            for key in ("og:title", "og:description"):
+                with self.subTest(page=name, key=key):
+                    self.assertNotRegex(m[key], PRICE_RE,
+                                        f"{name} {key}에 가격이 들어갔다: {m[key]!r}")
+
+    def test_body_still_shows_the_price(self):
+        """반대로 본문에는 있어야 한다 — 없애자는 얘기가 아니다."""
+        for name, html in self.pages.items():
+            with self.subTest(page=name):
+                body = html.split("<body>", 1)[-1]
+                self.assertRegex(body, PRICE_RE, f"{name} 본문에 가격이 없다")
+
+    def test_og_title_is_not_the_search_title(self):
+        """`<title>`은 검색 결과, `og:title`은 말풍선 — 자리가 다르면 문구도 다르다."""
+        for name, html in self.pages.items():
+            with self.subTest(page=name):
+                m = self.meta(html)
+                title = re.search(r"<title>([^<]*)</title>", html).group(1)
+                self.assertNotEqual(m["og:title"], title)
+                self.assertNotIn("| 갈래말래", m["og:title"],
+                                 "og:site_name이 이미 그 일을 한다")
+
+    def test_preview_image_is_an_absolute_url(self):
+        """상대 경로면 카톡 크롤러가 못 읽어 미리보기가 백지가 된다."""
+        for name, html in self.pages.items():
+            with self.subTest(page=name):
+                m = self.meta(html)
+                self.assertTrue(m["og:image"].startswith("https://"))
+                self.assertTrue(m["og:image"].endswith(".png"))
+                self.assertEqual(m["twitter:card"], "summary_large_image")
 
 
 if __name__ == "__main__":
