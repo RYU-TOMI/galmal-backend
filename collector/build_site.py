@@ -11,7 +11,7 @@ import html
 import os
 import sys
 import urllib.parse
-from datetime import date, datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -19,6 +19,7 @@ import json
 
 import config
 import db
+import timeutil
 from affiliates import booking_link
 from charts import bar_chart, line_chart
 from detect_deals import IS_DIRECT_SQL, compute_deals
@@ -29,13 +30,12 @@ from labels import (REGION_CHIPS, REGION_NAME, SQL_WEEKDAY, airline_name, city,
 from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
-KST = timezone(timedelta(hours=9))
 
 
 # ---------------------------------------------------------------- 데이터 조회
 
 def daily_min(conn, origin, dest, days=30, direct_only=None):
-    since = (date.today() - timedelta(days=days)).isoformat()
+    since = (timeutil.today_utc() - timedelta(days=days)).isoformat()
     cond = ""
     if direct_only is True:
         cond = f"AND {IS_DIRECT_SQL}"
@@ -74,12 +74,13 @@ def airline_min(conn, origin, dest):
         """SELECT airline, MIN(price), COUNT(*) FROM offers
            WHERE origin=? AND destination=? AND fetched_date>=?
            GROUP BY airline ORDER BY MIN(price) LIMIT 8""",
-        (origin, dest, (date.today() - timedelta(days=30)).isoformat())).fetchall()
+        (origin, dest,
+         (timeutil.today_utc() - timedelta(days=30)).isoformat())).fetchall()
 
 
 def route_summary(conn, origin, dest):
     """(최저가, 중앙값, 표본수) — 최근 30일 전체."""
-    since = (date.today() - timedelta(days=30)).isoformat()
+    since = (timeutil.today_utc() - timedelta(days=30)).isoformat()
     prices = [p for (p,) in conn.execute(
         "SELECT price FROM offers WHERE origin=? AND destination=? AND fetched_date>=? ORDER BY price",
         (origin, dest, since))]
@@ -336,7 +337,9 @@ def build_index(conn, route_index):
 # ---------------------------------------------------------------- SEO 파일
 
 def build_seo(route_index):
-    today = date.today().isoformat()
+    # 크롤러가 읽는 기계용 날짜다. `fetched_date`와 같은 기준(UTC)으로 찍어야
+    # 로컬 재빌드와 크론이 서로 다른 lastmod를 남기지 않는다(BB17).
+    today = timeutil.today_utc().isoformat()
     urls = [(f"{BASE_URL}/", "daily", "1.0")]
     urls += [(f"{BASE_URL}/routes/{code}.html", "daily", "0.8") for code, _ in route_index]
     entries = "\n".join(
