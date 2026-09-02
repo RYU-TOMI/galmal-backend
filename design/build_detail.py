@@ -219,7 +219,7 @@ def detail_card(d, close=True):
     bdg = '<span class="bdg">&#9992; 직항</span>' if direct(d) else ""
     med = d.get("median") or int(d["price"] * 1.25)
     ratio = min(1.0, d["price"] / float(med)) if med else 1.0
-    links = (d.get("links") or [])[:3]
+    links = (d.get("links") or [])
     lnk = "".join('<div class="lnk"><span>%s</span><span class="p">%s원</span></div>'
                   % (l.get("name", "예약처"), money(l.get("price", d["price"])))
                   for l in links) or ('<div class="lnk"><span>비교 사이트</span>'
