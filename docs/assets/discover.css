@@ -172,4 +172,6 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .cmp{display:flex;align-items:center;gap:8px;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;text-decoration:none;background:#fff;transition:border-color .12s,transform .1s}
 .cmp:hover{border-color:var(--accent);transform:translateY(-1px)}
 .cmp-name{font-weight:800;font-size:.86rem;color:var(--ink)}
+/* 고지이지 강조가 아니다 — 작고 흐리게. 눈에 띄게 만들면 그게 강조가 된다 (COPY.md) */
+.cmp-ad{font-weight:600;font-size:.64rem;color:var(--sub);opacity:.75;letter-spacing:-.01em}
 .cmp-go{margin-left:auto;font-size:.72rem;font-weight:800;color:var(--accent);white-space:nowrap}
