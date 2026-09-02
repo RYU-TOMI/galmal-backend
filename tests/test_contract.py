@@ -280,11 +280,15 @@ def validate(payload, vocab, parent=None, fields=None):
             errs.append(f"{at}.links 개수가 3~5가 아니다: {shown}")
         else:
             for j, ln in enumerate(links):
-                if not isinstance(ln, dict) or set(ln) != {"name", "tag", "url"}:
+                if not isinstance(ln, dict) or set(ln) != {"name", "tag", "ad", "url"}:
                     errs.append(f"{at}.links[{j}] 구조가 다르다: {ln!r}")
                     continue
                 if not (ln["name"] and ln["tag"]):
                     errs.append(f"{at}.links[{j}] name/tag가 비었다")
+                # `ad`는 화면의 "(광고)" 고지를 켜는 값이다(법적 의무).
+                # 참/거짓이 아닌 값이 새면 프론트의 `=== true` 판정이 조용히 어긋난다.
+                if not isinstance(ln["ad"], bool):
+                    errs.append(f"{at}.links[{j}].ad가 boolean이 아니다: {ln['ad']!r}")
                 if not str(ln["url"]).startswith("https://"):
                     errs.append(f"{at}.links[{j}].url이 https가 아니다: {ln['url']!r}")
 
