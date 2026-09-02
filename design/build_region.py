@@ -28,8 +28,9 @@ SW, SH = 900, 560
 LON0, LAT0 = 142.9, 0.0
 K0 = 174 * (SW / 1000.0)          # far 배율을 목업 크기로
 
-KO = {"eu": "유럽", "am": "미주", "oc": "오세아니아",
-      "sea": "동남아", "cn": "중국", "jp": "일본", "island": "섬", "etc": "그 외"}
+# 표시명은 COPY.md §2b가 정본이다. 여기서 이름을 지어내지 않는다.
+KO = {"eu": "유럽", "am": "미주", "oc": "대양주", "dom": "국내",
+      "sea": "동남아", "cn": "중화권", "jp": "일본", "island": "섬", "etc": "그 외"}
 # 「아주 멀리」에서 고를 수 있는 것 — 장거리만
 PICK = ["eu", "am", "oc"]
 
@@ -43,15 +44,25 @@ for d in SEL:
     d["_x"], d["_y"] = px(d["lon"], d["lat"])
 OX, OY = px(ORG["lon"], ORG["lat"])
 
-# ── 지역 bbox (딜 좌표에서, 여유 8도) ─────────────────────────
+# ── 대륙 경계 (고정) ──────────────────────────────────────────
+# 처음엔 딜 좌표 bbox +8도로 잡았다 → **대륙이 뭉텅이로 빠졌다.**
+#   오세아니아 딜은 lon 145~177(시드니·오클랜드)라 bbox가 137~185가 되고,
+#   호주 본토 중심이 lon 134라 **호주가 통째로 빠졌다.**
+#   미주도 마찬가지로 캐나다(중심 위도 60)가 빠졌다.
+# 호버는 "대륙 모양"이어야 하므로 딜이 아니라 **대륙 자체**로 경계를 잡는다.
+#
+# am을 북미로 끊은 이유: 이 투영의 이음매가 lon -37.1(대서양)이라
+# 남미 동해안이 잘린다. 미주 딜 6곳은 전부 북미(위도 34~49)라
+# 남미를 넣을 이유가 없다. 남미는 회색(rest)으로 남는다.
+CONT = {
+    "eu": (-25, 34, 50, 72),      # 유럽 + 튀르키예
+    "am": (-170, 8, -55, 72),     # 북미 (남미는 이음매에 걸려 제외)
+    "oc": (110, -50, 180, -5),    # 호주 · 뉴질랜드 · 남태평양
+}
+
 reg_deals = collections.defaultdict(list)
 for d in SEL:
     reg_deals[d.get("region", "?")].append(d)
-
-BBOX = {}
-for k, v in reg_deals.items():
-    lo = [d["lon"] for d in v]; la = [d["lat"] for d in v]
-    BBOX[k] = (min(lo) - 8, min(la) - 8, max(lo) + 8, max(la) + 8)
 
 
 def centroid(geom):
@@ -74,10 +85,10 @@ def centroid(geom):
 
 
 def region_of(c):
-    """중심이 어느 지역 bbox에 드는가. 겹치면 중심이 더 가까운 쪽."""
+    """중심이 어느 대륙 경계에 드는가. 겹치면 중심이 더 가까운 쪽."""
     best, bestd = None, 1e9
     for k in PICK:
-        b = BBOX.get(k)
+        b = CONT.get(k)
         if not b:
             continue
         if b[0] <= c[0] <= b[2] and b[1] <= c[1] <= b[3]:
@@ -206,26 +217,26 @@ svg.map path{fill:var(--land);stroke:#33534f22;stroke-width:.6;
 svg.map g.reg{cursor:pointer}
 svg.map g.reg:hover path,svg.map g.reg.on path{fill:#F6C3B2;stroke:#F2603F88;stroke-width:1}
 .pinlayer{position:absolute;inset:0;pointer-events:none}
-.pin{position:absolute;border-radius:99px;background:var(--accent);
+.rpin{position:absolute;border-radius:99px;background:var(--accent);
  transition:left .62s cubic-bezier(.22,.61,.36,1),top .62s cubic-bezier(.22,.61,.36,1),
  width .3s,height .3s,margin .3s,opacity .3s}
-.pin.maj{width:11px;height:11px;margin:-5.5px 0 0 -5.5px;box-shadow:0 0 0 3px rgba(242,96,63,.18)}
-.pin.min{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;opacity:.5}
-.pin.org{background:var(--coast);width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
+.rpin.maj{width:11px;height:11px;margin:-5.5px 0 0 -5.5px;box-shadow:0 0 0 3px rgba(242,96,63,.18)}
+.rpin.min{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;opacity:.5}
+.rpin.org{background:var(--coast);width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
  box-shadow:0 0 0 4px rgba(46,125,116,.2)}
-.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+.rplab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
  background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;
  opacity:0;transition:opacity .3s .2s,left .62s cubic-bezier(.22,.61,.36,1),top .62s cubic-bezier(.22,.61,.36,1)}
-.plab.on{opacity:1}
-.bar{position:absolute;left:14px;top:14px;display:flex;gap:6px;z-index:9}
-.bar2{position:absolute;left:14px;top:52px;display:flex;gap:6px;z-index:9}
-.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+.rplab.on{opacity:1}
+.rbar{position:absolute;left:14px;top:14px;display:flex;gap:6px;z-index:9}
+.rbar2{position:absolute;left:14px;top:52px;display:flex;gap:6px;z-index:9}
+.rpill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
  font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;cursor:pointer;
  white-space:nowrap;transition:background .16s,color .16s,border-color .16s}
-.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.pill.sub{border-color:#F2603F55;color:var(--accent);background:#FFF6F3}
-.pill.sub.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pill .n{font-size:.62rem;opacity:.6;margin-left:5px;font-weight:700}
+.rpill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.rpill.sub{border-color:#F2603F55;color:var(--accent);background:#FFF6F3}
+.rpill.sub.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rpill .n{font-size:.62rem;opacity:.6;margin-left:5px;font-weight:700}
 .hint{position:absolute;right:14px;bottom:14px;background:#fffffff2;border:1px solid var(--line);
  border-radius:9px;padding:7px 12px;font-size:.7rem;font-weight:700;color:var(--sub);z-index:9}
 table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
@@ -246,13 +257,20 @@ for k in PICK:
                 + "".join('<path d="%s"/>' % d for d in groups[k]) + '</g>')
 svg += '</g></svg>'
 
-BAR = ('<div class="bar"><span class="pill" id="back">가까운 곳</span>'
-       '<span class="pill">조금 더 멀리</span>'
-       '<span class="pill on" id="far">아주 멀리</span></div>')
-BAR2 = '<div class="bar2">' + "".join(
-    '<span class="pill sub" data-go="%s">%s<span class="n">%d</span></span>'
+BAR = ('<div class="rbar"><span class="rpill" id="back">가까운 곳</span>'
+       '<span class="rpill">조금 더 멀리</span>'
+       '<span class="rpill on" id="far">아주 멀리</span></div>')
+# 대륙 셋에 안 담기는 장거리 딜 — 두바이·콜롬보(etc) · 호놀룰루·사이판(island)
+REST4 = [d for d in SEL if d["haul"] == "long" and d.get("region") in ("etc", "island")]
+
+BAR2 = ('<div class="rbar2">' + "".join(
+    '<span class="rpill sub" data-go="%s">%s<span class="n">%d</span></span>'
     % (k, KO[k], len([d for d in SEL if d.get("region") == k and d["haul"] == "long"]))
-    for k in PICK if k in AFF) + '</div>'
+    for k in PICK if k in AFF)
+    # 21건은 고를 수 있는데 4건만 못 고르면 막다른 길이 된다(SPEC §CH1).
+    # 가리킬 한 곳이 없으므로 이 칩만 **지도를 안 움직인다.**
+    + '<span class="rpill sub" data-go="rest4">그 외<span class="n">%d</span></span>' % len(REST4)
+    + '</div>')
 
 JS = """
 var AFF = __AFF__, PINS = __PINS__, SW = __SW__, SH = __SH__;
@@ -261,35 +279,43 @@ var cur = null;
 
 PINS.forEach(function (p, i) {
   var el = document.createElement('span');
-  el.className = 'pin ' + (p.t === 'major' ? 'maj' : 'min');
+  el.className = 'rpin ' + (p.t === 'major' ? 'maj' : 'min');
   el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
   el.dataset.i = i; layer.appendChild(el); p.el = el;
   var lb = document.createElement('span');
-  lb.className = 'plab'; lb.textContent = p.ko;
+  lb.className = 'rplab'; lb.textContent = p.ko;
   lb.style.left = p.x + 'px'; lb.style.top = p.y + 'px';
   layer.appendChild(lb); p.lb = lb;
 });
 var og = document.createElement('span');
-og.className = 'pin org';
+og.className = 'rpin org';
 og.style.left = __OX__ + 'px'; og.style.top = __OY__ + 'px';
 layer.appendChild(og);
 
+function inRegion(p, r) {
+  if (!r) return true;
+  // 「그 외」는 대륙이 아니라 남은 장거리 딜 묶음이다.
+  if (r === 'rest4') return p.haul === 'long' && (p.r === 'etc' || p.r === 'island');
+  return p.r === r;
+}
+
 function apply(r) {
   cur = r;
-  var a = r ? AFF[r] : [1, 0, 0, 0];
+  // 「그 외」에는 확대할 대상이 없다 — 넷을 다 담으면 결국 전 지구다.
+  var a = (r && AFF[r]) ? AFF[r] : [1, 0, 0, 0];
   zoom.style.transform = 'translate(' + a[1] + 'px,' + a[2] + 'px) scale(' + a[0] + ')';
-  og.style.opacity = r ? 0 : 1;
   PINS.forEach(function (p) {
     var x = a[0] * p.x + a[1], y = a[0] * p.y + a[2];
     p.el.style.left = x + 'px'; p.el.style.top = y + 'px';
     p.lb.style.left = x + 'px'; p.lb.style.top = y + 'px';
-    var inreg = !r || p.r === r;
+    var inreg = inRegion(p, r);
     p.el.style.opacity = inreg ? (p.t === 'major' ? 1 : .5) : .12;
-    p.lb.classList.toggle('on', !!r && p.r === r);
+    p.lb.classList.toggle('on', !!r && inreg);
   });
   document.querySelectorAll('.reg').forEach(function (g) {
     g.classList.toggle('on', g.dataset.r === r);
   });
+  og.style.opacity = (r && r !== 'rest4') ? 0 : 1;
   document.querySelectorAll('[data-go]').forEach(function (b) {
     b.classList.toggle('on', b.dataset.go === r);
   });
