@@ -125,20 +125,33 @@ def naver_link(origin, dest, depart_date, return_date=None):
 
 
 def compare_links(origin, dest, depart_date, return_date=None):
-    """예약처 비교 목록 [{name, url, tag}] — 한국어 메타/OTA 우선.
+    """예약처 비교 목록 [{name, tag, ad, url}] — 한국어 메타/OTA 우선.
     Aviasales(영어)는 수수료 마커(TP_MARKER)가 있을 때만 = 실제로 수익 날 때만 노출.
-    한국인 전용 사이트라 마커 없으면 영어 예약처는 숨긴다."""
+    한국인 전용 사이트라 마커 없으면 영어 예약처는 숨긴다.
+
+    `ad` — **이 링크로 예약하면 우리에게 수수료가 오는가.** 화면의 "(광고)" 고지가
+    이 값으로 결정된다(프론트 요청 2026-09-02, 정보통신망법·공정위 고지 의무).
+
+    왜 필드로 주나: 프론트가 이름("Aviasales")·순서(맨 뒤)·URL 모양("marker=")으로
+    추측하면 **제휴 구성이 바뀌는 날 조용히 틀려진다.** 판정을 아는 건 여기뿐이므로
+    여기서 단언한다. 이 저장소는 같은 실수를 이미 두 번 했다(`d`가 공항 코드인 줄
+    알았던 것, `MAX_AGE_DAYS`가 일 단위인 줄 알았던 것).
+
+    **Trip.com도 승인되면 수수료가 붙는다.** `_trip_configured()`가 참이면
+    `trip_link()`가 tp.media 래퍼로 감싸므로 그때부터 제휴 링크다. Aviasales만
+    하드코딩하지 않는 이유가 이것이다 — 승인되는 날 고지가 저절로 따라붙는다.
+    """
     links = [
-        {"name": "스카이스캐너", "tag": "전체 비교",
+        {"name": "스카이스캐너", "tag": "전체 비교", "ad": False,
          "url": skyscanner_link(origin, dest, depart_date, return_date)},
-        {"name": "네이버 항공권", "tag": "한국 인기",
+        {"name": "네이버 항공권", "tag": "한국 인기", "ad": False,
          "url": naver_link(origin, dest, depart_date, return_date)},
-        {"name": "구글 항공권", "tag": "중립",
+        {"name": "구글 항공권", "tag": "중립", "ad": False,
          "url": google_flights_link(origin, dest, depart_date, return_date)},
-        {"name": "Trip.com", "tag": "한국어",
+        {"name": "Trip.com", "tag": "한국어", "ad": _trip_configured(),
          "url": trip_link(origin, dest, depart_date, return_date)},
     ]
     if _env("TP_MARKER"):
-        links.append({"name": "Aviasales", "tag": "영어·수수료",
+        links.append({"name": "Aviasales", "tag": "영어·수수료", "ad": True,
                       "url": aviasales_link(origin, dest, depart_date, return_date)})
     return links

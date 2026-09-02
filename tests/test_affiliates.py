@@ -143,10 +143,11 @@ class CompareLinksTest(unittest.TestCase):
             return compare_links("ICN", "FUK", DEP, RET)
 
     def test_shape_matches_the_contract(self):
-        """각 원소는 name·tag·url 세 키를 갖는다."""
+        """각 원소는 name·tag·ad·url 네 키를 갖는다(`ad`는 2026-09-02 추가)."""
         for link in self.links():
-            self.assertEqual(set(link), {"name", "tag", "url"})
+            self.assertEqual(set(link), {"name", "tag", "ad", "url"})
             self.assertTrue(link["name"] and link["tag"])
+            self.assertIsInstance(link["ad"], bool)
             self.assertTrue(link["url"].startswith("https://"))
 
     def test_korean_shops_only_without_a_marker(self):
@@ -163,6 +164,63 @@ class CompareLinksTest(unittest.TestCase):
         """순서 = 화면 노출 순서(`CONTRACT.md`). 스카이스캐너가 항상 처음."""
         self.assertEqual(self.links()[0]["name"], "스카이스캐너")
         self.assertEqual(self.links({"TP_MARKER": "1"})[0]["name"], "스카이스캐너")
+
+
+class AdFlagTest(unittest.TestCase):
+    """`ad` — 화면의 "(광고)" 고지가 붙는 근거 (프론트 요청 2026-09-02).
+
+    고지는 법적 의무다(정보통신망법·공정위 — `CLAUDE.md`). 프론트가 이름·순서·
+    URL 모양으로 추측하면 제휴 구성이 바뀌는 날 **조용히** 틀려지므로, 판정을
+    아는 백엔드가 단언한다. 여기서 지키는 건 **선언과 실제가 갈리지 않는 것**이다.
+    """
+
+    def links(self, env=None):
+        with isolated(env):
+            return compare_links("ICN", "FUK", DEP, RET)
+
+    @staticmethod
+    def earns(url):
+        """URL이 실제로 수수료를 추적하는가 — 마커 또는 tp.media 래퍼."""
+        return "marker=" in url or url.startswith("https://tp.media/")
+
+    def test_ad_is_true_exactly_when_the_url_earns(self):
+        """선언(`ad`)과 실제(URL)가 어긋나면 고지가 거짓말이 된다.
+
+        URL 빌더만 고치고 `ad`를 안 고치는 실수를 여기서 잡는다. 이게 이 파일에서
+        가장 중요한 단언이다 — 나머지는 이 불변식의 특수한 경우일 뿐이다.
+        """
+        for env in (None, {"TP_MARKER": "12345"}, dict(TRIP_ENV)):
+            for link in self.links(env):
+                with self.subTest(env=env, name=link["name"]):
+                    self.assertEqual(link["ad"], self.earns(link["url"]))
+
+    def test_nothing_is_an_ad_without_affiliate_config(self):
+        """제휴 설정이 하나도 없으면 (광고)가 붙을 링크도 없다."""
+        self.assertEqual([x["name"] for x in self.links() if x["ad"]], [])
+
+    def test_aviasales_is_the_only_ad_with_just_a_marker(self):
+        """내일 크론의 상태 — 마커만 있고 Trip.com은 미승인."""
+        ads = [x["name"] for x in self.links({"TP_MARKER": "12345"}) if x["ad"]]
+        self.assertEqual(ads, ["Aviasales"])
+
+    def test_trip_becomes_an_ad_once_approved(self):
+        """Trip.com 승인 시 tp.media 래퍼가 붙어 그때부터 제휴 링크가 된다.
+
+        Aviasales만 하드코딩했다면 승인되는 날 고지가 조용히 빠졌을 것이다.
+        `ad`를 `_trip_configured()`로 계산하는 이유가 이것이다.
+        """
+        before = {x["name"]: x["ad"] for x in self.links()}
+        after = {x["name"]: x["ad"] for x in self.links(dict(TRIP_ENV))}
+        self.assertFalse(before["Trip.com"])
+        self.assertTrue(after["Trip.com"])
+
+    def test_neutral_shops_are_never_ads(self):
+        """우리가 수수료를 안 받는 곳에 (광고)가 뜨면 그것도 거짓 고지다."""
+        for env in (None, {"TP_MARKER": "12345"}, dict(TRIP_ENV)):
+            flags = {x["name"]: x["ad"] for x in self.links(env)}
+            for name in ("스카이스캐너", "네이버 항공권", "구글 항공권"):
+                with self.subTest(env=env, name=name):
+                    self.assertFalse(flags[name])
 
 
 if __name__ == "__main__":
