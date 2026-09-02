@@ -10,6 +10,16 @@ import json
 BASE_URL = "https://ryu-tomi.github.io/promo-ticket-site"
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SITE_NAME = "갈래말래"
+
+# 링크 미리보기(카카오톡·슬랙·X) 썸네일. **절대 URL이어야 한다** — 상대 경로면
+# 크롤러가 못 읽어 미리보기가 백지가 된다. 한국에서 링크는 카톡으로 도니 유입에
+# 직접 영향이 있다.
+#
+# 노선별로 다르게 굽지 않는다. OG는 래스터(PNG)여야 하는데 Pillow도 Node도 없고,
+# 넣으면 "런타임 의존 0 / Node 금지"와 부딪힌다(`CLAUDE.md`). 정적 1장으로 간다.
+# 원본과 재생성 스크립트는 기획 구역이다 — `design/og.png` · `python design/build_og.py`.
+# 크론은 `build_site.py`만 부르므로 이 파일은 빌드 의존이 아니다.
+OG_IMAGE = BASE_URL + "/assets/og.png"
 ACCENT = "#F2603F"
 
 # 로고 항적/비행기 기하 (DESIGN.md). "말래" 밑 페이드 비행운 + 접힌 종이비행기.
@@ -286,6 +296,11 @@ def page(title, description, canonical_path, body, extra_script="", jsonld=None)
 <meta property="og:description" content="{description}">
 <meta property="og:url" content="{url}">
 <meta property="og:locale" content="ko_KR">
+<meta property="og:image" content="{OG_IMAGE}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{SITE_NAME} — 어디, 갈까? 세계 지도에 오늘 싼 여행지가 찍혀 있다">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>{CSS}</style>

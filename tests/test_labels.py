@@ -5,11 +5,14 @@
 있어서 노선 페이지 제목이 `"PUS → 도쿄"`로 나갔다(2026-09-01, 부산 노선 추가 때).
 이 프로젝트에서 반복해 만난 "같은 사실이 두 곳에 있으면 갈라진다"의 또 다른 사례다.
 """
+import re
 import unittest
+from pathlib import Path
 
 import config
 import dests
-from labels import CITY, REGION, REGION_NAME, city, region_of
+from dests import REGION_NAME
+from labels import CITY, city, region_of
 
 
 class CityNameTest(unittest.TestCase):
@@ -54,44 +57,60 @@ class CityNameTest(unittest.TestCase):
 
 
 class RegionTest(unittest.TestCase):
-    """지역도 같은 지식이 두 곳에 있다 — `labels.REGION`과 `dests.DEST[..][2]`.
+    """지역 이름의 정본은 `COPY.md` §2b다 (BB26).
 
-    `REGION`은 초기 26개 노선만 담고 있어서 목적지를 넓힐 때마다 조용히 `"etc"`로
-    떨어졌다. 2026-09-02 기준 89곳 중 59곳이 어긋났고, 노선 페이지 브레드크럼에
-    **`부산 → 상하이`가 "기타"로** 나가고 있었다. 이제 JSON-LD로 검색엔진에도
-    나가므로 조용히 틀리면 더 나쁘다.
+    예전엔 `labels.REGION`·`labels.REGION_NAME`·`dests.REGION_NAME` 셋이 각자
+    지역을 알고 있었다. `labels.REGION`은 초기 26개 노선만 담아 목적지를 넓힐
+    때마다 조용히 `"etc"`로 떨어졌고(89곳 중 59곳 불일치), 어휘까지 갈라져
+    **괌이 지도에서는 "휴양·섬", 노선 페이지에서는 "국내·괌"** 이었다.
+
+    근본 원인은 **표시명 표가 어느 문서에도 없었던 것**이다. 문서에 없으니 코드
+    두 곳이 각자 이름을 지어냈다. 이제 `COPY.md` §2b가 정본이고, 여기서 그
+    표와 코드를 대조한다 — `TAGS.md` 배정표를 대조하는 것과 같은 방식이다.
     """
 
-    def test_route_destinations_are_not_dumped_into_etc(self):
-        """노선 페이지가 생기는 목적지는 `dests`가 아는 지역으로 나와야 한다."""
-        wrong = sorted(
-            f"{o}-{d}: {region_of(d)} != {dests.DEST[d][2]}"
-            for o, d in config.ROUTES
-            if dests.is_destination(d)
-            and region_of(d) == "etc" and dests.DEST[d][2] != "etc")
-        self.assertEqual(wrong, [], f"지역이 '기타'로 떨어진 노선: {wrong}")
+    COPY_MD = Path(__file__).resolve().parent.parent / "COPY.md"
+    ROW_RE = re.compile(r"^\|\s*`([a-z]+)`\s*\|\s*\*\*([^*]+)\*\*\s*\|", re.M)
 
-    def test_region_name_covers_everything_region_of_can_return(self):
-        """`build_site`가 `REGION_NAME[region_of(dest)]`로 **직접 인덱싱**한다.
+    @classmethod
+    def copy_table(cls):
+        """`COPY.md` §2b의 코드 → 표시명."""
+        text = cls.COPY_MD.read_text(encoding="utf-8")
+        idx = text.find("지역 표시명")
+        if idx < 0:
+            return {}
+        return dict(cls.ROW_RE.findall(text[idx:idx + 1400]))
 
-        폴백이 `dests`의 키(`island`·`oc`)를 돌려줄 수 있으므로 여기 빠지면
-        노선 페이지 생성이 KeyError로 죽는다.
+    def test_display_names_match_the_copy_document(self):
+        """코드가 이름을 지어내면 실패한다. 이 파일의 존재 이유다."""
+        want = self.copy_table()
+        self.assertTrue(want, "COPY.md §2b 표를 읽지 못했다 — 표 형식 변경 의심")
+        self.assertEqual(REGION_NAME, want,
+                         "dests.REGION_NAME이 COPY.md §2b와 다르다")
+
+    def test_every_contract_region_has_a_name(self):
+        """`CONTRACT.md`가 약속한 코드 9종에 이름이 다 있어야 한다.
+
+        `build_site`가 `REGION_NAME[region_of(dest)]`로 **직접 인덱싱**하므로
+        하나라도 빠지면 노선 페이지 생성이 KeyError로 죽는다.
         """
-        produced = {region_of(d) for d in dests.DEST}
-        missing = sorted(produced - set(REGION_NAME))
-        self.assertEqual(missing, [], f"REGION_NAME에 없는 지역 코드: {missing}")
+        used = {v[2] for v in dests.DEST.values()} | {"etc"}
+        missing = sorted(used - set(REGION_NAME))
+        self.assertEqual(missing, [], f"이름 없는 지역 코드: {missing}")
 
-    def test_known_taxonomy_divergence_is_only_these_two(self):
-        """`REGION`에 있는 코드는 폴백이 안 걸리므로 두 사전이 계속 다르다.
+    def test_region_comes_only_from_the_destination_dictionary(self):
+        """`labels`가 자체 지역 사전을 다시 갖지 않는가 — 갈라짐의 원인이었다."""
+        import labels
+        for gone in ("REGION", "REGION_NAME", "REGION_CHIPS"):
+            with self.subTest(symbol=gone):
+                self.assertFalse(hasattr(labels, gone),
+                                 f"labels.{gone}이 되살아났다 — dests가 정본이다")
+        for code, entry in dests.DEST.items():
+            with self.subTest(code=code):
+                self.assertEqual(region_of(code), entry[2])
 
-        GUM(국내·괌 vs 휴양·섬) · SYD(미주·대양주 vs 대양주)는 **표시 문구 문제**라
-        기획이 정한다(BB26). 여기서 고정해 두면 새로 갈라지는 건 실패로 잡힌다.
-        """
-        diverged = sorted(
-            code for code in dests.DEST
-            if code in REGION and REGION[code] != dests.DEST[code][2])
-        self.assertEqual(diverged, ["GUM", "SYD"],
-                         f"알려진 것 말고 새로 갈라진 코드가 있다: {diverged}")
+    def test_unknown_destination_falls_back_to_etc(self):
+        self.assertEqual(region_of("ZZZ"), "etc")
 
 
 if __name__ == "__main__":
