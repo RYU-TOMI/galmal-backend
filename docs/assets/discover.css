@@ -59,7 +59,9 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .pin.minor:hover,.pin.minor.act{opacity:1}
 .pin.act .core{stroke-width:3;r:9}.pin.act .halo{opacity:.28}
 .plabel{font-size:13px;font-weight:800;fill:var(--ink);paint-order:stroke;stroke:var(--sea);stroke-width:3px;pointer-events:none}
-.plabel.minor{font-size:11px;font-weight:700;fill:#4a6a66}
+/* 4방향 후보가 다 막히면 라벨만 생략한다. 핀은 남는다. 활성 시에만 덮어 그린다 (SPEC §CH1) */
+.plabel.off{display:none}
+.pin.act .plabel.off{display:block}
 .stagebar{position:absolute;left:18px;bottom:18px;display:flex;gap:6px}
 /* 거리 단계 스테퍼 — 줌이 아니다. ＋=한 단계 멀리, －=한 단계 가까이 (SPEC §CH1) */
 .stepper{position:absolute;right:16px;top:16px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 4px 14px rgba(20,40,40,.12)}

@@ -190,6 +190,55 @@
   }
 
   var PIN_R = 6, MINOR_R = 2.5;   // major 지름 12px · minor 지름 5px (SPEC §CH1)
+
+  // ---- 라벨 겹침 회피: 4방향 후보 + 실패 시 라벨만 생략 (SPEC §CH1, B3/B15) ----
+  // 아래 한 자리만 쓰면 `도하`+`두바이`가 `도하바이`로 붙고 가장자리에서 `칭다오`가 `다오`로 잘렸다.
+  var LAB_FS = 13;
+  // 라벨 폭은 글자수 × 폰트크기 × 0.95 추정으로 충분하다(정밀 측정 불필요 — SPEC).
+  function labW(t) { return t.length * LAB_FS * 0.95; }
+  // 후보 4자리를 순서대로: 아래 → 위 → 오른쪽 → 왼쪽.
+  // 아래가 기본인 이유: 현행 동작이고, 핀 위쪽은 항로 곡선이 지나간다.
+  function labSpots(c) {
+    // 실측: 라벨은 paint-order stroke 3px 를 두르고 있어 getBBox 높이가 15.8 나온다(폰트 13).
+    // 높이를 13으로 잡으면 세로 겹침이 새어 나간다. 위로 뻗는 양은 글자 위쪽 + 외곽선 절반.
+    var w = labW(c.n), h = LAB_FS + 3, up = LAB_FS * 0.8 + 1.5, gap = PIN_R + 5;
+    return [
+      { x: c.x, y: c.y + PIN_R + 11, anchor: "middle", l: c.x - w / 2, t: c.y + PIN_R + 11 - up },
+      { x: c.x, y: c.y - gap,        anchor: "middle", l: c.x - w / 2, t: c.y - gap - up },
+      { x: c.x + gap, y: c.y + 4,    anchor: "start",  l: c.x + gap,   t: c.y + 4 - up },
+      { x: c.x - gap, y: c.y + 4,    anchor: "end",    l: c.x - gap - w, t: c.y + 4 - up }
+    ].map(function (s) { s.w = w; s.h = h; s.dx = s.x - c.x; s.dy = s.y - c.y; return s; });
+  }
+  // 사각형이 안 겹쳐도 여백이 0이면 두 단어가 한 단어처럼 읽힌다(`홍콩상하이`).
+  // 충돌 판정에 최소 간격을 준다 — 배치 실패(생략)가 조금 늘지만 읽히는 게 먼저다.
+  var LAB_GAP_X = 4, LAB_GAP_Y = 2;
+  function hits(a, b) {
+    return a.l - LAB_GAP_X < b.l + b.w && b.l - LAB_GAP_X < a.l + a.w &&
+           a.t - LAB_GAP_Y < b.t + b.h && b.t - LAB_GAP_Y < a.t + a.h;
+  }
+  function placeLabels(vis) {
+    var band = usableBand(),
+        x0 = W / 2 - band.vbW / 2, x1 = W / 2 + band.vbW / 2,
+        y0 = H / 2 - band.vbH / 2, y1 = H / 2 + band.vbH / 2;
+    var placed = [];
+    // 배치 순서 = 우선순위: major 먼저, 같은 등급이면 가격 낮은 순. 싼 딜이 우리가 파는 것이다.
+    var cands = vis.filter(function (c) { return c.tier !== "minor"; })
+                   .sort(function (a, b) { return num(a.price) - num(b.price); });
+    vis.forEach(function (c) { c._lab = null; });
+    cands.forEach(function (c) {
+      var spots = labSpots(c), i, s, j, ok;
+      for (i = 0; i < spots.length; i++) {
+        s = spots[i];
+        // 후보가 무대를 벗어나면 건너뛴다 ← 이것이 가장자리 클램프다.
+        if (s.l < x0 || s.l + s.w > x1 || s.t < y0 || s.t + s.h > y1) continue;
+        for (j = 0, ok = true; j < placed.length; j++) if (hits(s, placed[j])) { ok = false; break; }
+        if (ok) { c._lab = s; placed.push(s); return; }
+      }
+      // 넷 다 실패하면 라벨만 생략한다. 핀은 반드시 남는다 — 딜을 지우는 게 아니다.
+      // 자리는 기본 후보로 들고 있다가 활성(호버/선택) 시에만 덮어 그린다.
+      c._lab = spots[0]; c._lab.off = true;
+    });
+  }
   function render() {
     if (!ORIGIN) return;
     tweenId++; svg.classList.remove("tweening");  // 진행 중 트윈이 있으면 무효화
@@ -201,15 +250,18 @@
       '<text class="plabel org" x="' + O[0] + '" y="' + (O[1] - 13) + '" text-anchor="middle">' + ORIGIN.n + " 출발</text>";
     var vis = visibleCities(), colorOf = colorMaker(vis);
     vis.forEach(function (c) { var p = pt(c.lon, c.lat); c.x = p[0]; c.y = p[1]; c._col = colorOf(c.price); });
+    placeLabels(vis);
     pins.innerHTML = "";
     vis.forEach(function (c) {
       // minor 는 지우지 않고 낮춘다 — 작게·반투명·후광 없음. 라벨도 major 만 단다.
       var mn = c.tier === "minor", r = mn ? MINOR_R : PIN_R;
       var g = document.createElementNS(SVGNS, "g");
       g.setAttribute("class", "pin" + (mn ? " minor" : "") + (dimmed(c) ? " dim" : "")); g.dataset.i = c._i;
+      var L = c._lab;
       g.innerHTML = (mn ? "" : '<circle class="halo" cx="' + c.x + '" cy="' + c.y + '" r="' + (PIN_R * 1.6) + '" fill="' + c._col + '"/>') +
         '<circle class="core" cx="' + c.x + '" cy="' + c.y + '" r="' + r + '" fill="' + c._col + '"/>' +
-        (mn ? "" : '<text class="plabel" x="' + c.x + '" y="' + (c.y + PIN_R + 11) + '" text-anchor="middle">' + c.n + "</text>");
+        (L ? '<text class="plabel' + (L.off ? " off" : "") + '" x="' + L.x + '" y="' + L.y +
+             '" text-anchor="' + L.anchor + '">' + c.n + "</text>" : "");
       (function (el, i) { el.addEventListener("mouseenter", function () { highlight(i, true); });
         el.addEventListener("click", function (e) { e.stopPropagation(); expand(i); }); })(g, c._i);
       pins.appendChild(g);
@@ -272,7 +324,10 @@
       var kids = gs[i].childNodes;
       for (var j = 0; j < kids.length; j++) {
         if (kids[j].tagName === "circle") { kids[j].setAttribute("cx", p[0]); kids[j].setAttribute("cy", p[1]); }
-        else if (kids[j].tagName === "text") { kids[j].setAttribute("x", p[0]); kids[j].setAttribute("y", p[1] + PIN_R + 11); }
+        else if (kids[j].tagName === "text") {   // 배치된 자리를 유지한다 — 트윈이 라벨을 아래로 되돌리면 안 된다
+          var L = c._lab || { dx: 0, dy: PIN_R + 11 };
+          kids[j].setAttribute("x", p[0] + L.dx); kids[j].setAttribute("y", p[1] + L.dy);
+        }
       }
     }
   }
@@ -286,7 +341,9 @@
     // 안전장치 — rAF 가 안 도는 상황(탭 전환·백그라운드)에서도 반드시 목적지에서 끝낸다.
     // 없으면 라벨·항로가 숨겨진 채 출발점에 멈춰 있게 된다.
     var guard = setTimeout(function () { if (id === tweenId) finish(); }, ms + 200);
-    function finish() { clearTimeout(guard); moveOnly(to); svg.classList.remove("tweening"); }
+    // 끝낼 때 tweenId 를 올려 **이미 예약된 rAF 를 무효화**한다. 안 하면 안전장치가 목적지에
+    // 안착시킨 뒤 뒤늦게 도착한 프레임이 지도를 중간 위치로 되돌린다(실측: 배율 182 → 380).
+    function finish() { clearTimeout(guard); tweenId++; moveOnly(to); svg.classList.remove("tweening"); }
     function step(now) {
       if (id !== tweenId) { clearTimeout(guard); return; }   // 새 트윈이 가로챘다 — 큐에 쌓지 않는다
       if (!t0) t0 = now;
@@ -302,7 +359,13 @@
   // ---- 항로 + 플로팅/확장 카드 ----
   function cityByI(i) { for (var k = 0; k < CITY.length; k++) if (CITY[k]._i === i && CITY[k].x != null) return CITY[k]; return CITY[i]; }
   function paintActive() {
-    var ps = document.querySelectorAll(".pin"); for (var k = 0; k < ps.length; k++) ps[k].classList.toggle("act", +ps[k].dataset.i === active);
+    var ps = document.querySelectorAll(".pin"), act = null;
+    for (var k = 0; k < ps.length; k++) {
+      var on = +ps[k].dataset.i === active;
+      ps[k].classList.toggle("act", on); if (on) act = ps[k];
+    }
+    // 활성 핀은 맨 뒤로 옮겨 그 위에 덮어 그린다. 다른 라벨을 흐트러뜨리지 않는다(재배치 없음).
+    if (act && act.nextSibling) pins.appendChild(act);
     var cs = document.querySelectorAll(".fcard"); for (var j = 0; j < cs.length; j++) cs[j].classList.toggle("on", +cs[j].dataset.i === active);
   }
   function drawArc(c) {
