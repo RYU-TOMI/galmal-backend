@@ -8,9 +8,10 @@
 
   var SVGNS = "http://www.w3.org/2000/svg";
   var W = 1000, H = 680;
+  // near·sea 는 고정. far 는 그날 딜 좌표에서 계산한다 — farView() 참조. (SPEC §CH1)
   var VIEWS = { near: { lon: 132, lat: 35.5, scale: 1500 },
-                sea: { lon: 117, lat: 19, scale: 720 },
-                far: { lon: 78, lat: 30, scale: 230 } };
+                sea: { lon: 117, lat: 19, scale: 720 } };
+  var FAR_LAT = 14, LABEL_PAD = 35, FAR_MIN_SCALE = 40;
   var STAGES = ["near", "sea", "far"];
   var HAUL2STAGE = { short: "near", mid: "sea", long: "far" };
   var WD = ["일", "월", "화", "수", "목", "금", "토"];
@@ -98,6 +99,46 @@
     out.sort(function (a, b) { var da = dimmed(a) ? 1 : 0, db = dimmed(b) ? 1 : 0; if (da !== db) return da - db; return cmp[sortMode](a, b); });
     return out;
   }
+  // ---- '아주 멀리' 뷰: 중심·배율을 그날 딜에서 계산 (SPEC §CH1) ----
+  // 경도를 정렬해 가장 큰 빈 구간을 찾고, 필요한 호 = 360 − 빈 구간, 중심 = 빈 구간의 정반대.
+  // 고정값은 "오늘 데이터에서만 맞는 값"이라 목적지가 하나 늘고 줄 때마다 조용히 틀려진다.
+  function norm(d) { return ((d + 180) % 360 + 360) % 360 - 180; }
+  function farArc() {
+    var ls = [], seen = {}, i;
+    if (ORIGIN) ls.push(ORIGIN.lon);
+    for (i = 0; i < CITY.length; i++) ls.push(CITY[i].lon);
+    ls = ls.filter(function (v) { var k = v.toFixed(4); if (seen[k]) return false; seen[k] = 1; return true; })
+           .sort(function (a, b) { return a - b; });
+    if (ls.length < 2) return { arc: 60, lon: ls.length ? ls[0] : 127 };
+    var gap = -1, gEnd = ls[0];
+    for (i = 0; i < ls.length; i++) {
+      var a = ls[i], b = ls[(i + 1) % ls.length], d = ((b - a) % 360 + 360) % 360;
+      if (d > gap) { gap = d; gEnd = b; }
+    }
+    var arc = 360 - gap;
+    return { arc: arc, lon: norm(gEnd + arc / 2) };   // 데이터 구간의 한가운데
+  }
+  // 무대에서 실제로 쓸 수 있는 띠 = 보이는 viewBox 가로에서 slice 크롭과 라벨 여유를 뺀 구간.
+  // ⚠️ 필터 도크 폭은 빼지 않는다. 빼면 배율이 161→117로 줄어 지도가 화면의 46%밖에
+  //    못 채운다(가로도 16% 빈다). 그 도크는 CH2에서 검색 한 줄(52px, 핀 0곳 가림)로
+  //    교체가 확정돼 있어, 곧 사라질 것을 피하려고 지도를 30% 줄이는 셈이 된다.
+  //    도크에 가려지는 핀은 B16으로 따로 열려 있다.
+  function usableBand() {
+    var box = stageEl.getBoundingClientRect(), cw = box.width || W, ch = box.height || H;
+    var sf = Math.max(cw / W, ch / H);                 // preserveAspectRatio="slice" = cover
+    var vbW = cw / sf, vbH = ch / sf;                  // 보이는 viewBox 크기
+    return { vbW: vbW, vbH: vbH, half: Math.max(60, vbW / 2 - LABEL_PAD) };
+  }
+  function farView() {
+    var a = farArc(), b = usableBand();
+    var s = Math.max(FAR_MIN_SCALE, b.half / (a.arc / 2 * Math.PI / 180));
+    // 지구 세로(πs)가 화면보다 짧으면 위아래에 바다만 남는다. 그럴 땐 지구를 세로 중앙에
+    // 두어 여백이 위아래로 고르게 나뉘게 한다(적도 중심). 넘칠 땐 딜이 몰린 위도로 맞춘다.
+    var lat = (Math.PI * s < b.vbH) ? 0 : FAR_LAT;
+    return { lon: a.lon, lat: lat, scale: s };
+  }
+  function viewOf(stage) { return stage === "far" ? farView() : VIEWS[stage]; }
+
   function colorMaker(vis) {
     var vn = vis.map(function (c) { return num(c.price); }), lo = Math.min.apply(null, vn), hi = Math.max.apply(null, vn);
     return function (p) { var t = 1 - (num(p) - lo) / ((hi - lo) || 1);
@@ -107,7 +148,7 @@
   var PIN_R = 6;
   function render() {
     if (!ORIGIN) return;
-    var v = VIEWS[STAGES[stageIdx]];
+    var v = viewOf(STAGES[stageIdx]);
     proj.rotate([-v.lon, 0]).center([0, v.lat]).scale(v.scale).translate([W / 2, H / 2]);
     landPath.setAttribute("d", path(WORLD));
     var O = proj([ORIGIN.lon, ORIGIN.lat]); ORIGIN.x = O[0]; ORIGIN.y = O[1];
@@ -241,6 +282,12 @@
 
   // ---- 단계 · 필터 도크 ----
   function setStage(idx) { stageIdx = idx; collapse(); render(); var bs = document.querySelectorAll(".stagebar .pill"); for (var k = 0; k < bs.length; k++) bs[k].classList.toggle("on", k === idx); }
+  // 무대 종횡비가 1000/680을 넘나들면 가시 가로가 통째로 바뀐다 → far 배율을 다시 잡는다.
+  var rzT = null;
+  window.addEventListener("resize", function () {
+    if (rzT) clearTimeout(rzT);
+    rzT = setTimeout(function () { rzT = null; if (ORIGIN) render(); }, 120);
+  });
   var sbs = document.querySelectorAll(".stagebar .pill");
   for (var b = 0; b < sbs.length; b++) (function (el, idx) { el.addEventListener("click", function () { setStage(idx); }); })(sbs[b], b);
   // 단계 스테퍼 — 줌이 아니라 한 단계씩 넘기는 버튼. 양 끝에서는 비활성. (SPEC §CH1)
