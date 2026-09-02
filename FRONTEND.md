@@ -205,7 +205,7 @@ import sys; sys.stdout.reconfigure(encoding='utf-8')   # 한글 출력 전 항�
 | # | 챕터 | 범위 | 상태 |
 |---|---|---|---|
 | CH0 | 기반 정리 | 작업 규칙 문서화 · 죽은 코드 제거 · 예산 dim 버그 | ✅ 완료 |
-| CH1 | 지도 무대 | 단계 라벨 · 스테퍼 · LOD · far 뷰 계산 · 렌더 구조 · 트윈 · 라벨 배치 | ✅ 완료 |
+| CH1 | 지도 무대 | 단계 라벨 · 스테퍼 · LOD · far 뷰 계산 · 렌더 구조 · 트윈 · 라벨 배치 | ✅ 완료 (+ 2026-09-03 후속: 라벨이 핀·출발지 회피 `eee61e1`) |
 | **CH2** | **필터·정렬** | `when` 비교(B26) · 날짜 8칩 · 며칠 축 · 예산 범위·바로가기 칩 · 분위기 6종 · 0곳 칩 비활성 · 접힌 도크 조건 표시 · 필터 시 far 뷰 · 태그 사진 위 · 도크 라벨 제외 | ✅ **완료** (2026-09-03) |
 | CH3 | 카드 피드 | hero 큐레이션 · 정렬 · 빈 상태 · 신선도 배지(백엔드 대기) | 대기 |
 | CH4 | 상세 전환 | 확장 카드 위치·스크롤 · 비교 패널 · 광고 고지 | 대기 |
@@ -251,6 +251,79 @@ chrome.exe --headless=new --disable-gpu --hide-scrollbars --force-device-scale-f
   **중간에 얼린다.** 이걸 안 넣었을 때 상세 카드가 반투명하고 항로가 엉뚱한 데 그려진 것처럼 찍혀서
   **멀쩡한 걸 버그로 오진할 뻔했다.** 화면이 이상하면 렌더러를 의심하기 전에 전환부터 끈다.
 - 찍은 PNG는 `SendUserFile`로 사용자에게 바로 보낸다. "못 봤다"보다 "찍어놨으니 봐달라"가 낫다.
+- PIL이 없어 **크롭을 못 한다.** 작은 글씨를 봐야 하면 대상에 `transform:scale(2.4)`를 주입해 찍는다.
+- ⚠️ 주입할 스텝을 **콤마로** 이어야 한다. 개행으로 이으면 배열이 깨져 스텝이 통째로 안 돈다 —
+  화면0(출발지 선택)만 찍혀 나오는데 에러도 안 보여서 한참 못 알아챘다.
+
+<details><summary><b>스크립트 전문</b> — 스크래치패드에 저장해 쓴다(저장소에 둘 자리가 없다)</summary>
+
+```python
+# -*- coding: utf-8 -*-
+"""확인용 스크린샷 — 헤드리스 크롬으로 docs/index.html 을 굽는다.
+빌드 파이프라인이 아니다. 사람이 눈으로 볼 PNG 를 만들 뿐이라 크론·배포와 무관하다."""
+import io, os, subprocess, sys, pathlib
+sys.stdout.reconfigure(encoding='utf-8')
+ROOT = pathlib.Path(r"C:\Users\Ryu\Desktop\개인 프로젝트\galmal-frontend")
+OUT  = pathlib.Path(sys.argv[1])
+CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+SRC = (ROOT / "docs/index.html").read_text(encoding="utf-8")
+
+def inject(steps):
+    js = ",".join(steps)
+    return SRC.replace("</body>", "<script>(function(){var Q=[%s];var i=0;"
+        "function go(){if(i>=Q.length)return;var f=Q[i++];try{f();}catch(e){console.log('SHOT-ERR',e.message);}setTimeout(go,450);}"
+        "setTimeout(go,700);})();</script></body>" % js)
+
+NOTRANS = ("function(){var st=document.createElement('style');"
+           "st.textContent='*{transition:none!important;animation:none!important}';"
+           "document.head.appendChild(st);}")
+def pick(name):
+    return ("function(){var g=document.querySelectorAll('#introMap g');for(var i=0;i<g.length;i++){"
+            "var t=g[i].querySelector('text');if(t&&t.textContent.trim()==='%s'){"
+            "g[i].dispatchEvent(new MouseEvent('click',{bubbles:true}));return;}}"
+            "console.log('SHOT-ERR origin not found');}" % name)
+
+def zoomdock():
+    return ("function(){var d=document.getElementById('fdock');"
+            "d.style.transform='scale(2.4)';d.style.transformOrigin='100% 100%';}")
+def click(sel):
+    return ("function(){var e=document.querySelector('%s');if(!e){console.log('SHOT-ERR no %s');return;}"
+            "e.dispatchEvent(new MouseEvent('click',{bubbles:true}));}" % (sel, sel))
+
+SHOTS = [
+    ("1-home-1440",      1440, 900, [pick("서울")]),
+    ("2-mood-culture",   1440, 900, [pick("서울"), click('.fchip.moodf[data-mood="문화"]')]),
+    ("3-budget-50",      1440, 900, [pick("서울"), click('.fchip.budget[data-budget="500000"]')]),
+    ("4-detail",         1440, 900, [pick("서울"), click('.fcard.hero')]),
+    ("5-jeju",           1440, 900, [pick("제주")]),
+    ("6-mobile-390",      390, 844, [pick("서울")]),
+    ("7-tablet-900",      900, 800, [pick("서울")]),
+    ("4b-detail-notrans", 1440, 900, [pick("서울"),
+        "function(){var st=document.createElement('style');st.textContent='*{transition:none!important;animation:none!important}';document.head.appendChild(st);}",
+        click('.fcard.hero')]),
+    ("8-dock-zoom",      1440, 900, [pick("서울"), zoomdock()]),
+    ("9-dock-zoom-50",   1440, 900, [pick("서울"), click('.fchip.budget[data-budget="500000"]'), zoomdock()]),
+    ("10-dock-zoom-jeju",1440, 900, [pick("제주"), zoomdock()]),
+]
+tmp = ROOT / "docs/_shot.html"
+try:
+    for name, w, h, steps in SHOTS:
+        tmp.write_text(inject([NOTRANS] + steps), encoding="utf-8")
+        png = OUT / (name + ".png")
+        r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+             "--force-device-scale-factor=2", "--screenshot=" + str(png),
+             "--window-size=%d,%d" % (w, h), "--virtual-time-budget=9000",
+             tmp.as_uri()], capture_output=True, text=True, errors="replace", timeout=120)
+        err = "\n".join(l for l in (r.stderr or "").splitlines() if "SHOT-ERR" in l)
+        ok = png.exists() and png.stat().st_size > 5000
+        print("%-16s %s  %s  %s" % (name, "%dx%d" % (w, h),
+              ("%.0fKB" % (png.stat().st_size/1024)) if png.exists() else "없음",
+              "OK" if ok and not err else ("!! " + (err or "파일 없음/너무 작음"))))
+finally:
+    if tmp.exists(): tmp.unlink()
+```
+
+</details>
 
 ---
 
