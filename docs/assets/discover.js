@@ -396,11 +396,20 @@
       "</div>";
   }
   function compactHTML(c) { return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
+  // 제휴 링크가 실제로 있을 때만 (광고) 설명줄을 띄운다. 없는 날 "(광고) 표시는…"이 뜨면
+  // 화면에 없는 표시를 설명하는 꼴이 된다.
+  function adLinks(links) {
+    for (var i = 0; i < (links || []).length; i++) if (links[i].ad) return true;
+    return false;
+  }
   function compareHTML(links) {
     if (!links || !links.length) return "";
     return '<div class="hc-compare">' + links.map(function (l) {
+      // (광고)는 `ad` 가 참인 링크에만 붙인다 — 이름·순서·URL 모양으로 추측하지 않는다.
+      // `tag`(전체 비교·한국 인기·중립·한국어)는 우리가 매기는 평가라 계속 숨긴다. (COPY.md 제휴 고지)
+      // 시각적으로 약하게 둔다 — 눈에 띄게 만들면 고지가 아니라 강조가 된다.
       return '<a class="cmp" href="' + l.url + '" target="_blank" rel="noopener sponsored">' +
-        '<span class="cmp-name">' + l.name + '</span>' +
+        '<span class="cmp-name">' + l.name + (l.ad ? ' <span class="cmp-ad">(광고)</span>' : "") + '</span>' +
         '<span class="cmp-go">최저가 보기 →</span></a>';
     }).join("") + "</div>";
   }
@@ -409,7 +418,8 @@
       '<div class="hc-detail">' +
       priceCompare(c) +
       '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links) +
-      '<div class="hc-ad">위 가격은 발견가(스캔 시점) · 실시간 최저가는 각 사이트에서 확인하세요 · 일부는 예약 시 수수료 (광고)</div>' +
+      '<div class="hc-ad">위 가격은 발견가(스캔 시점) · 실시간 최저가는 각 사이트에서 확인하세요' +
+      (adLinks(c.links) ? '<br>(광고) 표시는 예약하시면 저희가 수수료를 받는 링크예요 · 가격은 같아요' : "") + "</div>" +
       "</div></div>";
   }
   function positionCard(c) {
