@@ -50,11 +50,12 @@ FILTER_DOCK = """
           </div></div>
         <div class="fdrow"><span class="fdlabel">분위기</span>
           <div class="chips">
-            <button type="button" class="fchip moodf" data-mood="해변">해변</button>
-            <button type="button" class="fchip moodf" data-mood="도시">도시</button>
-            <button type="button" class="fchip moodf" data-mood="온천">온천</button>
-            <button type="button" class="fchip moodf" data-mood="자연">자연</button>
-            <button type="button" class="fchip moodf" data-mood="미식">미식</button>
+            <button type="button" class="fchip moodf" data-mood="해변">해변<i></i></button>
+            <button type="button" class="fchip moodf" data-mood="도시">도시<i></i></button>
+            <button type="button" class="fchip moodf" data-mood="미식">미식<i></i></button>
+            <button type="button" class="fchip moodf" data-mood="자연">자연<i></i></button>
+            <button type="button" class="fchip moodf" data-mood="문화">문화<i></i></button>
+            <button type="button" class="fchip moodf" data-mood="온천">온천<i></i></button>
           </div></div>
         <div class="fdrow"><span class="fdlabel">예산</span>
           <div class="budgetwrap"><input id="budget" type="range" min="100000" max="1000000" step="50000" value="1000000"><b id="budgetVal">제한 없음</b></div></div>

@@ -351,7 +351,7 @@
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
-    syncStepper(); syncDateChips(); syncNightChips(); syncStageBar();
+    syncStepper(); syncDateChips(); syncNightChips(); syncMoodChips(); syncStageBar();
   }
 
   // ---- 전환 트윈 (SPEC §CH1 / B2) ----
@@ -607,7 +607,16 @@
     });
   })(nightEls[ni]);
   var moodEls = document.querySelectorAll(".fchip.moodf");
-  for (var mi = 0; mi < moodEls.length; mi++) (function (el) { el.addEventListener("click", function () { var m = el.dataset.mood; mood = (mood === m ? null : m); for (var k = 0; k < moodEls.length; k++) moodEls[k].classList.toggle("on", moodEls[k].dataset.mood === mood); applyFilter(); }); })(moodEls[mi]);
+  for (var mi = 0; mi < moodEls.length; mi++) (function (el) { el.addEventListener("click", function () { if (el.disabled) return; var m = el.dataset.mood; mood = (mood === m ? null : m); for (var k = 0; k < moodEls.length; k++) moodEls[k].classList.toggle("on", moodEls[k].dataset.mood === mood); applyFilter(); }); })(moodEls[mi]);
+  function syncMoodChips() {
+    for (var k = 0; k < moodEls.length; k++) {
+      var el = moodEls[k], m = el.getAttribute("data-mood"), cnt = el.querySelector("i"), n = 0;
+      for (var i = 0; i < CITY.length; i++) if (CITY[i].tags.indexOf(m) >= 0) n++;
+      if (cnt) cnt.textContent = n + "곳";
+      el.disabled = (n === 0 && mood !== m);
+      el.classList.toggle("empty", n === 0);
+    }
+  }
   if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = budgetLabel(); applyFilter(); });
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
