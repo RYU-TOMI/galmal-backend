@@ -192,8 +192,9 @@
   var PIN_R = 6, MINOR_R = 2.5;   // major 지름 12px · minor 지름 5px (SPEC §CH1)
   function render() {
     if (!ORIGIN) return;
+    tweenId++; svg.classList.remove("tweening");  // 진행 중 트윈이 있으면 무효화
     var v = viewOf(STAGES[stageIdx]);
-    setXform(v);                                  // path 는 그대로 두고 transform 만 바꾼다
+    setXform(v); CURV = v;                        // path 는 그대로 두고 transform 만 바꾼다
     var O = pt(ORIGIN.lon, ORIGIN.lat); ORIGIN.x = O[0]; ORIGIN.y = O[1];
     og.innerHTML = '<circle class="origin-ring" cx="' + O[0] + '" cy="' + O[1] + '" r="9"/>' +
       '<circle class="origin-dot" cx="' + O[0] + '" cy="' + O[1] + '" r="4"/>' +
@@ -246,6 +247,56 @@
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
     syncStepper();
+  }
+
+  // ---- 전환 트윈 (SPEC §CH1 / B2) ----
+  // render() 는 목적지 뷰로 전부 그린다. 트윈은 그 위에서 **좌표만** 움직인다 —
+  // path 는 T5 덕에 transform 한 줄이고, 핀은 cx/cy 만 고치면 되므로 DOM 재생성이 없다.
+  var CURV = null, tweenId = 0;
+  function reduceMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  // 좌표만 갱신하는 가벼운 경로. 라벨·항로는 트윈 중 숨기므로 건드리지 않는다.
+  function moveOnly(v) {
+    setXform(v); CURV = v;
+    var O = pt(ORIGIN.lon, ORIGIN.lat); ORIGIN.x = O[0]; ORIGIN.y = O[1];
+    var oc = og.childNodes, i;
+    for (i = 0; i < oc.length; i++) {
+      if (oc[i].tagName === "circle") { oc[i].setAttribute("cx", O[0]); oc[i].setAttribute("cy", O[1]); }
+      else if (oc[i].tagName === "text") { oc[i].setAttribute("x", O[0]); oc[i].setAttribute("y", O[1] - 13); }
+    }
+    var gs = pins.childNodes;
+    for (i = 0; i < gs.length; i++) {
+      var c = cityByI(+gs[i].dataset.i); if (!c) continue;
+      var p = pt(c.lon, c.lat); c.x = p[0]; c.y = p[1];
+      var kids = gs[i].childNodes;
+      for (var j = 0; j < kids.length; j++) {
+        if (kids[j].tagName === "circle") { kids[j].setAttribute("cx", p[0]); kids[j].setAttribute("cy", p[1]); }
+        else if (kids[j].tagName === "text") { kids[j].setAttribute("x", p[0]); kids[j].setAttribute("y", p[1] + PIN_R + 11); }
+      }
+    }
+  }
+  function tweenTo(from, to, ms) {
+    var id = ++tweenId, t0 = 0;
+    // 배율은 반드시 로그 보간 — 선형이면 1500→182 같은 큰 변화에서 초반에 확 튀고 후반에 긴다.
+    var dLon = norm(to.lon - from.lon), ratio = to.scale / from.scale;
+    svg.classList.add("tweening");                 // 트윈 중 라벨·항로 숨김
+    moveOnly(from);   // 첫 프레임을 기다리지 않고 즉시 출발점으로. 안 하면 render()가 그린
+                      // 목적지가 한 번 번쩍였다가 되돌아간다(rAF 는 다음 프레임에야 돈다).
+    // 안전장치 — rAF 가 안 도는 상황(탭 전환·백그라운드)에서도 반드시 목적지에서 끝낸다.
+    // 없으면 라벨·항로가 숨겨진 채 출발점에 멈춰 있게 된다.
+    var guard = setTimeout(function () { if (id === tweenId) finish(); }, ms + 200);
+    function finish() { clearTimeout(guard); moveOnly(to); svg.classList.remove("tweening"); }
+    function step(now) {
+      if (id !== tweenId) { clearTimeout(guard); return; }   // 새 트윈이 가로챘다 — 큐에 쌓지 않는다
+      if (!t0) t0 = now;
+      var t = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - t, 3);   // cubic-out
+      moveOnly({ lon: from.lon + dLon * e, lat: from.lat + (to.lat - from.lat) * e,
+                 scale: from.scale * Math.pow(ratio, e) });
+      if (t < 1) requestAnimationFrame(step);
+      else finish();
+    }
+    requestAnimationFrame(step);
   }
 
   // ---- 항로 + 플로팅/확장 카드 ----
@@ -327,7 +378,14 @@
   hc.addEventListener("click", function (e) { e.stopPropagation(); if (expandedI === null && active !== null) expand(active); });
 
   // ---- 단계 · 필터 도크 ----
-  function setStage(idx) { stageIdx = idx; collapse(); render(); var bs = document.querySelectorAll(".stagebar .pill"); for (var k = 0; k < bs.length; k++) bs[k].classList.toggle("on", k === idx); }
+  function setStage(idx) {
+    var from = CURV;                              // 지금 화면에 적용된 뷰
+    stageIdx = idx; collapse(); render();         // 목적지 단계의 딜 집합·좌표로 전부 그린다
+    var bs = document.querySelectorAll(".stagebar .pill");
+    for (var k = 0; k < bs.length; k++) bs[k].classList.toggle("on", k === idx);
+    // 전환 중 다른 단계를 누르면 진행 중인 트윈을 버리고 **현재 위치에서** 새 목표로 간다.
+    if (from && CURV && !reduceMotion()) tweenTo(from, CURV, 400);
+  }
   // 무대 종횡비가 1000/680을 넘나들면 가시 가로가 통째로 바뀐다 → far 배율을 다시 잡는다.
   var rzT = null;
   window.addEventListener("resize", function () {
@@ -396,6 +454,8 @@
     var pill = document.getElementById("originPill"); if (pill) pill.textContent = o.name + " 출발 ▾";
     document.getElementById("intro").classList.add("hide");
     stageIdx = 0; expandedI = null; active = null; render();
+    // 화면0 → 지도: "지도가 스르륵 열린다". 근거리보다 더 당긴 자리에서 줌아웃한다.
+    if (CURV && !reduceMotion()) tweenTo({ lon: CURV.lon, lat: CURV.lat, scale: CURV.scale * 2.6 }, CURV, 600);
   }
   var pill0 = document.getElementById("originPill");
   if (pill0) pill0.addEventListener("click", function () { document.getElementById("intro").classList.remove("hide"); });
