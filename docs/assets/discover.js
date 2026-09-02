@@ -702,9 +702,12 @@
       for (var i = 0; i < CITY.length; i++) if (num(CITY[i].price) <= v) n++;
       if (cnt) cnt.textContent = n + "곳";
       el.classList.toggle("on", budgetOn() && budget === v);
-      // 0곳이면 흐리게(날짜·며칠·분위기와 같은 규칙). 트랙 최대치 이상이면 `상관없어`와 같은 뜻이라
-      // 눌러도 아무 일이 안 일어난다 — 그것도 못 누르게 한다.
-      el.disabled = (n === 0 || v >= BUDGET_MAX);
+      // 두 경우를 **다르게** 다룬다 (기획 확정, 2026-09-03).
+      //  0곳      → 흐리게 + 비활성. "여긴 없다"는 **정보**라서 자리를 지킨다.
+      //  트랙 최대 이상 → **숨긴다.** 0곳이 아니라 `상관없어`와 뜻이 같다(제주 `100만` = 10곳 전부).
+      //                    없는 정보를 회색으로 남겨두면 자리만 먹는다.
+      el.hidden = (v >= BUDGET_MAX);
+      el.disabled = (n === 0);
       el.classList.toggle("empty", n === 0);
     }
   }
