@@ -299,11 +299,30 @@
     }
     return out;
   }
+  // 피해야 할 사각형은 셋이다: 이미 놓인 라벨 · **다른 도시의 핀** · 도크/줌 컨트롤. (SPEC §CH1 5)
+  // 처음엔 라벨끼리만 봤다. 필터를 켜서 매칭 41곳에 라벨이 다 붙자 드러났다 —
+  // `타이베이`가 핀에 덮여 `이베이`로, `다낭`이 `낭`으로 읽혔다.
+  // **자기 핀은 뺀다** — 아래 후보(y+5.1~y+21.1)가 자기 핀(y±7.1)과 원래 겹치게 설계돼 있다.
+  function pinBoxes(vis) {
+    var out = [], i, c, r;
+    for (i = 0; i < vis.length; i++) {
+      c = vis[i]; r = (c.tier === "minor" ? MINOR_R : PIN_R) + 1.1;   // 흰 테두리(2.2) 절반
+      out.push({ l: c.x - r, t: c.y - r, w: r * 2, h: r * 2, city: c });
+    }
+    // 출발지 핀·라벨도 넣는다 — 다른 그룹(`#origin`)에 있다고 빼면 `베이징`과 겹친다. (B31)
+    if (ORIGIN && ORIGIN.x != null) {
+      out.push({ l: ORIGIN.x - 9, t: ORIGIN.y - 9, w: 18, h: 18 });   // ring r=9
+      var t = ORIGIN.n + " 출발", w = labW(t);
+      out.push({ l: ORIGIN.x - w / 2, t: ORIGIN.y - 13 - (LAB_FS * 0.8 + 1.5), w: w, h: LAB_FS + 3 });
+    }
+    return out;
+  }
   function placeLabels(vis) {
     var band = usableBand(),
         x0 = W / 2 - band.vbW / 2, x1 = W / 2 + band.vbW / 2,
         y0 = H / 2 - band.vbH / 2, y1 = H / 2 + band.vbH / 2;
-    var placed = uiBoxes();                     // UI 사각형을 미리 놓아 그 자리를 못 쓰게 한다
+    // UI·핀 사각형을 미리 놓아 그 자리를 못 쓰게 한다
+    var placed = uiBoxes().concat(pinBoxes(vis));
     // 배치 순서 = 우선순위: major 먼저, 같은 등급이면 가격 낮은 순. 싼 딜이 우리가 파는 것이다.
     // 라벨은 major 에게만, 그리고 **필터 중에는 매칭에게만** 준다.
     // 밀도를 만드는 건 점이 아니라 글자다 — 비매칭을 LOD 로 추려도 59→44개로 효과가 없는데,
@@ -318,7 +337,8 @@
         s = spots[i];
         // 후보가 무대를 벗어나면 건너뛴다 ← 이것이 가장자리 클램프다.
         if (s.l < x0 || s.l + s.w > x1 || s.t < y0 || s.t + s.h > y1) continue;
-        for (j = 0, ok = true; j < placed.length; j++) if (hits(s, placed[j])) { ok = false; break; }
+        for (j = 0, ok = true; j < placed.length; j++)
+          if (placed[j].city !== c && hits(s, placed[j])) { ok = false; break; }   // 자기 핀은 건너뛴다
         if (ok) { c._lab = s; placed.push(s); return; }
       }
       // 넷 다 실패하면 라벨만 생략한다. 핀은 반드시 남는다 — 딜을 지우는 게 아니다.
