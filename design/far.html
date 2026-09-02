@@ -1,0 +1,239 @@
+<!doctype html><html lang=ko><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>갈래말래 — 아주 멀리에서 대륙으로</title><style>
+:root{--ink:#17201F;--sub:#6C7B78;--line:#E3EAE8;--soft:#F2F6F5;
+ --accent:#F2603F;--coast:#2E7D74;--sea:#EAF1F0;--land:#DCE6E3;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+ color:var(--ink);background:#E4EDEB}
+.wrap{max-width:1320px;margin:0 auto;padding:44px 26px 90px}
+h1{font-size:1.9rem;letter-spacing:-.03em;margin:0 0 6px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--sub);margin:0 0 26px;max-width:860px;line-height:1.75}
+h2{font-size:1.12rem;margin:56px 0 10px;display:flex;align-items:center;gap:10px}
+h2 .n{font-size:.68rem;background:var(--ink);color:#fff;border-radius:5px;padding:2px 7px;font-weight:800}
+.note{color:var(--sub);font-size:.88rem;line-height:1.75;margin:0 0 18px;max-width:900px}
+.app{width:1200px;border:1px solid #cfdad7;border-radius:16px;overflow:hidden;
+ background:var(--card);box-shadow:0 14px 40px rgba(20,50,45,.14);position:relative}
+.hdr{display:flex;align-items:center;gap:20px;height:56px;padding:0 18px;
+ background:var(--card);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:1.02rem;letter-spacing:-.03em}
+.logo i{font-style:normal;color:var(--accent)}
+.nav{display:flex;gap:15px;font-size:.82rem;font-weight:800}
+.nav .a{color:var(--ink);border-bottom:2px solid var(--accent);padding-bottom:2px}
+.nav .m{color:var(--sub)}
+.origin{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:5px 13px;font-size:.8rem;font-weight:800}
+.body{display:flex;height:640px}
+.stage{width:820px;flex:none;position:relative;background:var(--sea);overflow:hidden}
+.land{position:absolute;background:var(--land);border-radius:44% 56% 38% 62%/52% 42% 58% 48%}
+svg.arcs{position:absolute;inset:0;pointer-events:none;z-index:1}
+.pin{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:99px;
+ background:var(--accent);box-shadow:0 0 0 3px rgba(242,96,63,.18);z-index:2}
+.pin.on{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;box-shadow:0 0 0 7px rgba(242,96,63,.28);z-index:4}
+.pin.hid{background:#B9A9A4;box-shadow:0 0 0 3px rgba(120,100,95,.14)}
+.pin.orig{background:var(--coast);box-shadow:0 0 0 4px rgba(46,125,116,.2);
+ width:13px;height:13px;margin:-6.5px 0 0 -6.5px}
+.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+ background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;z-index:3}
+.plab.orig{background:var(--coast);color:#fff}
+.stagebar{position:absolute;left:16px;top:14px;display:flex;gap:6px;z-index:7}
+.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.74rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* 도크 공통 */
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{background:var(--soft);border:1px solid var(--line);border-radius:99px;
+ padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--sub)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip.new{border-color:var(--accent);color:var(--accent);background:#FFF4F1}
+.brange{flex:1;height:4px;border-radius:99px;background:var(--line);position:relative}
+.brange i{position:absolute;left:0;top:0;bottom:0;width:74%;border-radius:99px;background:var(--accent)}
+/* F0 */
+.dock0{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:9px 13px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1)}
+.fdrow{display:flex;align-items:center;gap:9px;margin:4px 0}
+.fdlabel{font-size:.66rem;font-weight:800;color:var(--sub);width:36px;flex:none}
+.bval{font-size:.66rem;font-weight:800}
+/* F1 */
+.f1bar{position:absolute;right:12px;top:12px;display:flex;gap:6px;z-index:8}
+.fbtn{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+ font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.fbtn.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbtn .x{opacity:.7;margin-left:4px}
+.pop1{position:absolute;right:12px;top:50px;width:262px;background:#fff;border:1px solid var(--line);
+ border-radius:13px;padding:11px 12px;box-shadow:0 14px 34px rgba(16,44,38,.24);z-index:9}
+.pop1 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* F3 */
+.rail{position:absolute;left:12px;top:54px;bottom:54px;width:104px;background:#fffffff2;
+ border:1px solid var(--line);border-radius:13px;padding:10px 9px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.1);overflow:hidden}
+.rail .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:7px 0 4px}
+.rail .fchip{display:block;text-align:center;margin:3px 0;padding:3px 4px}
+/* ── 아래 바 재설계 ── */
+.bar{position:absolute;left:16px;right:16px;bottom:14px;background:#fffffff5;
+ border:1px solid var(--line);border-radius:12px;z-index:8;
+ box-shadow:0 6px 20px rgba(20,50,45,.12);display:flex;align-items:center;gap:8px;padding:0 12px}
+.bar.h44{height:44px}.bar.h52{height:52px}
+.bar .sep{width:1px;height:20px;background:var(--line);flex:none}
+.bar .cnt{margin-left:auto;font-size:.66rem;font-weight:800;color:var(--sub);white-space:nowrap}
+.srch{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);
+ border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-width:0}
+.srch .mag{color:var(--sub);font-size:.82rem;flex:none}
+.srch .ph{font-size:.74rem;color:var(--sub);font-weight:600;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis}
+.srch .cur{width:1px;height:14px;background:var(--accent);flex:none}
+.tok{background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;
+ font-size:.66rem;font-weight:800;white-space:nowrap;flex:none}
+.tok .x{opacity:.72;margin-left:4px}
+.ac{position:absolute;left:16px;bottom:72px;width:290px;background:#fff;
+ border:1px solid var(--line);border-radius:12px;padding:9px 10px;z-index:9;
+ box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.ac .t{font-size:.6rem;font-weight:800;color:var(--sub);margin:2px 0 7px}
+.ac .row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:7px;font-size:.72rem}
+.ac .row.on{background:var(--soft)}
+.ac .row b{font-weight:800}
+.ac .row .n{margin-left:auto;font-size:.62rem;color:var(--sub);font-weight:700}
+.pop2{position:absolute;bottom:70px;width:250px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:11px 12px;z-index:9;box-shadow:0 -10px 30px rgba(16,44,38,.2)}
+.pop2 .t{font-size:.62rem;font-weight:800;color:var(--sub);margin-bottom:7px}
+/* 상세 */
+.pop{position:absolute;width:224px;z-index:10;transform:translate(-50%,-100%)}
+.pop:after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;
+ border:8px solid transparent;border-top-color:#fff}
+.det{background:#fff;border-radius:13px;overflow:hidden;box-shadow:0 16px 40px rgba(16,44,38,.3)}
+.det .ph{height:94px;position:relative;background:linear-gradient(140deg,#b9d1cc,#dce8e5)}
+.phtags{position:absolute;left:7px;right:7px;bottom:7px;display:flex;gap:3px;flex-wrap:wrap}
+.phtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.52);
+ border-radius:4px;padding:1px 6px;white-space:nowrap}
+.cityover{position:absolute;left:9px;bottom:24px;color:#fff;font-weight:900;font-size:.98rem;
+ text-shadow:0 1px 7px #0009;letter-spacing:-.02em}
+.closex{position:absolute;right:7px;top:7px;width:20px;height:20px;border-radius:99px;
+ background:rgba(6,20,18,.45);color:#fff;font-size:.66rem;font-weight:900;
+ display:flex;align-items:center;justify-content:center}
+.db{padding:10px}
+.dsec{font-size:.55rem;font-weight:800;color:var(--sub);margin:9px 0 5px;padding-top:8px;
+ border-top:1px dashed var(--line)}
+.cmp{display:flex;align-items:center;gap:6px;font-size:.57rem;margin:3px 0}
+.cmp .bar{flex:1;height:6px;border-radius:99px;background:var(--soft);overflow:hidden}
+.cmp .bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.cmp .bar.mut i{background:#c3cfcc}
+.cmp b{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.59rem}
+.rec2{font-size:.58rem;font-weight:800;color:var(--accent);margin-top:5px}
+.lnk{display:flex;justify-content:space-between;background:var(--soft);border-radius:7px;
+ padding:5px 8px;font-size:.58rem;font-weight:800;margin-top:4px}
+.lnk .p{font-variant-numeric:tabular-nums}
+.go{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;
+ font-size:.66rem;border-radius:8px;padding:8px 0}
+.ad{font-size:.48rem;color:var(--sub);line-height:1.5;margin-top:6px;text-align:center}
+/* 패널 */
+.panel{width:380px;flex:none;background:var(--sea);border-left:1px solid var(--line);
+ padding:0 10px;position:relative;overflow:hidden}
+.pfilter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-top:10px}
+.pfhead{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;font-weight:800}
+.pfhead span{font-size:.64rem;color:var(--sub);font-weight:700}
+.fhead{padding:12px 2px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.fhead b{font-size:.98rem;letter-spacing:-.02em}
+.fhead span{font-size:.66rem;color:var(--sub);font-weight:700}
+.sortbar{display:flex;gap:5px;padding-bottom:9px}
+.spill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:4px 11px;
+ font-size:.66rem;font-weight:800;color:var(--sub)}
+.spill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.feed{display:flex;flex-direction:column;gap:9px}
+.fcard{display:flex;gap:11px;background:#fff;border:1.5px solid var(--line);
+ border-radius:13px;padding:10px;overflow:hidden}
+.fcard.on{border-color:var(--accent);box-shadow:0 5px 16px rgba(242,96,63,.2)}
+.thumb{flex:none;width:62px;height:62px;border-radius:10px;
+ background:linear-gradient(140deg,#cfe0dc,#e9efed)}
+.fbody{flex:1;min-width:0}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.price{font-weight:900;font-size:1.18rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font-size:.6em;font-weight:700;color:var(--sub);margin-left:2px}
+.dmain{font-size:.76rem;margin-top:5px}
+.dsub{font-size:.64rem;margin-top:2px}
+.bdg{font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;flex:none;
+ background:var(--coast);color:#fff;white-space:nowrap}
+.stamp{flex:none;font-weight:900;white-space:nowrap;border-radius:4px}
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;font-size:.6rem;padding:2px 7px;
+ box-shadow:0 2px 6px rgba(242,96,63,.34)}
+.stamp.t3{transform:rotate(-9deg) scale(1.04);background:linear-gradient(135deg,#F2603F,#FF8A63 42%,#C6472A);
+ color:#fff;font-size:.64rem;padding:2px 8px;
+ box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(242,96,63,.2),0 4px 12px rgba(198,71,42,.34)}
+/* 신기록 — 도장과 형태를 가른다: 기울기·테두리 없음 */
+.rec{flex:none;font-size:.6rem;font-weight:900;color:var(--accent);white-space:nowrap}
+.hero{flex-direction:column;gap:0;padding:0}
+.hero .ph{width:100%;height:104px;position:relative;background:linear-gradient(140deg,#c6dbd6,#e4edea)}
+.hero .hb{padding:10px}
+.pick{position:absolute;left:9px;top:9px;background:#fff;color:var(--accent);font-weight:900;
+ font-size:.6rem;padding:2px 8px;border-radius:99px;box-shadow:0 2px 6px #0002}
+.cut{position:absolute;left:0;right:0;bottom:0;height:74px;pointer-events:none;
+ background:linear-gradient(transparent,var(--sea) 66%)}
+.b{position:absolute;width:21px;height:21px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.64rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+ box-shadow:0 2px 8px #0004;z-index:20}
+.b.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
+ border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;font-weight:700;font-size:.74rem;color:var(--sub);padding:11px 12px;
+ border-bottom:1px solid var(--line);background:var(--soft)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.win{color:var(--accent);font-weight:900}
+.num2{display:inline-flex;width:20px;height:20px;border-radius:99px;background:var(--ink);color:#fff;
+ font-size:.62rem;font-weight:900;align-items:center;justify-content:center;margin-right:7px}
+.num2.q{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.callout{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);
+ border-radius:10px;padding:16px 18px;margin:18px 0;font-size:.92rem;line-height:1.8;max-width:900px}
+.callout b{color:var(--accent)}
+ul.k{margin:12px 0 0;padding-left:19px;color:var(--sub);font-size:.89rem;max-width:900px}
+ul.k li{margin:8px 0}ul.k b{color:var(--ink)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--soft);padding:1px 5px;border-radius:4px}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.8rem;color:var(--sub)}
+
+.dmain{font-variant-numeric:tabular-nums;font-weight:800}
+.dmain .wd{font-weight:700;color:var(--sub)}
+.dmain .arw{color:var(--sub);margin:0 1px;font-weight:700}
+.dsub{font-variant-numeric:tabular-nums;font-weight:700;color:var(--sub)}
+
+.wrapR{max-width:1320px;margin:0 auto;padding:44px 26px 90px}
+.grid{display:flex;gap:18px;flex-wrap:wrap;margin:16px 0 30px}
+.gc{width:620px}
+.ghd{display:flex;align-items:baseline;gap:8px}
+.gid{font-size:.64rem;font-weight:900;background:var(--ink);color:#fff;border-radius:4px;padding:2px 7px}
+.gnm{font-weight:800;font-size:.92rem}
+.rec{font-size:.55rem;font-weight:900;background:var(--accent);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.no{font-size:.55rem;font-weight:900;background:var(--sub);color:#fff;border-radius:4px;padding:2px 6px;vertical-align:2px}
+.gdesc{color:var(--sub);font-size:.78rem;line-height:1.62;min-height:60px;margin:5px 0 9px}
+.stg{width:620px;height:420px;position:relative;background:var(--sea);
+ border:1px solid #cfdad7;border-radius:13px;overflow:hidden}
+.land{position:absolute;background:var(--land);border-radius:44% 56% 38% 62%/52% 42% 58% 48%}
+.pin{position:absolute;border-radius:99px;background:var(--accent);z-index:2}
+.pin.maj{width:11px;height:11px;margin:-5.5px 0 0 -5.5px;box-shadow:0 0 0 3px rgba(242,96,63,.18)}
+.pin.min{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;opacity:.5}
+.pin.org{background:var(--coast);width:12px;height:12px;margin:-6px 0 0 -6px;
+ box-shadow:0 0 0 4px rgba(46,125,116,.2)}
+.plab{position:absolute;transform:translate(-50%,-200%);font-size:.6rem;font-weight:800;
+ background:#fff;border-radius:4px;padding:1px 6px;white-space:nowrap;box-shadow:0 2px 6px #0002;z-index:4}
+.ring{position:absolute;border:2px dashed var(--accent);border-radius:16px;z-index:3;
+ background:rgba(242,96,63,.06)}
+.rlab{position:absolute;transform:translate(-50%,0);background:var(--accent);color:#fff;
+ font-size:.62rem;font-weight:900;border-radius:99px;padding:3px 10px;white-space:nowrap;z-index:5;
+ box-shadow:0 2px 8px rgba(242,96,63,.3)}
+.sbar{position:absolute;left:12px;top:12px;display:flex;gap:5px;z-index:7}
+.sbar2{position:absolute;left:12px;top:48px;display:flex;gap:5px;z-index:7}
+.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:5px 11px;
+ font-size:.68rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;white-space:nowrap}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pill.sub{border-color:var(--accent);color:var(--accent);background:#FFF6F3}
+.pill.sub.on{background:var(--accent);color:#fff}
+.pill .n{font-size:.6rem;opacity:.65;margin-left:4px;font-weight:700}
+.mt5{display:flex;gap:7px;margin-top:9px}
+.mt5 div{flex:1;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 8px;
+ text-align:center;font-size:.62rem;color:var(--sub);font-weight:700;line-height:1.4}
+.mt5 b{display:block;font-size:1.0rem;letter-spacing:-.02em;color:var(--ink)}
+.mt5 .g b{color:#1E7A50}.mt5 .r b{color:var(--accent)}
+</style></head><body><div class=wrapR><h1>&lsquo;아주 멀리&rsquo;에서 <em>대륙으로</em></h1><p class=lede><b>지적이 맞았고 생각보다 심하다.</b> far 뷰(배율 174)에서 <b>유럽 10건이 가로 55px</b> 안에 들어간다. 서울 출발 실제 좌표로 그렸다.</p><div class=callout><b>거리 축이 끝나는 곳에서 방향 축이 시작된다.</b><br>단계 셋은 <b>거리</b>로 나뉜다. 그런데 유럽과 미주는 <b>둘 다 &lsquo;아주 멀리&rsquo;</b>이고 <b>더 갈 데가 없다.</b> 거기서는 거리가 더 이상 쓸모 있는 축이 아니다.<br>→ <b>단계 버튼이 못 하는 일</b>이라, 대륙 선택이 <b>같은 일을 두 번 하는 게 아니다.</b> (가까운 쪽 뭉침은 단계 버튼이 이미 해결한다.)</div><h2><span class=n>01</span>후보</h2><div class=grid><div class="gc"><div class="ghd"><span class="gid">G0</span><span class="gnm">지금 — 한 화면에 전부</span><span class="no">현행</span></div><div class="gdesc">유럽 10건이 <b>가로 55px</b> 안에 들어간다. 런던 65 · 파리 74로 <b>9px 차이</b>이고, 취리히와 프랑크푸르트는 <b>같은 점</b>이다. 미주도 밴쿠버·시애틀·샌프란시스코가 <b>3px 안에 셋</b>이다.</div><div class="stg"><div class="land" style="left:20px;top:60px;width:190px;height:150px"></div><div class="land" style="left:150px;top:30px;width:150px;height:120px"></div><div class="land" style="left:80px;top:200px;width:170px;height:140px"></div><div class="land" style="left:270px;top:120px;width:130px;height:120px"></div><div class="land" style="left:320px;top:240px;width:120px;height:100px"></div><div class="land" style="left:440px;top:70px;width:120px;height:130px"></div><div class="land" style="left:480px;top:230px;width:110px;height:110px"></div><span class="pin maj" style="left:279px;top:147px"></span><span class="pin maj" style="left:287px;top:147px"></span><span class="pin maj" style="left:296px;top:145px"></span><span class="pin maj" style="left:305px;top:143px"></span><span class="pin min" style="left:291px;top:145px"></span><span class="pin maj" style="left:245px;top:180px"></span><span class="pin maj" style="left:240px;top:170px"></span><span class="pin min" style="left:237px;top:191px"></span><span class="pin maj" style="left:269px;top:163px"></span><span class="pin maj" style="left:281px;top:161px"></span><span class="pin maj" style="left:255px;top:168px"></span><span class="pin maj" style="left:231px;top:184px"></span><span class="pin maj" style="left:315px;top:182px"></span><span class="pin min" style="left:270px;top:137px"></span><span class="pin min" style="left:247px;top:187px"></span><span class="pin min" style="left:234px;top:176px"></span><span class="pin maj" style="left:242px;top:190px"></span><span class="pin maj" style="left:269px;top:183px"></span><span class="pin maj" style="left:314px;top:185px"></span><span class="pin min" style="left:293px;top:146px"></span><span class="pin maj" style="left:260px;top:135px"></span><span class="pin maj" style="left:299px;top:144px"></span><span class="pin maj" style="left:254px;top:166px"></span><span class="pin maj" style="left:269px;top:151px"></span><span class="pin min" style="left:268px;top:153px"></span><span class="pin min" style="left:291px;top:146px"></span><span class="pin min" style="left:247px;top:176px"></span><span class="pin maj" style="left:274px;top:191px"></span><span class="pin min" style="left:268px;top:167px"></span><span class="pin min" style="left:263px;top:164px"></span><span class="pin maj" style="left:255px;top:168px"></span><span class="pin maj" style="left:237px;top:207px"></span><span class="pin maj" style="left:255px;top:167px"></span><span class="pin min" style="left:226px;top:195px"></span><span class="pin maj" style="left:232px;top:205px"></span><span class="pin min" style="left:227px;top:175px"></span><span class="pin min" style="left:287px;top:148px"></span><span class="pin maj" style="left:308px;top:129px"></span><span class="pin min" style="left:268px;top:142px"></span><span class="pin min" style="left:238px;top:188px"></span><span class="pin maj" style="left:258px;top:226px"></span><span class="pin maj" style="left:95px;top:132px"></span><span class="pin min" style="left:186px;top:156px"></span><span class="pin min" style="left:202px;top:158px"></span><span class="pin min" style="left:191px;top:196px"></span><span class="pin min" style="left:242px;top:222px"></span><span class="pin maj" style="left:145px;top:162px"></span><span class="pin maj" style="left:421px;top:170px"></span><span class="pin maj" style="left:45px;top:132px"></span><span class="pin maj" style="left:46px;top:118px"></span><span class="pin maj" style="left:326px;top:274px"></span><span class="pin maj" style="left:57px;top:116px"></span><span class="pin maj" style="left:64px;top:131px"></span><span class="pin maj" style="left:40px;top:113px"></span><span class="pin min" style="left:294px;top:196px"></span><span class="pin min" style="left:329px;top:262px"></span><span class="pin min" style="left:487px;top:117px"></span><span class="pin maj" style="left:496px;top:146px"></span><span class="pin min" style="left:57px;top:121px"></span><span class="pin min" style="left:179px;top:202px"></span><span class="pin min" style="left:63px;top:119px"></span><span class="pin maj" style="left:580px;top:133px"></span><span class="pin min" style="left:488px;top:139px"></span><span class="pin min" style="left:68px;top:116px"></span><span class="pin min" style="left:488px;top:121px"></span><span class="pin min" style="left:88px;top:96px"></span><span class="pin min" style="left:370px;top:280px"></span><span class="pin min" style="left:569px;top:128px"></span><span class="pin min" style="left:314px;top:281px"></span><span class="pin min" style="left:375px;top:243px"></span><span class="plab" style="left:305px;top:143px">도쿄</span><span class="plab" style="left:231px;top:184px">방콕</span><span class="plab" style="left:46px;top:118px">파리</span><span class="plab" style="left:580px;top:133px">뉴욕</span><div class="sbar"><span class="pill">가까운 곳</span><span class="pill">조금 더 멀리</span><span class="pill on">아주 멀리</span></div></div><div class="mt5"><div class=""><b>1</b>단계바 줄</div><div class=""><b>55px</b>유럽 배율</div><div class="r"><b>×</b>유럽을 볼 수 있나</div></div></div><div class="gc"><div class="ghd"><span class="gid">G1</span><span class="gnm">단계바 두 번째 줄</span><span class="rec">추천</span></div><div class="gdesc"><code>아주 멀리</code>를 고르면 <b>그때만</b> 대륙 줄이 나타난다. 평소엔 없으므로 <b>영구 UI가 안 는다.</b><br>거리 축이 끝나는 지점에서 <b>방향 축</b>이 시작된다 &mdash; 같은 모델의 연장이다.</div><div class="stg"><div class="land" style="left:20px;top:60px;width:190px;height:150px"></div><div class="land" style="left:150px;top:30px;width:150px;height:120px"></div><div class="land" style="left:80px;top:200px;width:170px;height:140px"></div><div class="land" style="left:270px;top:120px;width:130px;height:120px"></div><div class="land" style="left:320px;top:240px;width:120px;height:100px"></div><div class="land" style="left:440px;top:70px;width:120px;height:130px"></div><div class="land" style="left:480px;top:230px;width:110px;height:110px"></div><span class="pin maj" style="left:279px;top:147px"></span><span class="pin maj" style="left:287px;top:147px"></span><span class="pin maj" style="left:296px;top:145px"></span><span class="pin maj" style="left:305px;top:143px"></span><span class="pin min" style="left:291px;top:145px"></span><span class="pin maj" style="left:245px;top:180px"></span><span class="pin maj" style="left:240px;top:170px"></span><span class="pin min" style="left:237px;top:191px"></span><span class="pin maj" style="left:269px;top:163px"></span><span class="pin maj" style="left:281px;top:161px"></span><span class="pin maj" style="left:255px;top:168px"></span><span class="pin maj" style="left:231px;top:184px"></span><span class="pin maj" style="left:315px;top:182px"></span><span class="pin min" style="left:270px;top:137px"></span><span class="pin min" style="left:247px;top:187px"></span><span class="pin min" style="left:234px;top:176px"></span><span class="pin maj" style="left:242px;top:190px"></span><span class="pin maj" style="left:269px;top:183px"></span><span class="pin maj" style="left:314px;top:185px"></span><span class="pin min" style="left:293px;top:146px"></span><span class="pin maj" style="left:260px;top:135px"></span><span class="pin maj" style="left:299px;top:144px"></span><span class="pin maj" style="left:254px;top:166px"></span><span class="pin maj" style="left:269px;top:151px"></span><span class="pin min" style="left:268px;top:153px"></span><span class="pin min" style="left:291px;top:146px"></span><span class="pin min" style="left:247px;top:176px"></span><span class="pin maj" style="left:274px;top:191px"></span><span class="pin min" style="left:268px;top:167px"></span><span class="pin min" style="left:263px;top:164px"></span><span class="pin maj" style="left:255px;top:168px"></span><span class="pin maj" style="left:237px;top:207px"></span><span class="pin maj" style="left:255px;top:167px"></span><span class="pin min" style="left:226px;top:195px"></span><span class="pin maj" style="left:232px;top:205px"></span><span class="pin min" style="left:227px;top:175px"></span><span class="pin min" style="left:287px;top:148px"></span><span class="pin maj" style="left:308px;top:129px"></span><span class="pin min" style="left:268px;top:142px"></span><span class="pin min" style="left:238px;top:188px"></span><span class="pin maj" style="left:258px;top:226px"></span><span class="pin maj" style="left:95px;top:132px"></span><span class="pin min" style="left:186px;top:156px"></span><span class="pin min" style="left:202px;top:158px"></span><span class="pin min" style="left:191px;top:196px"></span><span class="pin min" style="left:242px;top:222px"></span><span class="pin maj" style="left:145px;top:162px"></span><span class="pin maj" style="left:421px;top:170px"></span><span class="pin maj" style="left:45px;top:132px"></span><span class="pin maj" style="left:46px;top:118px"></span><span class="pin maj" style="left:326px;top:274px"></span><span class="pin maj" style="left:57px;top:116px"></span><span class="pin maj" style="left:64px;top:131px"></span><span class="pin maj" style="left:40px;top:113px"></span><span class="pin min" style="left:294px;top:196px"></span><span class="pin min" style="left:329px;top:262px"></span><span class="pin min" style="left:487px;top:117px"></span><span class="pin maj" style="left:496px;top:146px"></span><span class="pin min" style="left:57px;top:121px"></span><span class="pin min" style="left:179px;top:202px"></span><span class="pin min" style="left:63px;top:119px"></span><span class="pin maj" style="left:580px;top:133px"></span><span class="pin min" style="left:488px;top:139px"></span><span class="pin min" style="left:68px;top:116px"></span><span class="pin min" style="left:488px;top:121px"></span><span class="pin min" style="left:88px;top:96px"></span><span class="pin min" style="left:370px;top:280px"></span><span class="pin min" style="left:569px;top:128px"></span><span class="pin min" style="left:314px;top:281px"></span><span class="pin min" style="left:375px;top:243px"></span><span class="plab" style="left:305px;top:143px">도쿄</span><span class="plab" style="left:231px;top:184px">방콕</span><div class="sbar"><span class="pill">가까운 곳</span><span class="pill">조금 더 멀리</span><span class="pill on">아주 멀리</span></div><div class="sbar2"><span class="pill sub">유럽<span class="n">10</span></span><span class="pill sub">미주<span class="n">6</span></span><span class="pill sub">오세아니아<span class="n">5</span></span><span class="pill sub">그 외<span class="n">4</span></span></div></div><div class="mt5"><div class=""><b>2</b>단계바 줄</div><div class=""><b>6~10배</b>유럽 배율</div><div class="g"><b>○</b>유럽을 볼 수 있나</div></div></div><div class="gc"><div class="ghd"><span class="gid">G2</span><span class="gnm">지도에서 묶음 누르기</span></div><div class="gdesc">뭉친 지역에 <b>점선 테두리와 이름표</b>를 씌운다. 누르면 그 대륙으로 간다.<br><b>공간적이라 발견에 어울린다.</b> 다만 핀 위에 <b>레이어가 하나 더</b> 얹히고, 테두리가 개별 핀을 가린다.</div><div class="stg"><div class="land" style="left:20px;top:60px;width:190px;height:150px"></div><div class="land" style="left:150px;top:30px;width:150px;height:120px"></div><div class="land" style="left:80px;top:200px;width:170px;height:140px"></div><div class="land" style="left:270px;top:120px;width:130px;height:120px"></div><div class="land" style="left:320px;top:240px;width:120px;height:100px"></div><div class="land" style="left:440px;top:70px;width:120px;height:130px"></div><div class="land" style="left:480px;top:230px;width:110px;height:110px"></div><span class="pin maj" style="left:279px;top:147px"></span><span class="pin maj" style="left:287px;top:147px"></span><span class="pin maj" style="left:296px;top:145px"></span><span class="pin maj" style="left:305px;top:143px"></span><span class="pin min" style="left:291px;top:145px"></span><span class="pin maj" style="left:245px;top:180px"></span><span class="pin maj" style="left:240px;top:170px"></span><span class="pin min" style="left:237px;top:191px"></span><span class="pin maj" style="left:269px;top:163px"></span><span class="pin maj" style="left:281px;top:161px"></span><span class="pin maj" style="left:255px;top:168px"></span><span class="pin maj" style="left:231px;top:184px"></span><span class="pin maj" style="left:315px;top:182px"></span><span class="pin min" style="left:270px;top:137px"></span><span class="pin min" style="left:247px;top:187px"></span><span class="pin min" style="left:234px;top:176px"></span><span class="pin maj" style="left:242px;top:190px"></span><span class="pin maj" style="left:269px;top:183px"></span><span class="pin maj" style="left:314px;top:185px"></span><span class="pin min" style="left:293px;top:146px"></span><span class="pin maj" style="left:260px;top:135px"></span><span class="pin maj" style="left:299px;top:144px"></span><span class="pin maj" style="left:254px;top:166px"></span><span class="pin maj" style="left:269px;top:151px"></span><span class="pin min" style="left:268px;top:153px"></span><span class="pin min" style="left:291px;top:146px"></span><span class="pin min" style="left:247px;top:176px"></span><span class="pin maj" style="left:274px;top:191px"></span><span class="pin min" style="left:268px;top:167px"></span><span class="pin min" style="left:263px;top:164px"></span><span class="pin maj" style="left:255px;top:168px"></span><span class="pin maj" style="left:237px;top:207px"></span><span class="pin maj" style="left:255px;top:167px"></span><span class="pin min" style="left:226px;top:195px"></span><span class="pin maj" style="left:232px;top:205px"></span><span class="pin min" style="left:227px;top:175px"></span><span class="pin min" style="left:287px;top:148px"></span><span class="pin maj" style="left:308px;top:129px"></span><span class="pin min" style="left:268px;top:142px"></span><span class="pin min" style="left:238px;top:188px"></span><span class="pin maj" style="left:258px;top:226px"></span><span class="pin maj" style="left:95px;top:132px"></span><span class="pin min" style="left:186px;top:156px"></span><span class="pin min" style="left:202px;top:158px"></span><span class="pin min" style="left:191px;top:196px"></span><span class="pin min" style="left:242px;top:222px"></span><span class="pin maj" style="left:145px;top:162px"></span><span class="pin maj" style="left:421px;top:170px"></span><span class="pin maj" style="left:45px;top:132px"></span><span class="pin maj" style="left:46px;top:118px"></span><span class="pin maj" style="left:326px;top:274px"></span><span class="pin maj" style="left:57px;top:116px"></span><span class="pin maj" style="left:64px;top:131px"></span><span class="pin maj" style="left:40px;top:113px"></span><span class="pin min" style="left:294px;top:196px"></span><span class="pin min" style="left:329px;top:262px"></span><span class="pin min" style="left:487px;top:117px"></span><span class="pin maj" style="left:496px;top:146px"></span><span class="pin min" style="left:57px;top:121px"></span><span class="pin min" style="left:179px;top:202px"></span><span class="pin min" style="left:63px;top:119px"></span><span class="pin maj" style="left:580px;top:133px"></span><span class="pin min" style="left:488px;top:139px"></span><span class="pin min" style="left:68px;top:116px"></span><span class="pin min" style="left:488px;top:121px"></span><span class="pin min" style="left:88px;top:96px"></span><span class="pin min" style="left:370px;top:280px"></span><span class="pin min" style="left:569px;top:128px"></span><span class="pin min" style="left:314px;top:281px"></span><span class="pin min" style="left:375px;top:243px"></span><span class="plab" style="left:305px;top:143px">도쿄</span><span class="plab" style="left:231px;top:184px">방콕</span><div class="ring" style="left:24px;top:80px;width:87px;height:68px"></div><span class="rlab" style="left:68px;top:154px">유럽 10</span><div class="ring" style="left:471px;top:101px;width:125px;height:61px"></div><span class="rlab" style="left:533px;top:168px">미주 6</span><div class="ring" style="left:298px;top:227px;width:93px;height:69px"></div><span class="rlab" style="left:344px;top:303px">오세아니아 5</span><div class="sbar"><span class="pill">가까운 곳</span><span class="pill">조금 더 멀리</span><span class="pill on">아주 멀리</span></div></div><div class="mt5"><div class=""><b>1</b>단계바 줄</div><div class=""><b>6~10배</b>유럽 배율</div><div class="g"><b>○</b>유럽을 볼 수 있나</div></div></div></div><h2><span class=n>02</span>들어가면 이렇게 보인다</h2><p class=note>같은 계산식(경도 정렬 → 최대 빈 구간 → 중심)을 그 대륙 딜에만 적용한다. <b>새 규칙이 아니라 같은 규칙을 좁은 집합에 쓰는 것</b>이다.</p><div class=grid><div class=gc><div class=ghd><span class=gid>유럽</span><span class=gnm>배율 842 &mdash; far의 7.8배</span></div><div class=gdesc>10건이 화면 전체에 퍼진다. 런던·파리·바르셀로나가 구별된다.</div><div class="stg"><div class="land" style="left:20px;top:60px;width:190px;height:150px"></div><div class="land" style="left:150px;top:30px;width:150px;height:120px"></div><div class="land" style="left:80px;top:200px;width:170px;height:140px"></div><div class="land" style="left:270px;top:120px;width:130px;height:120px"></div><div class="land" style="left:320px;top:240px;width:120px;height:100px"></div><div class="land" style="left:440px;top:70px;width:120px;height:130px"></div><div class="land" style="left:480px;top:230px;width:110px;height:110px"></div><span class="pin maj" style="left:525px;top:350px"></span><span class="pin maj" style="left:133px;top:350px"></span><span class="pin maj" style="left:139px;top:236px"></span><span class="pin maj" style="left:228px;top:221px"></span><span class="pin maj" style="left:282px;top:342px"></span><span class="pin maj" style="left:95px;top:200px"></span><span class="pin min" style="left:228px;top:259px"></span><span class="pin min" style="left:275px;top:246px"></span><span class="pin min" style="left:312px;top:220px"></span><span class="pin min" style="left:469px;top:70px"></span><span class="plab" style="left:525px;top:350px">이스탄불</span><span class="plab" style="left:133px;top:350px">바르셀로나</span><span class="plab" style="left:139px;top:236px">파리</span><span class="plab" style="left:228px;top:221px">프랑크푸르트</span><span class="plab" style="left:282px;top:342px">로마</span><span class="plab" style="left:95px;top:200px">런던</span><span class="plab" style="left:228px;top:259px">취리히</span><span class="plab" style="left:275px;top:246px">뮌헨</span><span class="plab" style="left:312px;top:220px">프라하</span><span class="plab" style="left:469px;top:70px">헬싱키</span><div class="sbar"><span class="pill">&larr; 아주 멀리</span></div><div class="sbar2"><span class="pill sub on">유럽<span class="n">10</span></span><span class="pill sub">미주<span class="n">6</span></span><span class="pill sub">오세아니아<span class="n">5</span></span><span class="pill sub">그 외<span class="n">4</span></span></div></div></div><div class=gc><div class=ghd><span class=gid>미주</span><span class=gnm>배율 556 &mdash; far의 5.2배</span></div><div class=gdesc>밴쿠버·시애틀·샌프란시스코가 갈라진다. far에선 3px 안에 셋이었다.</div><div class="stg"><div class="land" style="left:20px;top:60px;width:190px;height:150px"></div><div class="land" style="left:150px;top:30px;width:150px;height:120px"></div><div class="land" style="left:80px;top:200px;width:170px;height:140px"></div><div class="land" style="left:270px;top:120px;width:130px;height:120px"></div><div class="land" style="left:320px;top:240px;width:120px;height:100px"></div><div class="land" style="left:440px;top:70px;width:120px;height:130px"></div><div class="land" style="left:480px;top:230px;width:110px;height:110px"></div><span class="pin min" style="left:70px;top:136px"></span><span class="pin maj" style="left:116px;top:284px"></span><span class="pin maj" style="left:550px;top:219px"></span><span class="pin min" style="left:78px;top:248px"></span><span class="pin min" style="left:78px;top:153px"></span><span class="pin min" style="left:493px;top:189px"></span><span class="plab" style="left:70px;top:136px">밴쿠버</span><span class="plab" style="left:116px;top:284px">로스앤젤레스</span><span class="plab" style="left:550px;top:219px">뉴욕</span><span class="plab" style="left:78px;top:248px">샌프란시스코</span><span class="plab" style="left:78px;top:153px">시애틀</span><span class="plab" style="left:493px;top:189px">토론토</span><div class="sbar"><span class="pill">&larr; 아주 멀리</span></div><div class="sbar2"><span class="pill sub">유럽<span class="n">10</span></span><span class="pill sub on">미주<span class="n">6</span></span><span class="pill sub">오세아니아<span class="n">5</span></span><span class="pill sub">그 외<span class="n">4</span></span></div></div></div></div><h2><span class=n>03</span>그룹</h2><table style='max-width:900px'><tr><th style='width:100px'>대륙</th><th style='text-align:right;width:70px'>딜</th><th>목적지</th></tr><tr><td class="k">유럽</td><td class="num">10건</td><td>이스탄불 · 바르셀로나 · 파리 · 프랑크푸르트 · 로마 · 런던 · 취리히 · 뮌헨 · 프라하 · 헬싱키</td></tr><tr><td class="k">미주</td><td class="num">6건</td><td>밴쿠버 · 로스앤젤레스 · 뉴욕 · 샌프란시스코 · 시애틀 · 토론토</td></tr><tr><td class="k">오세아니아</td><td class="num">5건</td><td>시드니 · 브리즈번 · 오클랜드 · 멜버른 · 나디</td></tr><tr><td class="k">그 외</td><td class="num">4건</td><td>콜롬보 · 두바이 · 호놀룰루 · 몰디브</td></tr></table><h2><span class=n>왜</span>G1</h2><ul class=k><li><b>평소엔 안 보인다.</b> <code>아주 멀리</code>를 고른 뒤에만 두 번째 줄이 뜬다 &mdash; 가까운 단계에서 대륙 칩이 보이면 혼란스럽다.</li><li><b>피드도 같이 걸러진다.</b> 현행 <code>visibleCities()</code>가 이미 그렇다 &mdash; 단계가 지도와 피드를 <b>같이</b> 거른다. 대륙도 같은 규칙이면 <b>새로 배울 게 없다.</b></li><li><b>계산식이 같다.</b> 경도 정렬 → 최대 빈 구간 → 그 정반대가 중심. <b>같은 함수를 좁은 집합에 부르면 끝</b>이다(프론트가 이미 함수로 바꾸는 중).</li><li><b>G2는 매력적이지만 레이어가 는다.</b> 우리는 방금 &lsquo;핀은 숨기지 않고 낮춘다&rsquo;로 표현을 정리했는데, 그 위에 테두리를 또 얹으면 <b>지도 언어가 셋</b>이 된다.</li><li>⚠️ <b>돌아오는 길이 필요하다.</b> 단계바 첫 줄이 <code>&larr; 아주 멀리</code>로 바뀐다.</li></ul><p class=note>&#9888; <b>&lsquo;그 외&rsquo; 4건</b>(콜롬보 · 두바이 · 호놀룰루 · 몰디브)은 서로 멀어 한 화면에 안 담긴다. <b>대륙이 아니라 &lsquo;나머지 전부&rsquo;</b>라 far 뷰와 같게 보일 수 있다 &mdash; 칩을 아예 안 두는 것도 방법이다. 사용자 판단.</p><p class=foot>생성 <b>design/build_far.py</b> &middot; 데이터 <b>docs/data/deals.json</b>(서울 70건, 장거리 25건) &middot; 핀 밀도 <b>pins.html</b> &middot; 단계 <b>stages.html</b></p></div></body></html>
