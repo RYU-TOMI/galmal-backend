@@ -262,11 +262,24 @@
     return a.l - LAB_GAP_X < b.l + b.w && b.l - LAB_GAP_X < a.l + a.w &&
            a.t - LAB_GAP_Y < b.t + b.h && b.t - LAB_GAP_Y < a.t + a.h;
   }
+  // 도크·줌 버튼이 덮는 사각형은 라벨 자리에서 제외한다 — 무대 밖 처리와 같다. (SPEC §CH2, B16)
+  // 화면 좌표 → viewBox 좌표는 CTM 역행렬로 옮긴다. slice 배율을 손으로 다시 계산하지 않는다.
+  function clientToVb(x, y) { var p = svg.createSVGPoint(); p.x = x; p.y = y; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+  function uiBoxes() {
+    var out = [], els = [document.getElementById("fdock"), document.getElementById("stepper")];
+    for (var i = 0; i < els.length; i++) {
+      var e = els[i]; if (!e) continue;
+      var r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+      var a = clientToVb(r.left, r.top), b = clientToVb(r.right, r.bottom);
+      out.push({ l: a.x, t: a.y, w: b.x - a.x, h: b.y - a.y });
+    }
+    return out;
+  }
   function placeLabels(vis) {
     var band = usableBand(),
         x0 = W / 2 - band.vbW / 2, x1 = W / 2 + band.vbW / 2,
         y0 = H / 2 - band.vbH / 2, y1 = H / 2 + band.vbH / 2;
-    var placed = [];
+    var placed = uiBoxes();                     // UI 사각형을 미리 놓아 그 자리를 못 쓰게 한다
     // 배치 순서 = 우선순위: major 먼저, 같은 등급이면 가격 낮은 순. 싼 딜이 우리가 파는 것이다.
     // 라벨은 major 에게만, 그리고 **필터 중에는 매칭에게만** 준다.
     // 밀도를 만드는 건 점이 아니라 글자다 — 비매칭을 LOD 로 추려도 59→44개로 효과가 없는데,
