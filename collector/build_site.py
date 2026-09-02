@@ -24,9 +24,9 @@ from affiliates import booking_link
 from charts import bar_chart, line_chart
 from detect_deals import IS_DIRECT_SQL, compute_deals
 from discover_data import build_deals_json
-from dests import ORIGIN_COORD, ORIGINS
-from labels import (REGION_CHIPS, REGION_NAME, SQL_WEEKDAY, airline_name, city,
-                    fmt_date, fmt_month, region_of)
+from dests import ORIGIN_COORD, ORIGINS, REGION_NAME
+from labels import (SQL_WEEKDAY, airline_name, city, fmt_date, fmt_month,
+                    region_of)
 from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
