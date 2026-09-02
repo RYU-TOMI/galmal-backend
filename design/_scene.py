@@ -39,8 +39,12 @@ def make_scene(D, origin="SEL", hauls=("short", "medium")):
     HERO = ALL[0]
 
     def fits(d):
-        """상세 카드가 무대 밖으로 안 넘치는 자리인가."""
-        return 130 < d["_x"] < SW - 130 and 265 < d["_y"] < SH - 30
+        """상세 카드가 무대 밖으로 안 넘치는 자리인가.
+
+        예약처가 5곳이 되며 상세가 약 432px가 됐다(2026-09-01). 핀은 아래쪽 72%,
+        카드 최대 높이는 핀 y - 16이고 넘치면 카드 안에서 스크롤한다(SPEC §CH4).
+        """
+        return 130 < d["_x"] < SW - 130 and SH * 0.62 < d["_y"] < SH - 30
 
     POOL = [d for d in STAGE if d is not HERO]
     OPEN = next((d for d in POOL if tier(d) and len(card_tags(d["tags"])) >= 3 and fits(d)),
@@ -131,7 +135,7 @@ def detail(d):
         bars = ('<div style="font-size:.56rem;color:var(--sub);line-height:1.5">'
                 '아직 이 노선의 평소 시세를 모아두지 못했어요</div>')
     rec = ('<div class="rec2">&darr; %d일 중 최저가예요</div>' % d.get("obs_days", 0)) if record(d) else ""
-    links = (d.get("links") or [])[:3]
+    links = (d.get("links") or [])
     lnk = "".join('<div class="lnk"><span>%s</span><span class="p">%s원</span></div>'
                   % (l.get("name", "비교 사이트"), money(l.get("price", d["price"])))
                   for l in links) \
