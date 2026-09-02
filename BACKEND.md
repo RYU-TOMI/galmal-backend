@@ -105,7 +105,7 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 | BE2 | 데이터 품질·신선도 | `low`/`obs_days` · 검증기 자동화(BB19) · `median` 재정의(BB4·BB12) · `when` 라벨(BB7·BB8) · 예약 링크(BB16) | ✅ 완료 (테스트 120건) |
 | BE3 | 발견 데이터 확장 | 목적지 사전·좌표 검증 · 프론트 요청 필드 대응 | 대기 |
 | BE4 | SEO·페이지 생성 | 노선 페이지 개선 · 구조화 데이터 · 목적지 페이지 | 대기 |
-| BE5 | 수익·제휴 | Trip.com 재신청 대응 · 링크 정확도 검증 | 대기 |
+| BE5 | 수익·제휴 | Trip.com 재신청 대응 · Flight Search API 신청(MAU 5만 조건, BB24) · 링크 정확도 검증 | 대기 |
 | BE6 | 알림 v2 | 구독·발송 재개(현재 IA에서 v2로 미뤄짐) | 대기 |
 | BE7 | 배포·운영 | 커스텀 도메인 · 서치콘솔 · 운영 지표 | 대기 |
 
@@ -432,6 +432,23 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 - **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
   `file://`로도 열리게 한 의도적 선택이지만(`PROJECT.md`) 비용 측정은 안 됐다.
   인라인 주체가 `build_index()`(백엔드)라 여기 적어둔다. 프론트 `BACKLOG.md` B13과 같은 항목.
+
+- **BB24. 예약처별 실시간 가격(Flight Search API)은 MAU 5만이 조건.** (2026-09-02 실측)
+  `TP_MARKER` 등록 직후 현행 엔드포인트로 확인했다.
+  - **엔드포인트**: `POST https://tickets-api.travelpayouts.com/search/affiliate/start`
+    (2025-11-01 신버전. 구버전 `api.travelpayouts.com/v1/flight_search`로 먼저 쳐본 건 내 실수다.)
+  - **결과**: `403 access denied`. 헤더(`x-signature`·`x-affiliate-user-id`·`x-user-ip`·`Referer`·
+    `User-Agent`)와 서명·본문을 전부 문서대로 맞춘 뒤의 결과다. 코드 문제가 아니다.
+  - **공식 조건**: *"We only provide access to Projects with MAU starting from 50000."* → 현재 트래픽 0.
+  - **마커 자체는 유효**하다. 틀린 마커는 `401`, 우리 마커는 `403`으로 갈린다 — 신원은 인식되고
+    권한만 없다는 뜻이다. 같은 토큰으로 v3 데이터 API는 `200`이다.
+  - **파급**: 이 API가 예약처별 가격을 주는 **유일한 합법 경로**다(타 비교사이트 크롤링은 금지 —
+    `CLAUDE.md`). 따라서 "어디서는 얼마" 비교 패널은 MAU 5만 전까지 불가능하고, 그때까지
+    **서버(Cloudflare Workers) 도입도 명분이 없다** — 붙여도 호출할 API가 없다.
+  - **신선도 쪽 이득도 상한이 낮다**(같은 날 실측, `broad_offers` 3,454건): v3를 실시간 호출해도
+    캐시 나이가 **수집 순간 기준 중앙 45h**(25% 23h · 75% 68h)라, 지금의 `중앙 80h`에서
+    `45h`로 줄이는 게 전부다. 캐시는 남들이 검색해야 갱신되므로 우리가 더 자주 불러도 못 내린다.
+  - **언제**: BE5에서 Trip.com 재신청과 함께. 둘 다 조건이 트래픽이라 타이밍이 같다.
 
 ---
 
