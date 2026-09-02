@@ -99,7 +99,7 @@
   var arc = document.getElementById("arc"), pins = document.getElementById("pins"), og = document.getElementById("origin");
   var feed = document.getElementById("feed"), stageEl = document.querySelector(".stage"), hc = document.getElementById("hc");
   var bslider = document.getElementById("budget"), bval = document.getElementById("budgetVal");
-  var BUDGET_MAX = bslider ? +bslider.max : 1000000;
+  var BUDGET_MAX = 1000000;   // 출발지를 고를 때 데이터에서 다시 잡는다 — resetBudget()
 
   var ORIGIN = null, CITY = [], stageIdx = 0, active = null, expandedI = null;
   var sortMode = "value", mood = null, dateMode = "", dateCustom = null, nightsMode = "", budget = 1e12;
@@ -134,6 +134,23 @@
     return n !== null && n >= b[0] && n <= b[1];
   }
   function budgetOn() { return budget < BUDGET_MAX; }  // 슬라이더가 최대면 예산 필터는 꺼진 것
+  // 최대치는 "제한 없음"이다. 부수 효과로 `155만` 같은 어색한 숫자가 화면에 안 나온다. (SPEC §CH2)
+  function budgetLabel() { return budgetOn() ? Math.round(budget / 10000) + "만 이하" : "제한 없음"; }
+  // 슬라이더 범위를 **현재 출발지 데이터**에서 만든다 (B5).
+  // 고정 100만이면 실제 최고가(138만)를 넘는 딜을 걸러낼 수만 있고 되살릴 수 없었다 —
+  // 슬라이더를 끝까지 올려도 안 돌아온다. min 을 최저가에서 올림하는 이유는
+  // 맨 왼쪽까지 내려도 최소 1건은 남게 하려는 것이다(조작만으로 0건을 만들 수 없게).
+  var STEP = 50000;
+  function resetBudget() {
+    if (!bslider || !CITY.length) return;
+    var lo = Infinity, hi = 0, i, v;
+    for (i = 0; i < CITY.length; i++) { v = num(CITY[i].price); if (v < lo) lo = v; if (v > hi) hi = v; }
+    var mn = Math.ceil(lo / STEP) * STEP, mx = Math.ceil(hi / STEP) * STEP;
+    if (mx <= mn) mx = mn + STEP;                       // 딜이 1건뿐인 허브에서도 트랙이 성립하게
+    bslider.min = mn; bslider.max = mx; bslider.step = STEP; bslider.value = mx;
+    BUDGET_MAX = mx; budget = mx;                        // 최대치 = 필터 꺼짐
+    if (bval) bval.textContent = budgetLabel();
+  }
   function dimmed(c) { return (mood && c.tags.indexOf(mood) < 0) || (budgetOn() && num(c.price) > budget) || dateDim(c) || !matchesNights(c, nightsMode); }
   function anyFilter() { return mood || dateMode || nightsMode || budgetOn(); }
 
@@ -506,7 +523,7 @@
   stageEl.addEventListener("mouseleave", function () { if (matchMedia("(hover:hover)").matches) clearHi(); });
   svg.addEventListener("click", function (e) { if (e.target === svg || e.target.classList.contains("land")) collapse(); });
 
-  if (bslider) { budget = +bslider.value; }
+  // 초기 예산값은 출발지를 고를 때 resetBudget() 이 잡는다.
   function updCount() {
     var n = 0; if (dateMode && !(dateMode === "custom" && !dateCustom)) n++; if (mood) n++; if (nightsMode) n++; if (budgetOn()) n++;
     var el = document.getElementById("fdcount"); if (el) el.textContent = n ? ("· " + n) : "";
@@ -553,7 +570,7 @@
   })(nightEls[ni]);
   var moodEls = document.querySelectorAll(".fchip.moodf");
   for (var mi = 0; mi < moodEls.length; mi++) (function (el) { el.addEventListener("click", function () { var m = el.dataset.mood; mood = (mood === m ? null : m); for (var k = 0; k < moodEls.length; k++) moodEls[k].classList.toggle("on", moodEls[k].dataset.mood === mood); updCount(); collapse(); render(); }); })(moodEls[mi]);
-  if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = Math.round(budget / 10000) + "만"; updCount(); collapse(); render(); });
+  if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = budgetLabel(); updCount(); collapse(); render(); });
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
   if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작
@@ -577,6 +594,7 @@
   function pickOrigin(k) {
     var o = D.origins[k]; ORIGIN = { n: o.name, lon: o.lon, lat: o.lat };
     CITY = D.deals.filter(function (dl) { return dl.o === k; }).map(toCity);
+    resetBudget();          // 출발지가 바뀌면 딜이 통째로 바뀌므로 예산 범위도 새로 잡는다
     var pill = document.getElementById("originPill"); if (pill) pill.textContent = o.name + " 출발 ▾";
     document.getElementById("intro").classList.add("hide");
     stageIdx = 0; expandedI = null; active = null; render();
