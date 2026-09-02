@@ -219,10 +219,21 @@ def route_page(conn, origin, dest):
         f'<li><a href="{BASE_URL}/routes/{o}-{dd}.html">{city(o)} → {city(dd)}</a></li>'
         for o, dd in config.ROUTES if f"{o}-{dd}" != code)
 
+    # 빵부스러기는 **한 번만 만든다.** 화면과 JSON-LD가 각자 문자열을 들고 있으면
+    # 한쪽만 고쳐진다 — 실제로 그랬다(`특가 피드`는 2026-09-01에 `발견`으로 폐기된
+    # 이름인데 두 곳에 박혀 있었고, 그 상태로 검색엔진에 발행됐다. `SPEC.md` IA-3).
+    # 홈의 이름은 네비에 적힌 대로 **발견**이다.
+    crumb = [("발견", f"{BASE_URL}/"),
+             (REGION_NAME[region_of(dest)], None),
+             (label, None)]
+    crumb_html = " › ".join(
+        f'<a href="{href}">{html.escape(name)}</a>' if href else html.escape(name)
+        for name, href in crumb)
+
     body = f"""  <div class="topbar">
     <a class="brand" href="{BASE_URL}/">갈래<em>말래</em> ✈️</a>
   </div>
-  <p class="crumb"><a href="{BASE_URL}/">특가 피드</a> › {REGION_NAME[region_of(dest)]} › {label}</p>
+  <p class="crumb">{crumb_html}</p>
   <header>
     <h1>{label} 항공권 최저가</h1>
     <p class="tagline">최근 30일 수집한 가격 {n:,}건으로 분석한 {label} 왕복 항공권 시세입니다.</p>
@@ -295,13 +306,10 @@ def route_page(conn, origin, dest):
     url = f"{BASE_URL}/routes/{code}.html"
 
     # 구조화 데이터는 **화면에 실제로 있는 것만** 적는다. 아래 BreadcrumbList는 위
-    # `<p class="crumb">`와 같은 세 단계를 그대로 옮긴 것이고, 중간 단계(지역)는
-    # 페이지가 없으므로 링크도 없이 이름만 넣는다 — 없는 URL을 지어내지 않는다.
-    # 상품 스키마(Product/Offer)는 쓰지 않는다. 우리가 파는 게 아니라 남의 가격을
-    # 보여줄 뿐이라 사실과 다르고, 잘못 쓰면 스팸으로 판정된다.
-    crumb = [("특가 피드", f"{BASE_URL}/"),
-             (REGION_NAME[region_of(dest)], None),
-             (label, None)]
+    # `<p class="crumb">`가 쓴 것과 **같은 `crumb` 리스트**라 갈라질 수 없다.
+    # 중간 단계(지역)는 페이지가 없으므로 링크도 없이 이름만 넣는다 — 없는 URL을
+    # 지어내지 않는다. 상품 스키마(Product/Offer)는 쓰지 않는다. 우리가 파는 게
+    # 아니라 남의 가격을 보여줄 뿐이라 사실과 다르고, 잘못 쓰면 스팸으로 판정된다.
     structured = [
         {"@context": "https://schema.org", "@type": "BreadcrumbList",
          "itemListElement": [

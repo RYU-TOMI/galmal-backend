@@ -8,6 +8,11 @@ hover는 투명 히트영역 + <title> 네이티브 툴팁.
 import math
 
 
+# 표본이 부족할 때의 안내. 두 차트가 같은 말을 하도록 여기서만 안다.
+NOT_ENOUGH = ("<p class='empty'>데이터가 아직 충분하지 않습니다. "
+              "매일 수집되어 곧 채워집니다.</p>")
+
+
 def compact_won(v):
     """158000 -> '15.8만', 1262987 -> '126만'"""
     man = v / 10000
@@ -32,7 +37,7 @@ def _nice_ticks(vmin, vmax, count=3):
 def line_chart(rows, label_fmt, width=680, height=230):
     """rows: [(라벨, 값), ...] 시계열. 끝점과 최저점만 직접 라벨."""
     if len(rows) < 2:
-        return "<p class='empty'>데이터가 아직 충분하지 않습니다. 매일 수집되어 곧 채워집니다.</p>"
+        return NOT_ENOUGH
     vals = [v for _, v in rows]
     ticks = _nice_ticks(min(vals), max(vals))
     lo, hi = min(min(vals), ticks[0]), max(max(vals), ticks[-1])
@@ -88,8 +93,11 @@ def line_chart(rows, label_fmt, width=680, height=230):
 
 def bar_chart(rows, width=680, height=200):
     """rows: [(라벨, 값), ...] 범주형. 최저값 막대를 강조색 + 라벨."""
-    if not rows:
-        return "<p class='empty'>데이터가 아직 충분하지 않습니다.</p>"
+    # 막대 하나짜리는 **비교할 게 없어서 차트가 아니다.** 새 노선이 들어오면
+    # 처음 한 달간 이 상태가 된다(2026-09-03 타이중: 11건이 전부 9월 출발).
+    # 추이 차트(`line_chart`)와 같은 기준·같은 안내로 맞춘다.
+    if len(rows) < 2:
+        return NOT_ENOUGH
     vals = [v for _, v in rows]
     lo = 0
     hi = max(vals) * 1.12
