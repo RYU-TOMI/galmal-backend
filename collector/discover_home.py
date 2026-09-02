@@ -7,7 +7,7 @@
 import html
 
 from labels import city
-from theme import BASE_URL, SITE_NAME
+from theme import BASE_URL, OG_IMAGE, SITE_NAME
 
 # "말래" 밑 페이드 비행운 + 접힌 종이비행기 (theme.logo와 동일 기하)
 LOGO_SVG = (
@@ -86,6 +86,13 @@ def render_home(data, deals_json, world_json, route_index):
     title = f"{SITE_NAME} — 어디, 갈까? 항공권 특가 발견 지도"
     desc = ("시간 남는데 어디 싸게 갈까? 한국 출발 항공권을 매일 스캔해 지도에서 "
             "오늘 싼 여행지를 골라줍니다. 목적지를 정해주는 발견 서비스.")
+    # 공유 카드(OG) — `<title>`·`description`을 재사용하지 않는다. 자리가 다르다. (COPY.md §2c)
+    #   `<title>`은 **검색 결과**에 뜬다 → 검색어가 들어간다.
+    #   `og:title`은 **카톡 말풍선**이다 → 이미 아는 사람이 친구에게 보내는 자리라 태그라인만 쓴다.
+    #   `og:description`은 위 74자를 그대로 못 쓴다 — 카톡이 두 줄쯤에서 자른다.
+    og_title = f"{SITE_NAME} — 어디, 갈까?"
+    og_desc = ("시간 남는데 싸게 다녀올 곳. 한국 출발 항공권을 매일 스캔해 "
+               "오늘 싼 여행지를 지도에 펼칩니다.")
 
     scripts = (
         f"<script>window.__DEALS={deals_json};</script>\n"
@@ -101,6 +108,17 @@ def render_home(data, deals_json, world_json, route_index):
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{BASE_URL}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{SITE_NAME}">
+<meta property="og:title" content="{og_title}">
+<meta property="og:description" content="{og_desc}">
+<meta property="og:url" content="{BASE_URL}/">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:image" content="{OG_IMAGE}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{SITE_NAME} — 어디, 갈까? 세계 지도에 오늘 싼 여행지가 찍혀 있다">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/discover.css">
 </head><body>
