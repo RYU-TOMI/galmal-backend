@@ -100,22 +100,47 @@ def rings(geom):
 
 
 def path_d(geom):
-    """SVG path. 날짜변경선을 넘는 구간은 끊는다(far 중심이 142.9°E라 대서양에서 끊긴다)."""
-    segs = []
+    """SVG path.
+
+    ⚠️ 처음엔 날짜변경선을 넘는 구간을 **끊고 각 조각을 Z로 닫았다.** 그러면
+    해안선이 아니라 **엉뚱한 삼각형이 채워진다**(링 4개가 11조각으로 갈렸다).
+    → 끊지 않고 **경도를 이어서 편다**(unwrap). 링은 무대 밖으로 나가지만
+    모양은 온전하고, 무대 밖은 어차피 안 보인다.
+    """
+    out = []
     for ring in rings(geom):
-        cur = []
+        if len(ring) < 4:
+            continue
+        # 경도를 연속으로 편다 — 180도를 넘는 점프가 있으면 ±360을 더한다
+        lons = []
         prev = None
+        off = 0.0
         for lon, lat in ring:
-            x, y = px(lon, lat)
-            if prev is not None and abs(x - prev) > SW * 0.6:
-                if len(cur) > 2:
-                    segs.append(cur)
-                cur = []
-            cur.append("%.1f,%.1f" % (x, y))
-            prev = x
-        if len(cur) > 2:
-            segs.append(cur)
-    return " ".join("M" + " L".join(s) + "Z" for s in segs)
+            if prev is not None:
+                d = lon - prev
+                if d > 180:
+                    off -= 360
+                elif d < -180:
+                    off += 360
+            lons.append(lon + off)
+            prev = lon
+        pts = []
+        for (lon0, (_, lat)) in zip(lons, ring):
+            dl = lon0 - LON0
+            pts.append("%.1f,%.1f" % (SW / 2 + math.radians(dl) * K0,
+                                      SH / 2 - math.radians(lat - LAT0) * K0))
+        # 편 결과가 무대에서 너무 멀면(반대편으로 감긴 것) 한 바퀴 되돌린다
+        xs = [float(q.split(",")[0]) for q in pts]
+        cx = (min(xs) + max(xs)) / 2
+        turn = 2 * math.pi * K0
+        while cx - SW / 2 > turn / 2:
+            pts = ["%.1f,%s" % (float(q.split(",")[0]) - turn, q.split(",")[1]) for q in pts]
+            cx -= turn
+        while SW / 2 - cx > turn / 2:
+            pts = ["%.1f,%s" % (float(q.split(",")[0]) + turn, q.split(",")[1]) for q in pts]
+            cx += turn
+        out.append("M" + " L".join(pts) + "Z")
+    return " ".join(out)
 
 
 groups = collections.defaultdict(list)

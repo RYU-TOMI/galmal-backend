@@ -11,8 +11,12 @@
 enum 값(region/haul/tier)은 `CONTRACT.md`가 프론트에 약속한 목록이므로
 여기 리터럴로 고정한다. 사전에 새 값이 생기면 계약 위반으로 잡힌다.
 """
+import json
+import math
 import re
 import unittest
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import dests
@@ -202,6 +206,189 @@ class OriginTest(unittest.TestCase):
                 self.assertTrue(name and isinstance(name, str))
                 self.assertTrue(-90 <= lat <= 90)
                 self.assertTrue(-180 <= lon <= 180)
+
+
+def _km(a, b):
+    """두 좌표 사이 대권거리(km). 하버사인."""
+    (la1, lo1), (la2, lo2) = a, b
+    p = math.pi / 180
+    h = (0.5 - math.cos((la2 - la1) * p) / 2
+         + math.cos(la1 * p) * math.cos(la2 * p) * (1 - math.cos((lo2 - lo1) * p)) / 2)
+    return 2 * 6371 * math.asin(math.sqrt(h))
+
+
+class CoordinateSanityTest(unittest.TestCase):
+    """좌표가 **있는지**가 아니라 **맞는지**를 본다 (BE3 T7).
+
+    위의 범위 검사(-90~90)는 도쿄 자리에 서울 좌표가 들어가도 통과한다. 좌표는
+    지도에 그대로 찍히는 값이라 틀리면 눈에 보이지만, **목적지 84곳을 매번
+    눈으로 확인할 수는 없다.**
+
+    벤더 참조(`api.travelpayouts.com/data/en/airports.json`)와 대조하면 확실하지만
+    테스트가 네트워크에 의존하면 CI가 남의 서비스 상태에 좌우된다. 그래서
+    **사전 안의 자기 일관성**으로 검증한다.
+
+    쓰는 불변식은 `haul`이다. `dests.py`가 선언하듯 haul은 **비행시간대**
+    등급(short ~3h / mid 3~6h / long 6h+)이므로 **ICN에서의 거리와 순서가
+    어긋날 수 없다.** 좌표가 틀어지면 거리가 바뀌고 등급 경계가 깨진다.
+
+    2026-09-02 실측 — 세 구간이 겹치지 않고 사이에 500km 가까운 공백이 있다:
+        short  439~ 2,100km │ 507km │ mid 2,607~5,271km │ 496km │ long 5,767~11,090km
+    """
+
+    ICN = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ICN = dests.ORIGIN_COORD["ICN"]
+
+    def bands(self):
+        """haul별 (ICN 거리, 코드) 목록 — 거리 오름차순."""
+        out = {}
+        for iata, (_ko, _c, _r, haul, _t) in dests.DEST.items():
+            coord = dests.dest_coord(iata)
+            if coord:
+                out.setdefault(haul, []).append((_km(self.ICN, coord), iata))
+        return {h: sorted(v) for h, v in out.items()}
+
+    def test_haul_bands_do_not_overlap(self):
+        """가까운 등급의 최원거리가 먼 등급의 최근거리보다 멀면 좌표나 등급이 틀렸다.
+
+        어느 쪽이 틀렸는지는 이 테스트가 모른다 — 다만 **둘이 어긋났다**는 건
+        확실하고, 그 사실만으로 사람이 보면 금방 판별된다.
+        """
+        band = self.bands()
+        for near, far in (("short", "mid"), ("mid", "long")):
+            with self.subTest(pair=f"{near}/{far}"):
+                far_end, near_code = band[near][-1]
+                near_end, far_code = band[far][0]
+                self.assertLess(
+                    far_end, near_end,
+                    f"{near} 최원거리 {near_code} {far_end:.0f}km가 "
+                    f"{far} 최근거리 {far_code} {near_end:.0f}km를 넘었다 — "
+                    "좌표 오타 또는 haul 오배정")
+
+    def test_haul_is_monotonic_in_distance(self):
+        """거리순으로 세우면 등급이 뒤섞이지 않는다 — 구간 검사보다 촘촘하다."""
+        rank = {"short": 0, "mid": 1, "long": 2}
+        rows = sorted((d, code, haul)
+                      for haul, items in self.bands().items()
+                      for d, code in items)
+        inversions = [f"{rows[i][1]}({rows[i][2]}, {rows[i][0]:.0f}km) > "
+                      f"{rows[i + 1][1]}({rows[i + 1][2]}, {rows[i + 1][0]:.0f}km)"
+                      for i in range(len(rows) - 1)
+                      if rank[rows[i][2]] > rank[rows[i + 1][2]]]
+        self.assertEqual(inversions, [], f"거리와 haul이 역전된 곳: {inversions}")
+
+
+class CanonicalShortCircuitTest(unittest.TestCase):
+    """정규화가 **조용히 무력화**되는 함정을 막는다 (BE3 T7).
+
+    `canonical()`은 이렇게 생겼다:
+
+        if code in DEST:
+            return code
+        return CITY_TO_AIRPORT.get(code, code)
+
+    **`DEST` 검사가 먼저다.** 그래서 어떤 도시 코드가 `DEST`에도 키로 남아 있으면
+    `CITY_TO_AIRPORT`에 매핑을 넣어도 **아무 일도 일어나지 않는다.** 에러도 없고
+    매핑은 그냥 무시된다 — 넣은 사람은 고쳤다고 믿는다.
+
+    실제로 자카르타가 이 상태였다(`JKT`·`CGK`가 둘 다 `DEST` 키). BB15에서
+    도시 코드 11개를 정규화할 때 자카르타만 빠졌고, 결과적으로 같은 도시가
+    사전에 두 번 있었다.
+    """
+
+    def test_city_codes_are_not_also_dictionary_keys(self):
+        """매핑의 **키**가 `DEST`에 있으면 그 매핑은 죽은 코드다."""
+        shadowed = sorted(k for k in dests.CITY_TO_AIRPORT if k in dests.DEST)
+        self.assertEqual(
+            shadowed, [],
+            f"CITY_TO_AIRPORT 키가 DEST에도 있어 정규화가 무력화된다: {shadowed}")
+
+    def test_mapping_targets_exist(self):
+        """매핑의 **값**은 실재하는 사전 키여야 한다 — 아니면 목적지가 사라진다."""
+        missing = sorted(v for v in dests.CITY_TO_AIRPORT.values()
+                         if v not in dests.DEST)
+        self.assertEqual(missing, [], f"DEST에 없는 정규화 대상: {missing}")
+
+    def test_link_code_round_trips_through_the_mapping(self):
+        """예약 링크는 도시 코드로 나가야 한다(BE3 T4).
+
+        `link_code()`가 역매핑을 쓰므로, 정방향이 깨지면 예약처에 공항 코드가
+        나가고 사용자가 본 가격이 검색 결과에 없을 수 있다.
+        """
+        for city, airport in dests.CITY_TO_AIRPORT.items():
+            with self.subTest(city=city):
+                self.assertEqual(dests.canonical(city), airport)
+                self.assertEqual(dests.link_code(airport), city)
+
+
+_VENDOR_CACHE = {}
+
+
+def _vendor_coords():
+    """Travelpayouts 공식 참조의 코드 → (lat, lon). 실패하면 None.
+
+    공항과 도시를 모두 읽는다 — 우리 사전 키는 대부분 공항이지만 도시 코드도 섞인다.
+    """
+    if "data" in _VENDOR_CACHE:
+        return _VENDOR_CACHE["data"]
+    out = {}
+    try:
+        for src in ("airports", "cities"):
+            url = f"https://api.travelpayouts.com/data/en/{src}.json"
+            with urllib.request.urlopen(url, timeout=30) as r:
+                for row in json.loads(r.read().decode()):
+                    co = row.get("coordinates") or {}
+                    if row.get("code") and co.get("lat") is not None:
+                        out.setdefault(row["code"], (co["lat"], co["lon"]))
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        out = None
+    _VENDOR_CACHE["data"] = out
+    return out
+
+
+class VendorCoordinateTest(unittest.TestCase):
+    """좌표를 **벤더 공식 참조와 직접 대조**한다 (BE3 T7).
+
+    왜 필요한가 — 위의 자기 일관성 검사(`CoordinateSanityTest`)는 haul 구간을
+    넘는 오류만 잡는다. 2026-09-02 변이 테스트로 확인한 실제 능력:
+
+        잡음    뉴욕 좌표를 도쿄로 · 제주 좌표를 뉴욕으로 · 경도 부호 뒤집기
+        못 잡음  **도쿄 좌표를 서울로**   ← 둘 다 short라 구간이 안 깨진다
+
+    같은 구간 안에서 뒤바뀌면 자기 일관성으로는 보이지 않는다. 그 구멍을 여기서
+    막는다.
+
+    **네트워크 실패는 skip이지 fail이 아니다.** 남의 서비스 상태로 우리 CI가
+    빨개지면 아무도 테스트를 믿지 않게 되고, 그러면 진짜 실패도 무시된다.
+    """
+
+    # 정상 이탈의 실측 최대치는 이스탄불 34km(2019년 신공항 이전으로 도심과 멀다).
+    # 나머지 82곳은 전부 7km 이내였다. 100km면 정상은 통과하고 도시 뒤바뀜은 걸린다
+    # (가장 가까운 서로 다른 도시 쌍이 방콕 BKK-DMK 29km이므로 그보다는 커야 한다).
+    MAX_KM = 100
+
+    def test_coordinates_match_the_vendor_reference(self):
+        ref = _vendor_coords()
+        if not ref:
+            self.skipTest("벤더 참조를 받지 못했다 — 네트워크 없음")
+        far, unknown = [], []
+        for iata, coord in dests.DEST_COORD.items():
+            want = ref.get(iata)
+            if want is None:
+                unknown.append(iata)
+                continue
+            gap = _km(coord, want)
+            if gap > self.MAX_KM:
+                far.append(f"{iata} {gap:.0f}km 벗어남 "
+                           f"(우리 {coord} vs 참조 {want})")
+        self.assertEqual(sorted(far), [], f"참조와 어긋난 좌표: {far}")
+        # 참조에 없는 코드는 실패로 보지 않는다 — 벤더가 안 싣는 코드가 있다.
+        # 다만 대량으로 늘면 사전이 참조 체계에서 벗어나고 있다는 신호다.
+        self.assertLess(len(unknown), 5,
+                        f"참조에 없는 코드가 너무 많다: {sorted(unknown)}")
 
 
 if __name__ == "__main__":
