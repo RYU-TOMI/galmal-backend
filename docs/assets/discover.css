@@ -92,8 +92,8 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .fchip{font-size:.74rem;font-weight:700;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer}
 .fchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 /* 누르기 전에 건수를 보인다. 0곳 칩은 흐리게 + 비활성 (SPEC §CH2) */
-.fchip.date i,.fchip.nights i,.fchip.moodf i{font-style:normal;font-size:.62rem;font-weight:600;opacity:.62;margin-left:4px}
-.fchip.date.on i,.fchip.nights.on i,.fchip.moodf.on i{opacity:.85}
+.fchip.date i,.fchip.nights i,.fchip.moodf i,.fchip.budget i{font-style:normal;font-size:.62rem;font-weight:600;opacity:.62;margin-left:4px}
+.fchip.date.on i,.fchip.nights.on i,.fchip.moodf.on i,.fchip.budget.on i{opacity:.85}
 .fchip:disabled{opacity:.38;cursor:default}
 .budgetwrap{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--sub)}
 .budgetwrap input{flex:1;accent-color:var(--accent);cursor:pointer}.budgetwrap b{color:var(--ink)}

@@ -150,6 +150,7 @@
     bslider.min = mn; bslider.max = mx; bslider.step = STEP; bslider.value = mx;
     BUDGET_MAX = mx; budget = mx;                        // 최대치 = 필터 꺼짐
     if (bval) bval.textContent = budgetLabel();
+    syncBudgetChips();                                   // 출발지가 바뀌면 칩 건수·비활성도 다시 잡는다
   }
   function dimmed(c) { return (mood && c.tags.indexOf(mood) < 0) || (budgetOn() && num(c.price) > budget) || dateDim(c) || !matchesNights(c, nightsMode); }
   function anyFilter() { return mood || dateMode || nightsMode || budgetOn(); }
@@ -198,9 +199,9 @@
   }
   // 무대에서 실제로 쓸 수 있는 띠 = 보이는 viewBox 가로에서 slice 크롭과 라벨 여유를 뺀 구간.
   // ⚠️ 필터 도크 폭은 빼지 않는다. 빼면 배율이 161→117로 줄어 지도가 화면의 46%밖에
-  //    못 채운다(가로도 16% 빈다). 그 도크는 CH2에서 검색 한 줄(52px, 핀 0곳 가림)로
-  //    교체가 확정돼 있어, 곧 사라질 것을 피하려고 지도를 30% 줄이는 셈이 된다.
-  //    도크에 가려지는 핀은 B16으로 따로 열려 있다.
+  //    못 채운다(가로도 16% 빈다). 도크 300px을 빼면 배율 상한이 195 → 141로 떨어진다.
+  //    도크에 가려지는 핀(B16)은 SPEC §CH2 미결에서 **PH5(도크→하단 시트)로 미뤄져 있다** —
+  //    지도를 30% 줄여 피하는 쪽이 대가가 더 크다는 판단이다. 라벨 쪽은 T7에서 닫았다.
   function usableBand() {
     var box = stageEl.getBoundingClientRect(), cw = box.width || W, ch = box.height || H;
     var sf = Math.max(cw / W, ch / H);                 // preserveAspectRatio="slice" = cover
@@ -385,7 +386,7 @@
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
-    syncStepper(); syncDateChips(); syncNightChips(); syncMoodChips(); syncStageBar();
+    syncStepper(); syncDateChips(); syncNightChips(); syncMoodChips(); syncBudgetChips(); syncStageBar();
   }
 
   // ---- 전환 트윈 (SPEC §CH1 / B2) ----
@@ -650,7 +651,37 @@
       el.classList.toggle("empty", n === 0);
     }
   }
-  if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = budgetLabel(); applyFilter(); });
+  if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = budgetLabel(); syncBudgetChips(); applyFilter(); });
+  // 바로가기 칩은 슬라이더와 **경쟁하지 않는다** — 같은 값을 두 방법으로 고르는 것이다.
+  // 누르면 슬라이더가 그 값으로 간다. (SPEC §CH2 / DECISIONS 2026-09-01)
+  var budgEls = document.querySelectorAll(".fchip.budget");
+  function setBudget(v) {
+    budget = v; if (bslider) bslider.value = v;
+    if (bval) bval.textContent = budgetLabel();
+    syncBudgetChips(); applyFilter();
+  }
+  function syncBudgetChips() {
+    if (!budgEls) return;            // resetBudget 이 이 줄보다 먼저 돌 수 있다(var 는 값이 늦게 들어온다)
+    for (var k = 0; k < budgEls.length; k++) {
+      var el = budgEls[k], a = el.getAttribute("data-budget"), cnt = el.querySelector("i");
+      if (!a) { el.classList.toggle("on", !budgetOn()); continue; }   // `상관없어`는 건수를 안 센다
+      var v = +a, n = 0;
+      for (var i = 0; i < CITY.length; i++) if (num(CITY[i].price) <= v) n++;
+      if (cnt) cnt.textContent = n + "곳";
+      el.classList.toggle("on", budgetOn() && budget === v);
+      // 0곳이면 흐리게(날짜·며칠·분위기와 같은 규칙). 트랙 최대치 이상이면 `상관없어`와 같은 뜻이라
+      // 눌러도 아무 일이 안 일어난다 — 그것도 못 누르게 한다.
+      el.disabled = (n === 0 || v >= BUDGET_MAX);
+      el.classList.toggle("empty", n === 0);
+    }
+  }
+  for (var bi = 0; bi < budgEls.length; bi++) (function (el) {
+    el.addEventListener("click", function () {
+      if (el.disabled) return;
+      var a = el.getAttribute("data-budget");
+      setBudget(a ? +a : BUDGET_MAX);            // `상관없어` = 트랙 최대치 = 필터 꺼짐
+    });
+  })(budgEls[bi]);
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
   if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작
