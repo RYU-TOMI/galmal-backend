@@ -102,7 +102,7 @@
   var BUDGET_MAX = bslider ? +bslider.max : 1000000;
 
   var ORIGIN = null, CITY = [], stageIdx = 0, active = null, expandedI = null;
-  var sortMode = "value", mood = null, dateMode = "", dateCustom = null, budget = 1e12;
+  var sortMode = "value", mood = null, dateMode = "", dateCustom = null, nightsMode = "", budget = 1e12;
 
   // ---- 날짜 필터 — 날짜를 다시 계산하지 않고 `when` 값으로 거른다 (SPEC §CH2, B26) ----
   // 프론트가 "이번 주"를 따로 계산하면 백엔드의 `when` 계산과 갈라진다. 실제로 갈라졌다 —
@@ -121,9 +121,21 @@
     return c.when === mode;
   }
   function dateDim(c) { return !matchesDate(c, dateMode); }
+
+  // ---- 며칠 축 — `nights` 를 쓴다 (SPEC §CH2) ----
+  // 주말 2박3일과 일주일 휴가는 전혀 다른 여행인데 지금까지 가를 수가 없었다.
+  // 편도·불명이면 `nights` 가 "" 다 — 어느 칩에도 걸리지 않는다. 모르는 걸 안다고 하지 않는다.
+  var NIGHT_BANDS = { "1-3": [1, 3], "4-6": [4, 6], "7-13": [7, 13], "14+": [14, 9999] };
+  function nightsOf(c) { var m = /(\d+)박/.exec(c.nights || ""); return m ? +m[1] : null; }
+  function matchesNights(c, mode) {
+    if (!mode) return true;                       // 상관없어
+    var b = NIGHT_BANDS[mode]; if (!b) return true;
+    var n = nightsOf(c);
+    return n !== null && n >= b[0] && n <= b[1];
+  }
   function budgetOn() { return budget < BUDGET_MAX; }  // 슬라이더가 최대면 예산 필터는 꺼진 것
-  function dimmed(c) { return (mood && c.tags.indexOf(mood) < 0) || (budgetOn() && num(c.price) > budget) || dateDim(c); }
-  function anyFilter() { return mood || dateMode || budgetOn(); }
+  function dimmed(c) { return (mood && c.tags.indexOf(mood) < 0) || (budgetOn() && num(c.price) > budget) || dateDim(c) || !matchesNights(c, nightsMode); }
+  function anyFilter() { return mood || dateMode || nightsMode || budgetOn(); }
 
   function visibleCities() {
     var out = [];
@@ -305,7 +317,7 @@
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
-    syncStepper(); syncDateChips();
+    syncStepper(); syncDateChips(); syncNightChips();
   }
 
   // ---- 전환 트윈 (SPEC §CH1 / B2) ----
@@ -496,7 +508,7 @@
 
   if (bslider) { budget = +bslider.value; }
   function updCount() {
-    var n = 0; if (dateMode && !(dateMode === "custom" && !dateCustom)) n++; if (mood) n++; if (budgetOn()) n++;
+    var n = 0; if (dateMode && !(dateMode === "custom" && !dateCustom)) n++; if (mood) n++; if (nightsMode) n++; if (budgetOn()) n++;
     var el = document.getElementById("fdcount"); if (el) el.textContent = n ? ("· " + n) : "";
   }
   var dateEls = document.querySelectorAll(".fchip.date"), customBox = document.getElementById("customdates");
@@ -518,6 +530,27 @@
   var cds = document.getElementById("cdStart"), cde = document.getElementById("cdEnd");
   function readCustom() { var lo = cds && cds.value ? cds.value : "0000-00-00", hi = cde && cde.value ? cde.value : "9999-99-99"; dateCustom = (lo === "0000-00-00" && hi === "9999-99-99") ? null : [lo, hi]; }
   [cds, cde].forEach(function (inp) { if (inp) inp.addEventListener("change", function () { setActiveDate("custom"); readCustom(); updCount(); collapse(); render(); }); });
+  // ---- 며칠 칩 — 날짜 칩과 같은 규칙(건수 표시 · 0곳 비활성) ----
+  var nightEls = document.querySelectorAll(".fchip.nights");
+  function syncNightChips() {
+    for (var k = 0; k < nightEls.length; k++) {
+      var el = nightEls[k], m = el.getAttribute("data-nights"), cnt = el.querySelector("i");
+      if (!m) continue;                                        // 상관없어는 건수를 안 센다
+      var n = 0;
+      for (var i = 0; i < CITY.length; i++) if (matchesNights(CITY[i], m)) n++;
+      if (cnt) cnt.textContent = n + "곳";
+      el.disabled = (n === 0 && nightsMode !== m);
+      el.classList.toggle("empty", n === 0);
+    }
+  }
+  for (var ni = 0; ni < nightEls.length; ni++) (function (el) {
+    el.addEventListener("click", function () {
+      if (el.disabled) return;
+      nightsMode = el.getAttribute("data-nights");
+      for (var k = 0; k < nightEls.length; k++) nightEls[k].classList.toggle("on", nightEls[k].getAttribute("data-nights") === nightsMode);
+      updCount(); collapse(); render();
+    });
+  })(nightEls[ni]);
   var moodEls = document.querySelectorAll(".fchip.moodf");
   for (var mi = 0; mi < moodEls.length; mi++) (function (el) { el.addEventListener("click", function () { var m = el.dataset.mood; mood = (mood === m ? null : m); for (var k = 0; k < moodEls.length; k++) moodEls[k].classList.toggle("on", moodEls[k].dataset.mood === mood); updCount(); collapse(); render(); }); })(moodEls[mi]);
   if (bslider) bslider.addEventListener("input", function () { budget = +bslider.value; if (bval) bval.textContent = Math.round(budget / 10000) + "만"; updCount(); collapse(); render(); });
