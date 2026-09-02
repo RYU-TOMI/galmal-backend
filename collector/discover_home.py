@@ -29,9 +29,12 @@ FILTER_DOCK = """
         <div class="fdrow"><span class="fdlabel">언제 갈래요?</span>
           <div class="chips">
             <button type="button" class="fchip date on" data-date="">아무때</button>
-            <button type="button" class="fchip date" data-date="week">이번 주</button>
-            <button type="button" class="fchip date" data-date="weekend">이번 주말</button>
-            <button type="button" class="fchip date" data-date="nextmonth">다음 달</button>
+            <button type="button" class="fchip date" data-date="이번 주말">이번 주말<i></i></button>
+            <button type="button" class="fchip date" data-date="다음 주말">다음 주말<i></i></button>
+            <button type="button" class="fchip date" data-date="이번 주">이번 주<i></i></button>
+            <button type="button" class="fchip date" data-date="이번 달">이번 달<i></i></button>
+            <button type="button" class="fchip date" data-date="다음 달">다음 달<i></i></button>
+            <button type="button" class="fchip date" data-date="rest">그 이후<i></i></button>
             <button type="button" class="fchip date" data-date="custom">날짜 지정</button>
           </div>
           <div class="customdates" id="customdates">
