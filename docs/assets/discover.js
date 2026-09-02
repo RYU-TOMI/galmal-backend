@@ -265,11 +265,17 @@
   // 도크·줌 버튼이 덮는 사각형은 라벨 자리에서 제외한다 — 무대 밖 처리와 같다. (SPEC §CH2, B16)
   // 화면 좌표 → viewBox 좌표는 CTM 역행렬로 옮긴다. slice 배율을 손으로 다시 계산하지 않는다.
   function clientToVb(x, y) { var p = svg.createSVGPoint(); p.x = x; p.y = y; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+  // 도크는 **펼친 상태 기준**으로 잰다 — 접었다 펼 때마다 라벨이 재배치되면 산만하다(SPEC §CH2).
+  // 접혀 있으면 클래스를 잠깐 떼고 재서 되돌린다. 같은 태스크 안이라 화면엔 안 나타난다.
   function uiBoxes() {
     var out = [], els = [document.getElementById("fdock"), document.getElementById("stepper")];
     for (var i = 0; i < els.length; i++) {
       var e = els[i]; if (!e) continue;
-      var r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+      var col = e.classList.contains("collapsed");
+      if (col) e.classList.remove("collapsed");
+      var r = e.getBoundingClientRect();
+      if (col) e.classList.add("collapsed");
+      if (!r.width || !r.height) continue;
       var a = clientToVb(r.left, r.top), b = clientToVb(r.right, r.bottom);
       out.push({ l: a.x, t: a.y, w: b.x - a.x, h: b.y - a.y });
     }
