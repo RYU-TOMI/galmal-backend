@@ -14,6 +14,7 @@ enum 값(region/haul/tier)은 `CONTRACT.md`가 프론트에 약속한 목록이�
 import json
 import math
 import re
+import sys
 import unittest
 import urllib.error
 import urllib.request
@@ -373,7 +374,15 @@ class VendorCoordinateTest(unittest.TestCase):
     def test_coordinates_match_the_vendor_reference(self):
         ref = _vendor_coords()
         if not ref:
-            self.skipTest("벤더 참조를 받지 못했다 — 네트워크 없음")
+            # skip은 조용하다. 기본 출력에는 "OK (skipped=1)"만 남아서, 벤더가 몇 달간
+            # 막혀 있어도 초록불이라 아무도 모른다. 이 프로젝트가 반복해서 데인 유형이
+            # 정확히 그것이라(테스트가 조용히 안 돌던 것) stderr에 눈에 띄는 줄을 남긴다.
+            # 검사를 fail로 바꾸지는 않는다 — 남의 서비스로 CI가 빨개지면 진짜 실패도
+            # 무시하게 된다. 보이게만 한다.
+            msg = ("좌표 벤더 대조를 건너뛴다 — 참조를 받지 못했다. "
+                   "네트워크 또는 api.travelpayouts.com 상태를 확인할 것.")
+            print("[SKIP] " + msg, file=sys.stderr)
+            self.skipTest(msg)
         far, unknown = [], []
         for iata, coord in dests.DEST_COORD.items():
             want = ref.get(iata)
