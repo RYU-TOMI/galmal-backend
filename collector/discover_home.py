@@ -24,7 +24,7 @@ LOGO_SVG = (
 
 FILTER_DOCK = """
     <div class="filterdock" id="fdock">
-      <button type="button" class="fdtoggle" id="fdtoggle">필터 <span id="fdcount"></span><i>▾</i></button>
+      <button type="button" class="fdtoggle" id="fdtoggle"><span id="fdsum">필터</span><i>▾</i></button>
       <div class="fdbody">
         <div class="fdrow"><span class="fdlabel">언제 갈래요?</span>
           <div class="chips">

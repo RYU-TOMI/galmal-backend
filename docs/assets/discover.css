@@ -78,7 +78,8 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 /* 오른쪽 아래 필터 도크 */
 .filterdock{position:absolute;right:16px;bottom:18px;width:270px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(20,40,40,.18);overflow:hidden;z-index:7}
 .fdtoggle{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:#fff;font-weight:800;font-size:.9rem;color:var(--ink);padding:12px 15px;cursor:pointer}
-.fdtoggle #fdcount{color:var(--accent);font-size:.76rem;margin-left:auto;margin-right:8px}
+/* 접힌 도크는 조건을 보여준다. 길면 줄임표 — 도크 폭(270px)을 넘기지 않는다 (SPEC §CH2 B7) */
+.fdtoggle #fdsum{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fdtoggle i{font-style:normal;color:var(--sub);transition:transform .2s}
 .filterdock.collapsed .fdbody{display:none}
 .filterdock.collapsed .fdtoggle i{transform:rotate(-90deg)}

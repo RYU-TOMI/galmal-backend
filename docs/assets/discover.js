@@ -549,8 +549,22 @@
 
   // 초기 예산값은 출발지를 고를 때 resetBudget() 이 잡는다.
   function updCount() {
-    var n = 0; if (dateMode && !(dateMode === "custom" && !dateCustom)) n++; if (mood) n++; if (nightsMode) n++; if (budgetOn()) n++;
-    var el = document.getElementById("fdcount"); if (el) el.textContent = n ? ("· " + n) : "";
+    // 접힌 도크는 **개수가 아니라 조건**을 보여준다 — 목적이 "지금 뭐가 걸려 있나"이고
+    // 개수는 그 답이 아니다. 순서는 도크 안 순서 그대로(날짜 → 며칠 → 분위기 → 예산).
+    // 최대 2개까지 쓰고 넘치면 `외 N`. 아무것도 없으면 그냥 `필터`. (SPEC §CH2, B7)
+    var on = [], el;
+    if (dateMode && !(dateMode === "custom" && !dateCustom)) {
+      for (var k = 0; k < dateEls.length; k++)
+        if (dateEls[k].getAttribute("data-date") === dateMode) { on.push(dateEls[k].firstChild.nodeValue.trim()); break; }
+    }
+    if (nightsMode) {
+      for (var q = 0; q < nightEls.length; q++)
+        if (nightEls[q].getAttribute("data-nights") === nightsMode) { on.push(nightEls[q].firstChild.nodeValue.trim()); break; }
+    }
+    if (mood) on.push(mood);
+    if (budgetOn()) on.push(budgetLabel());
+    el = document.getElementById("fdsum");
+    if (el) el.textContent = on.length ? (on.slice(0, 2).join(" · ") + (on.length > 2 ? " 외 " + (on.length - 2) : "")) : "필터";
   }
   var dateEls = document.querySelectorAll(".fchip.date"), customBox = document.getElementById("customdates");
   // 누르기 전에 건수를 보인다. 0곳이면 흐리게 하고 못 누르게 한다 — 0곳이 될 칩을 누르게 두지 않는다.
