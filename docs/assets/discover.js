@@ -53,10 +53,49 @@
   function discNum(s) { return parseInt(s, 10) || 0; }
 
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-  var proj = d3.geoEquirectangular().translate([W / 2, H / 2]);
+
+  // ---- 렌더 구조: 세계 path 는 한 번만 만들고, 뷰 변경은 transform 으로 한다 (B17) ----
+  // geoEquirectangular 는 x = tx + s·λ, y = ty − s·φ 로 경위도에 선형이다. 따라서 rotate 만
+  // 고정하면 center·scale 변경이 평면 아핀변환이 되어 path 를 다시 만들 필요가 없다.
+  // 실측: path(WORLD) 재생성 15~17ms(전체 비용의 99.7%) → transform 문자열 0.00003ms.
+  // 그대로 두면 400ms 트윈이 24프레임 x 16.8ms = 403ms 로 프레임 예산을 100% 먹는다.
+  //
+  // rotate 를 바꾸면 경도 이음매(±180°)가 움직여 어긋나므로(표본의 6~30%가 0.5px 초과),
+  // 이음매를 **딜이 하나도 없는 최대 경도 구간 한가운데**에 못박는다. 로드 시 1회 계산.
+  // 오늘 데이터로는 대서양 73.3°(뉴욕 -73.8° ~ 런던 -0.5°) 구간 → 이음매 -37.1°.
+  // 남미 딜이 생기면 빈 구간이 바뀌지만 로드 시 계산이라 자동으로 따라간다.
+  function seamRot() {
+    var ls = [], seen = {}, i, k;
+    for (k in D.origins) if (D.origins[k]) ls.push(D.origins[k].lon);
+    for (i = 0; i < (D.deals || []).length; i++) ls.push(D.deals[i].lon);
+    ls = ls.filter(function (v) { var q = (+v).toFixed(4); if (seen[q]) return false; seen[q] = 1; return true; })
+           .sort(function (a, b) { return a - b; });
+    if (ls.length < 2) return 143;
+    var gap = -1, gStart = ls[0];
+    for (i = 0; i < ls.length; i++) {
+      var a = ls[i], b = ls[(i + 1) % ls.length], d = ((b - a) % 360 + 360) % 360;
+      if (d > gap) { gap = d; gStart = a; }
+    }
+    return norm(norm(gStart + gap / 2) + 180);   // 빈 구간 한가운데가 ±180 에 오도록
+  }
+  var ROT = seamRot(), BASE = 200;
+  // 기준 투영 — 절대 안 바뀐다. 여기서 만든 path 를 계속 재사용한다.
+  var proj = d3.geoEquirectangular().rotate([-ROT, 0]).center([0, 0]).scale(BASE).translate([W / 2, H / 2]);
   var path = d3.geoPath(proj);
+  var lands = document.getElementById("lands");
   var landPath = document.createElementNS(SVGNS, "path"); landPath.setAttribute("class", "land");
-  document.getElementById("lands").appendChild(landPath);
+  lands.appendChild(landPath);
+  landPath.setAttribute("d", path(WORLD));       // ← 이 호출이 전부다. 다시 안 부른다.
+
+  // 뷰 → 아핀변환. 기준 평면의 점을 화면 좌표로 옮긴다.
+  var XF = { k: 1, tx: 0, ty: 0 };
+  function setXform(v) {
+    var o = proj([v.lon, v.lat]), k = v.scale / BASE;
+    XF = { k: k, tx: W / 2 - o[0] * k, ty: H / 2 - o[1] * k };
+    lands.setAttribute("transform", "translate(" + XF.tx + "," + XF.ty + ") scale(" + XF.k + ")");
+  }
+  // 핀·라벨은 변환 그룹 **밖**에 있다 — 확대해도 점 크기와 글자 크기가 그대로여야 한다.
+  function pt(lon, lat) { var p = proj([lon, lat]); return [p[0] * XF.k + XF.tx, p[1] * XF.k + XF.ty]; }
   var arc = document.getElementById("arc"), pins = document.getElementById("pins"), og = document.getElementById("origin");
   var feed = document.getElementById("feed"), stageEl = document.querySelector(".stage"), hc = document.getElementById("hc");
   var bslider = document.getElementById("budget"), bval = document.getElementById("budgetVal");
@@ -91,7 +130,7 @@
       var b = usableBand(), x0 = W / 2 - b.vbW / 2, x1 = W / 2 + b.vbW / 2,
           y0 = H / 2 - b.vbH / 2, y1 = H / 2 + b.vbH / 2;
       CITY.forEach(function (c, i) {
-        var p = proj([c.lon, c.lat]);
+        var p = pt(c.lon, c.lat);
         if (p[0] < x0 || p[0] > x1 || p[1] < y0 || p[1] > y1) return;
         c._i = i; out.push(c);
       });
@@ -154,14 +193,13 @@
   function render() {
     if (!ORIGIN) return;
     var v = viewOf(STAGES[stageIdx]);
-    proj.rotate([-v.lon, 0]).center([0, v.lat]).scale(v.scale).translate([W / 2, H / 2]);
-    landPath.setAttribute("d", path(WORLD));
-    var O = proj([ORIGIN.lon, ORIGIN.lat]); ORIGIN.x = O[0]; ORIGIN.y = O[1];
+    setXform(v);                                  // path 는 그대로 두고 transform 만 바꾼다
+    var O = pt(ORIGIN.lon, ORIGIN.lat); ORIGIN.x = O[0]; ORIGIN.y = O[1];
     og.innerHTML = '<circle class="origin-ring" cx="' + O[0] + '" cy="' + O[1] + '" r="9"/>' +
       '<circle class="origin-dot" cx="' + O[0] + '" cy="' + O[1] + '" r="4"/>' +
       '<text class="plabel org" x="' + O[0] + '" y="' + (O[1] - 13) + '" text-anchor="middle">' + ORIGIN.n + " 출발</text>";
     var vis = visibleCities(), colorOf = colorMaker(vis);
-    vis.forEach(function (c) { var p = proj([c.lon, c.lat]); c.x = p[0]; c.y = p[1]; c._col = colorOf(c.price); });
+    vis.forEach(function (c) { var p = pt(c.lon, c.lat); c.x = p[0]; c.y = p[1]; c._col = colorOf(c.price); });
     pins.innerHTML = "";
     vis.forEach(function (c) {
       // minor 는 지우지 않고 낮춘다 — 작게·반투명·후광 없음. 라벨도 major 만 단다.

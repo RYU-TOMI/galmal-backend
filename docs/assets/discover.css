@@ -47,7 +47,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 /* 지도 무대 */
 .stage{flex:1 1 auto;position:relative;min-width:0}
 svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;background:var(--sea);touch-action:manipulation}
-.land{fill:var(--land);stroke:#33534f22;stroke-width:.6;stroke-linejoin:round}
+/* 지도는 transform 으로 확대된다 → 해안선 굵기는 배율을 따라가면 안 된다 (B17) */
+.land{fill:var(--land);stroke:#33534f22;stroke-width:.6;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .arc{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;filter:drop-shadow(0 .5px 1px #f2603f33)}
 .origin-dot{fill:var(--ink)}.origin-ring{fill:none;stroke:var(--ink);stroke-width:1.5;opacity:.35}
 .pin{cursor:pointer}.pin .halo{opacity:.16}.pin .core{stroke:#fff;stroke-width:2.2;transition:r .12s}
