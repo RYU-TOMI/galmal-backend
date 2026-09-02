@@ -43,15 +43,25 @@ for d in SEL:
     d["_x"], d["_y"] = px(d["lon"], d["lat"])
 OX, OY = px(ORG["lon"], ORG["lat"])
 
-# ── 지역 bbox (딜 좌표에서, 여유 8도) ─────────────────────────
+# ── 대륙 경계 (고정) ──────────────────────────────────────────
+# 처음엔 딜 좌표 bbox +8도로 잡았다 → **대륙이 뭉텅이로 빠졌다.**
+#   오세아니아 딜은 lon 145~177(시드니·오클랜드)라 bbox가 137~185가 되고,
+#   호주 본토 중심이 lon 134라 **호주가 통째로 빠졌다.**
+#   미주도 마찬가지로 캐나다(중심 위도 60)가 빠졌다.
+# 호버는 "대륙 모양"이어야 하므로 딜이 아니라 **대륙 자체**로 경계를 잡는다.
+#
+# am을 북미로 끊은 이유: 이 투영의 이음매가 lon -37.1(대서양)이라
+# 남미 동해안이 잘린다. 미주 딜 6곳은 전부 북미(위도 34~49)라
+# 남미를 넣을 이유가 없다. 남미는 회색(rest)으로 남는다.
+CONT = {
+    "eu": (-25, 34, 50, 72),      # 유럽 + 튀르키예
+    "am": (-170, 8, -55, 72),     # 북미 (남미는 이음매에 걸려 제외)
+    "oc": (110, -50, 180, -5),    # 호주 · 뉴질랜드 · 남태평양
+}
+
 reg_deals = collections.defaultdict(list)
 for d in SEL:
     reg_deals[d.get("region", "?")].append(d)
-
-BBOX = {}
-for k, v in reg_deals.items():
-    lo = [d["lon"] for d in v]; la = [d["lat"] for d in v]
-    BBOX[k] = (min(lo) - 8, min(la) - 8, max(lo) + 8, max(la) + 8)
 
 
 def centroid(geom):
@@ -74,10 +84,10 @@ def centroid(geom):
 
 
 def region_of(c):
-    """중심이 어느 지역 bbox에 드는가. 겹치면 중심이 더 가까운 쪽."""
+    """중심이 어느 대륙 경계에 드는가. 겹치면 중심이 더 가까운 쪽."""
     best, bestd = None, 1e9
     for k in PICK:
-        b = BBOX.get(k)
+        b = CONT.get(k)
         if not b:
             continue
         if b[0] <= c[0] <= b[2] and b[1] <= c[1] <= b[3]:
@@ -206,26 +216,26 @@ svg.map path{fill:var(--land);stroke:#33534f22;stroke-width:.6;
 svg.map g.reg{cursor:pointer}
 svg.map g.reg:hover path,svg.map g.reg.on path{fill:#F6C3B2;stroke:#F2603F88;stroke-width:1}
 .pinlayer{position:absolute;inset:0;pointer-events:none}
-.pin{position:absolute;border-radius:99px;background:var(--accent);
+.rpin{position:absolute;border-radius:99px;background:var(--accent);
  transition:left .62s cubic-bezier(.22,.61,.36,1),top .62s cubic-bezier(.22,.61,.36,1),
  width .3s,height .3s,margin .3s,opacity .3s}
-.pin.maj{width:11px;height:11px;margin:-5.5px 0 0 -5.5px;box-shadow:0 0 0 3px rgba(242,96,63,.18)}
-.pin.min{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;opacity:.5}
-.pin.org{background:var(--coast);width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
+.rpin.maj{width:11px;height:11px;margin:-5.5px 0 0 -5.5px;box-shadow:0 0 0 3px rgba(242,96,63,.18)}
+.rpin.min{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;opacity:.5}
+.rpin.org{background:var(--coast);width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
  box-shadow:0 0 0 4px rgba(46,125,116,.2)}
-.plab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
+.rplab{position:absolute;transform:translate(-50%,-210%);font-size:.62rem;font-weight:800;
  background:#fff;border-radius:5px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 7px #0002;
  opacity:0;transition:opacity .3s .2s,left .62s cubic-bezier(.22,.61,.36,1),top .62s cubic-bezier(.22,.61,.36,1)}
-.plab.on{opacity:1}
-.bar{position:absolute;left:14px;top:14px;display:flex;gap:6px;z-index:9}
-.bar2{position:absolute;left:14px;top:52px;display:flex;gap:6px;z-index:9}
-.pill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
+.rplab.on{opacity:1}
+.rbar{position:absolute;left:14px;top:14px;display:flex;gap:6px;z-index:9}
+.rbar2{position:absolute;left:14px;top:52px;display:flex;gap:6px;z-index:9}
+.rpill{background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;
  font-size:.72rem;font-weight:800;color:var(--sub);box-shadow:0 2px 8px #0000000f;cursor:pointer;
  white-space:nowrap;transition:background .16s,color .16s,border-color .16s}
-.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.pill.sub{border-color:#F2603F55;color:var(--accent);background:#FFF6F3}
-.pill.sub.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pill .n{font-size:.62rem;opacity:.6;margin-left:5px;font-weight:700}
+.rpill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.rpill.sub{border-color:#F2603F55;color:var(--accent);background:#FFF6F3}
+.rpill.sub.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rpill .n{font-size:.62rem;opacity:.6;margin-left:5px;font-weight:700}
 .hint{position:absolute;right:14px;bottom:14px;background:#fffffff2;border:1px solid var(--line);
  border-radius:9px;padding:7px 12px;font-size:.7rem;font-weight:700;color:var(--sub);z-index:9}
 table{width:100%;border-collapse:collapse;font-size:.87rem;background:#fff;
@@ -246,11 +256,11 @@ for k in PICK:
                 + "".join('<path d="%s"/>' % d for d in groups[k]) + '</g>')
 svg += '</g></svg>'
 
-BAR = ('<div class="bar"><span class="pill" id="back">가까운 곳</span>'
-       '<span class="pill">조금 더 멀리</span>'
-       '<span class="pill on" id="far">아주 멀리</span></div>')
-BAR2 = '<div class="bar2">' + "".join(
-    '<span class="pill sub" data-go="%s">%s<span class="n">%d</span></span>'
+BAR = ('<div class="rbar"><span class="rpill" id="back">가까운 곳</span>'
+       '<span class="rpill">조금 더 멀리</span>'
+       '<span class="rpill on" id="far">아주 멀리</span></div>')
+BAR2 = '<div class="rbar2">' + "".join(
+    '<span class="rpill sub" data-go="%s">%s<span class="n">%d</span></span>'
     % (k, KO[k], len([d for d in SEL if d.get("region") == k and d["haul"] == "long"]))
     for k in PICK if k in AFF) + '</div>'
 
@@ -261,7 +271,7 @@ var cur = null;
 
 PINS.forEach(function (p, i) {
   var el = document.createElement('span');
-  el.className = 'pin ' + (p.t === 'major' ? 'maj' : 'min');
+  el.className = 'rpin ' + (p.t === 'major' ? 'maj' : 'min');
   el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
   el.dataset.i = i; layer.appendChild(el); p.el = el;
   var lb = document.createElement('span');
