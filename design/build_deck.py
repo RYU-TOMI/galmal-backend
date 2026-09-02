@@ -173,6 +173,19 @@ DECISIONS = [
      "<b>키보드 사용자에겐 피드가 곧 지도</b> &mdash; 같은 걸 두 번 훑게 하지 않는다"),
     ("신뢰", "말할 수 없는 건 말하지 않는다", "비교 막대가 없을 때 이유를 갈라 말한다 &mdash; "
      "<code>아직 모아두지 못했어요</code>(모름)와 <code>평소와 비슷해요</code>(알아봤는데 아님)는 다르다"),
+    ("지도", "대륙을 호버해서 고른다", "<code>아주 멀리</code>에서 유럽 10곳이 <b>가로 200px 안에 뭉친다.</b> "
+     "게임에서 영토 고르듯 대륙에 손을 올리면 땅 모양이 뜨고, 누르면 그쪽으로 확대된다. "
+     "<b>자유 줌을 안 넣기로 한 결정이 여기서 값을 치렀고, 이 방식으로 갚았다</b>"),
+    ("필터", "예산 눈금은 선형 &mdash; 로그를 <b>철회</b>했다", "9/1에 &lsquo;고가 구간이 비어 눈금이 낭비된다&rsquo;고 "
+     "로그로 정했다. <b>재보니 사실이 아니었다</b> &mdash; 70~130만에 41%가 있다. "
+     "분포는 저가로 뭉친 게 아니라 <b>거리대 때문에 봉우리가 둘</b>이다. 정작 빈 곳은 5만~11만이라 "
+     "<b>로그가 그 빈 구간을 늘린다</b>(빈 칸 선형 1/12 · 로그 3/12)"),
+    ("문구", "지역 이름의 정본을 만들었다", "괌이 지도에선 <code>휴양·섬</code>, 노선 페이지에선 <code>국내·괌</code>이었다. "
+     "<b>사전 89곳 중 59곳이 어긋나 있었다.</b> 원인은 <b>표시명 표가 아예 없어서</b> 코드 두 곳이 "
+     "각자 이름을 지어낸 것 &mdash; <code>COPY.md</code> §2b가 이제 정본이다"),
+    ("공유", "OG 이미지를 만들었다", "링크를 카톡에 붙이면 <b>미리보기가 백지</b>였다. 한국에서 링크는 카톡으로 돈다. "
+     "로고+글자만 두지 않고 <b>오늘 진짜 딜 28곳</b>을 지도에 찍었다 &mdash; "
+     "미리보기 한 장으로 &lsquo;발견 지도&rsquo;임이 읽혀야 한다"),
 ]
 
 HOWS = [
@@ -191,6 +204,12 @@ HOWS = [
      "가설(&lsquo;좁히면 글자가 잘린다&rsquo;)이 틀린 것도 그대로 적었다.",
      "320px에서도 <b>잘리는 카드 0건</b>이었다 &mdash; "
      "한글 서비스는 애초에 글자가 짧다. 그래서 지표를 바꿔 다시 쟀다."),
+    ("같은 사실이 두 곳에 있으면 갈라진다",
+     "이 프로젝트에서 <b>일곱 번</b> 나온 같은 결함이다. "
+     "값이든 이름이든 <b>두 곳에 두면 반드시 어긋난다.</b>",
+     "시각 <code>timeutil</code> · 포맷 <code>_fmt</code> · 도시명 <code>labels.city()</code> · "
+     "필터의 <code>when</code> 값 · 목업 <b>CSS 클래스 이름</b> · 도장 임계값 · "
+     "그리고 <b>지역 표시명</b>. 마지막 건 표가 없어서 코드가 이름을 지어냈다."),
     ("셋이 서로를 고쳤다",
      "기획·프론트·백엔드가 <b>직접 메시지를 주고받으며</b> 서로의 틀린 값을 잡았다.",
      "내가 &lsquo;신기록&rsquo; 조건에서 <b>낙폭 5%를 빠뜨렸는데</b> 백엔드가 "
@@ -218,7 +237,7 @@ left_html = "".join('<div class="lf"><b>%s</b><span>%s</span></div>' % (t, d) fo
 # 실제로 있는 파일만 적는다
 FILES = [f for f in ["home", "open", "search", "filters", "budget", "mobile", "origin",
                      "dockbar", "dock", "density", "detail", "panel", "stages", "card",
-                     "wireframe", "storyboard", "freshness", "feed_map"]
+                     "wireframe", "storyboard", "freshness", "feed_map", "region"]
          if os.path.exists(os.path.join(BASE, f + ".html"))]
 files_html = "".join('<span class="file">%s.html</span>' % f for f in FILES)
 
@@ -228,7 +247,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "<body><div class=deck>"
 
         "<div class=cover>"
-        "<div class=eyebrow>기획 · 디자인 &nbsp;/&nbsp; 2026-09-01</div>"
+        "<div class=eyebrow>기획 · 디자인 &nbsp;/&nbsp; 2026-09-03</div>"
         "<h1>어디 갈지 <em>정해주는</em><br>항공권 발견 서비스</h1>"
         "<p>검색창에 목적지를 넣는 서비스는 이미 많다. 우리는 반대다 &mdash; "
         "<b>목적지가 없는 사람</b>에게 오늘 싼 곳을 지도로 펼쳐 보인다. "
@@ -281,14 +300,14 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "<p class=lead>모르는 걸 아는 척하지 않는 게 이 프로젝트의 원칙이라, "
         "<b>남은 것도 적어 둔다.</b></p>"
         "<div class=left>" + left_html + "</div>"
-        "<p class=cap style='margin-top:16px'>&#9888; <b>이 세션엔 브라우저가 없어 "
-        "실제 렌더를 못 봤다.</b> 목업의 배치·움직임은 사람이 확인해야 한다. "
+        "<p class=cap style='margin-top:16px'>&#9888; <b>정지 화면은 헤드리스 크롬으로 "
+        "구워서 확인했다.</b> 다만 <b>움직임</b>(전환·트윈)은 사람이 봐야 한다. "
         "임계값도 <b>한 달 뒤 재측정 트리거</b>를 걸어 뒀다 &mdash; "
         "성숙 구간이 15일뿐이라 지금 값은 잠정이다.</p></div>"
 
         "<div class=foot2>"
         "<b>갈래말래</b> &mdash; 한국 출발 항공권 특가 발견 서비스<br>"
-        "기획·디자인 세션 &middot; 2026-09-01 &middot; 데이터 <code>updated "
+        "기획·디자인 세션 &middot; 2026-09-03 &middot; 데이터 <code>updated "
         + D.get("updated", "") + "</code><br>"
         "문서 <code>SPEC.md</code> · <code>DECISIONS.md</code> · <code>COPY.md</code> · "
         "<code>CONTRACT.md</code> · <code>IA.md</code> · <code>FLOWS.md</code> &middot; "
