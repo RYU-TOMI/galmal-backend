@@ -61,6 +61,16 @@ def path_d(geom):
                     lon += 360
             prev = lon
             pts.append(px(lon, lat))
+        # 남극은 버린다. 링이 극을 한 바퀴 돌아 unwrap 경도폭이 387도가 되고,
+        # Z로 닫을 때 360도를 건너뛰는 **가로줄**이 생긴다. 게다가 자기교차라
+        # nonzero 채우기가 엉뚱한 가로 띠를 여러 개 만든다(실제로 그렇게 나왔다).
+        # 화면 밖이고 딜도 없다.
+        # 지구를 한 바퀴 감는 링을 버린다. 남극 해안선과 극지 부속 링이 그런데,
+        # unwrap하면 경도폭이 360도가 되어 **화면을 가로지르는 납작한 띠**가 된다.
+        # (실제 렌더에서 가로 흰 줄로 나왔다. 육지 이음매인 줄 알았는데 이거였다.)
+        # 실재하는 최대 육지는 아프로유라시아 198도라 200도로 끊으면 안전하다.
+        if (max(p[0] for p in pts) - min(p[0] for p in pts)) > 200 * 0.01745 * K:
+            continue
         # 무대 근처에 아무것도 안 걸치면 버린다(파일 크기)
         if max(p[0] for p in pts) < -80 or min(p[0] for p in pts) > OW + 80:
             continue
@@ -95,7 +105,8 @@ HTML = """<meta charset="utf-8">
   body{background:#F4F8F7;position:relative;
     font-family:'Pretendard Variable',Pretendard,'Malgun Gothic',sans-serif;color:#20353A}
   svg.map{position:absolute;inset:0}
-  svg.map path{fill:#D3E7DD;stroke:#33534F2b;stroke-width:.85}
+  /* OG는 브랜드 이미지지 정치 지도가 아니다 — 국경선은 채움과 같은 색으로 덮는다. */
+  svg.map path{fill:#D3E7DD;stroke:#D3E7DD;stroke-width:.6;stroke-linejoin:round}
   svg.map circle{fill:#F2603F}
   /* 왼쪽은 글자 자리 — 지도를 배경으로 눕힌다 */
   /* 헤드리스 크롬이 큰 그라디언트를 타일로 합성하며 가로 줄무늬를 남긴다.
