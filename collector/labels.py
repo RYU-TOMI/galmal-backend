@@ -34,8 +34,12 @@ REGION = {
     "JFK": "am", "LAX": "am", "SYD": "am",
     "GUM": "dom", "CJU": "dom",
 }
+# `dests.REGION_NAME`과 어휘가 갈린다 — 여기는 대양주를 "미주·대양주"에 합치고
+# 괌을 "국내·괌"에 넣는다. 표시 문구는 사용자가 보는 것이라 통합은 기획 몫이다(BB26).
+# 다만 `region_of()`가 `dests`로 폴백하므로 **키는 전부 덮어야** KeyError가 안 난다.
 REGION_NAME = {"jp": "일본", "sea": "동남아", "cn": "중화권", "eu": "유럽",
-               "am": "미주·대양주", "dom": "국내·괌", "etc": "기타"}
+               "am": "미주·대양주", "dom": "국내·괌", "etc": "기타",
+               "island": "휴양·섬", "oc": "대양주"}
 REGION_CHIPS = [("all", "전체"), ("jp", "일본"), ("sea", "동남아"), ("cn", "중화권"),
                 ("eu", "유럽"), ("am", "미주·대양주"), ("dom", "국내·괌")]
 
@@ -63,7 +67,20 @@ def airline_name(code):
 
 
 def region_of(dest):
-    return REGION.get(dest, "etc")
+    """목적지 → 지역 코드. `REGION`에 없으면 `dests`로 넘긴다.
+
+    `city()`와 같은 이유의 폴백이다. `REGION`은 초기 26개 노선만 담고 있어서
+    목적지를 넓힐 때마다 조용히 `"etc"`로 떨어졌다 — 노선 페이지 브레드크럼에
+    **`부산 → 상하이`가 "기타"로** 나가고 있었다(2026-09-02, 89곳 중 59곳 불일치).
+    화면에도 나오고 이제 JSON-LD로 검색엔진에도 나가므로 조용히 틀리면 더 나쁘다.
+
+    `REGION`에 **있는** 코드는 건드리지 않는다. 두 사전이 GUM·SYD를 서로 다르게
+    분류하는데 그건 표시 문구 문제라 기획이 정한다(BB26).
+    """
+    if dest in REGION:
+        return REGION[dest]
+    entry = dests.DEST.get(dest)
+    return entry[2] if entry else "etc"
 
 
 def fmt_date(iso):

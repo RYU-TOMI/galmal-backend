@@ -5,6 +5,7 @@
   라이트 브랜드 #23538F / 특가 #D9482B (surface #FAF6EF)
   다크   브랜드 #5D8FE0 / 특가 #E85D35 (surface #121820)
 """
+import json
 
 BASE_URL = "https://ryu-tomi.github.io/promo-ticket-site"
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
@@ -250,8 +251,26 @@ FOOTER = f"""  <footer>
   </footer>"""
 
 
-def page(title, description, canonical_path, body, extra_script=""):
-    """공통 <head>/<body> 셸. canonical_path 예: '/' 또는 '/routes/ICN-FUK.html'"""
+def jsonld_block(payload):
+    """구조화 데이터 <script> 한 덩이. `payload`가 비면 빈 문자열.
+
+    `</`를 이스케이프하는 게 중요하다 — 문자열 값 안에 `</script>`가 들어오면
+    브라우저가 거기서 스크립트를 끝내 버려 페이지가 깨진다. 지금은 우리가 값을
+    다 만들지만, 나중에 도시 이름 같은 외부 유래 문자열이 섞이면 터진다.
+    """
+    if not payload:
+        return ""
+    body = json.dumps(payload, ensure_ascii=False,
+                      separators=(",", ":")).replace("</", "<\/")
+    return f'<script type="application/ld+json">{body}</script>'
+
+
+def page(title, description, canonical_path, body, extra_script="", jsonld=None):
+    """공통 <head>/<body> 셸. canonical_path 예: '/' 또는 '/routes/ICN-FUK.html'
+
+    `jsonld` — schema.org 구조화 데이터(dict 또는 list). **화면에 실제로 있는 것만
+    적는다** — 보이지 않는 내용을 마크업하면 구글이 스팸으로 본다.
+    """
     url = BASE_URL + canonical_path
     return f"""<!doctype html>
 <html lang="ko">
@@ -270,6 +289,7 @@ def page(title, description, canonical_path, body, extra_script=""):
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>{CSS}</style>
+{jsonld_block(jsonld)}
 {extra_script}
 </head>
 <body>

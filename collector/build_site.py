@@ -11,7 +11,7 @@ import html
 import os
 import sys
 import urllib.parse
-from datetime import date, datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -19,6 +19,7 @@ import json
 
 import config
 import db
+import timeutil
 from affiliates import booking_link
 from charts import bar_chart, line_chart
 from detect_deals import IS_DIRECT_SQL, compute_deals
@@ -29,13 +30,12 @@ from labels import (REGION_CHIPS, REGION_NAME, SQL_WEEKDAY, airline_name, city,
 from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
-KST = timezone(timedelta(hours=9))
 
 
 # ---------------------------------------------------------------- 데이터 조회
 
 def daily_min(conn, origin, dest, days=30, direct_only=None):
-    since = (date.today() - timedelta(days=days)).isoformat()
+    since = (timeutil.today_utc() - timedelta(days=days)).isoformat()
     cond = ""
     if direct_only is True:
         cond = f"AND {IS_DIRECT_SQL}"
@@ -74,12 +74,13 @@ def airline_min(conn, origin, dest):
         """SELECT airline, MIN(price), COUNT(*) FROM offers
            WHERE origin=? AND destination=? AND fetched_date>=?
            GROUP BY airline ORDER BY MIN(price) LIMIT 8""",
-        (origin, dest, (date.today() - timedelta(days=30)).isoformat())).fetchall()
+        (origin, dest,
+         (timeutil.today_utc() - timedelta(days=30)).isoformat())).fetchall()
 
 
 def route_summary(conn, origin, dest):
     """(최저가, 중앙값, 표본수) — 최근 30일 전체."""
-    since = (date.today() - timedelta(days=30)).isoformat()
+    since = (timeutil.today_utc() - timedelta(days=30)).isoformat()
     prices = [p for (p,) in conn.execute(
         "SELECT price FROM offers WHERE origin=? AND destination=? AND fetched_date>=? ORDER BY price",
         (origin, dest, since))]
@@ -291,9 +292,34 @@ def route_page(conn, origin, dest):
     title = f"{label} 항공권 최저가 · 시세 추이 | {SITE_NAME}"
     desc = (f"{label} 왕복 항공권 최저가 {cheapest:,}원. 최근 30일 가격 추이와 "
             f"출발 월·요일별 최저가, 항공사별 요금을 매일 갱신합니다.")
+    url = f"{BASE_URL}/routes/{code}.html"
+
+    # 구조화 데이터는 **화면에 실제로 있는 것만** 적는다. 아래 BreadcrumbList는 위
+    # `<p class="crumb">`와 같은 세 단계를 그대로 옮긴 것이고, 중간 단계(지역)는
+    # 페이지가 없으므로 링크도 없이 이름만 넣는다 — 없는 URL을 지어내지 않는다.
+    # 상품 스키마(Product/Offer)는 쓰지 않는다. 우리가 파는 게 아니라 남의 가격을
+    # 보여줄 뿐이라 사실과 다르고, 잘못 쓰면 스팸으로 판정된다.
+    crumb = [("특가 피드", f"{BASE_URL}/"),
+             (REGION_NAME[region_of(dest)], None),
+             (label, None)]
+    structured = [
+        {"@context": "https://schema.org", "@type": "BreadcrumbList",
+         "itemListElement": [
+             {"@type": "ListItem", "position": i, "name": name,
+              **({"item": href} if href else {})}
+             for i, (name, href) in enumerate(crumb, 1)]},
+        {"@context": "https://schema.org", "@type": "WebPage",
+         "name": title, "description": desc, "url": url, "inLanguage": "ko-KR",
+         # 매일 갱신하는 페이지라 크롤러에 신선도를 알린다. `fetched_date`와 같은
+         # 기준(UTC)으로 찍어야 로컬 재빌드와 크론이 어긋나지 않는다(BE4 T1).
+         "dateModified": timeutil.today_utc().isoformat(),
+         "isPartOf": {"@type": "WebSite", "name": SITE_NAME, "url": f"{BASE_URL}/"}},
+    ]
+
     (DOCS / "routes").mkdir(parents=True, exist_ok=True)
     (DOCS / "routes" / f"{code}.html").write_text(
-        page(title, desc, f"/routes/{code}.html", body), encoding="utf-8")
+        page(title, desc, f"/routes/{code}.html", body, jsonld=structured),
+        encoding="utf-8")
     return code, cheapest
 
 
@@ -336,7 +362,9 @@ def build_index(conn, route_index):
 # ---------------------------------------------------------------- SEO 파일
 
 def build_seo(route_index):
-    today = date.today().isoformat()
+    # 크롤러가 읽는 기계용 날짜다. `fetched_date`와 같은 기준(UTC)으로 찍어야
+    # 로컬 재빌드와 크론이 서로 다른 lastmod를 남기지 않는다(BB17).
+    today = timeutil.today_utc().isoformat()
     urls = [(f"{BASE_URL}/", "daily", "1.0")]
     urls += [(f"{BASE_URL}/routes/{code}.html", "daily", "0.8") for code, _ in route_index]
     entries = "\n".join(

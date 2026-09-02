@@ -450,6 +450,37 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     `45h`로 줄이는 게 전부다. 캐시는 남들이 검색해야 갱신되므로 우리가 더 자주 불러도 못 내린다.
   - **언제**: BE5에서 Trip.com 재신청과 함께. 둘 다 조건이 트래픽이라 타이밍이 같다.
 
+- **BB25. `detect_deals.py`·`send_alerts.py`가 아직 `date.today()`를 쓴다.** (2026-09-02, BE4 T1에서 발견)
+  BB13·BB17에서 `timeutil`을 만들어 "새 코드는 반드시 여기를 쓴다"고 정했는데
+  **기존 모듈 3개는 옮기지 않았다.** BE4에서 `build_site.py` 4곳만 옮겼고
+  (`build_seo`의 sitemap `lastmod` 포함) 나머지 둘은 **안 고쳤다** — BE4 스코프 밖이다.
+  - `detect_deals.py:27,67` · `send_alerts.py:77`
+  - `detect_deals.py`는 코드 주석으로 위험을 이미 인지하고 있다 —
+    *"Actions 러너는 UTC라 `date.today()`와 어긋날 수 있음"*.
+  - **당장 안 터지는 이유**: 크론은 UTC 러너에서만 도니 운영 경로는 일관적이다.
+    어긋나는 건 **로컬에서 재현·디버깅할 때**(KST 15:00~23:59 구간)다.
+  - `tests/test_timeutil.py`의 `NaiveTodayDebtTest.KNOWN_DEBT`에 두 파일이 적혀 있다.
+    **새 위반은 테스트가 막고**, 옮기면 목록에서 지우면 된다. 목록이 비면 테스트째 지운다.
+
+- **BB26. 지역 어휘가 두 개다 — `labels.REGION_NAME` vs `dests.REGION_NAME`.** (2026-09-02, BE4 T3에서 발견)
+  `labels`는 대양주를 **"미주·대양주"에 합치고** 괌을 **"국내·괌"에 넣는다.**
+  `dests`에는 `island`(휴양·섬)·`oc`(대양주)가 따로 있다. `CONTRACT.md`가 계약으로
+  들고 있는 enum은 **`dests` 쪽**이다.
+  - 지금 어긋나는 건 **GUM·SYD 둘뿐**이다. `region_of()`가 `REGION`에 있는 코드는
+    건드리지 않고 없는 것만 `dests`로 폴백하기 때문이다.
+  - **안 고친 이유**: `"국내·괌"`·`"미주·대양주"`는 **사용자가 보는 문자열**이라
+    `COPY.md` 소관이다. 통합하면 노선 페이지 브레드크럼 표시가 바뀐다 → 기획 판단.
+  - `tests/test_labels.py`의 `test_known_taxonomy_divergence_is_only_these_two`가
+    **새로 갈라지는 것만** 실패로 잡는다. 기획이 정하면 그 테스트를 지우면 된다.
+
+- **BB27. `build_site.py`에 죽은 코드가 있다.** (2026-09-02, BE4 T3에서 발견)
+  발견 홈으로 갈아타기 전 옛 사이트의 잔재다. **안 고쳤다** — 지우는 것 자체는
+  쉽지만 BE4 스코프 밖이고, 잘못 지우면 조용히 페이지가 비므로 따로 다룬다.
+  - `deal_card()` — 호출처 없음. 여기서만 쓰는 `sparkline()`도 사실상 죽었다.
+  - `mail_deal_rows()` · `mail_rows()` — 호출처 없음.
+  - `REGION_CHIPS` — import만 하고 안 쓴다.
+  - 지울 때 `charts.py`·`mail_deals` 테이블 사용처가 같이 비는지 확인할 것.
+
 ---
 
 ## 8. 다른 세션에서 받은 요청 / 보낼 것
