@@ -75,6 +75,12 @@ def render_home(data, deals_json, world_json, route_index):
     updated = html.escape(data.get("updated", ""))
     deals = data.get("deals", [])
     top = sorted(deals, key=lambda x: x["price"])[:30]
+    # 딜 0건인 날의 대안. **그날 발견 홈이 줄 게 없어도 노선 시세는 살아 있다.** (SPEC §CH3 F1)
+    # JS 는 노선 목록을 갖고 있지 않으므로 셸에서 만든다.
+    empty_routes = "".join(
+        f'<a class="rlink" href="{BASE_URL}/routes/{code}.html">'
+        f'{html.escape(city(code[:3]))} → {html.escape(city(code[4:]))}</a>'
+        for code, _ in route_index[:8])
     ns_deals = "\n".join(
         f"      <li>{html.escape(d['ko'])} · {d['price']:,}원~ · {html.escape(d['when'])} 출발</li>"
         for d in top) or "      <li>수집된 특가가 아직 없습니다.</li>"
@@ -148,6 +154,12 @@ def render_home(data, deals_json, world_json, route_index):
       <button type="button" data-step="in" aria-label="가까이" title="가까이"><i>－</i><em>가까이</em></button>
     </div>{FILTER_DOCK}
     <div class="hovercard" id="hc"></div>
+    <div class="emptyday" id="emptyday" hidden>
+      <h2>오늘은 조용하네요</h2>
+      <p>수집한 특가가 없어요. 내일 아침에 다시 채워집니다.</p>
+      <p class="ed-alt">노선별 최저가는 그대로 볼 수 있어요</p>
+      <div class="rlinks">{empty_routes}</div>
+    </div>
   </div>
 </div>
 <noscript>

@@ -251,6 +251,7 @@
     var t = cardTags(c.tags);
     return t.length ? '<div class="phtags">' + t.map(function (x) { return '<span class="ovtag">' + x + "</span>"; }).join("") + "</div>" : "";
   }
+  var SPARSE_AT = 10;   // 이 미만이면 "딜이 적은 출발지" 안내를 붙인다 (SPEC §CH3 F2)
   var PIN_R = 6, MINOR_R = 2.5;   // major 지름 12px · minor 지름 5px (SPEC §CH1)
 
   // ---- 라벨 겹침 회피: 4방향 후보 + 실패 시 라벨만 생략 (SPEC §CH1, B3/B15) ----
@@ -408,7 +409,7 @@
       '<button class="spill' + (sortMode === "discount" ? " on" : "") + '" data-sort="discount">할인율순</button>' +
       "</div></div>";
     var matches = vis.filter(function (c) { return !dimmed(c); });
-    if (anyFilter() && matches.length === 0) { var nt = document.createElement("div"); nt.className = "feednote"; nt.textContent = "이 조건엔 딜이 없어요 — 조건을 바꿔보세요"; feed.appendChild(nt); }
+    if (anyFilter() && matches.length === 0) { var nt = document.createElement("div"); nt.className = "feednote"; nt.textContent = "이 조건엔 맞는 곳이 없어요 — 조건을 바꿔보세요"; feed.appendChild(nt); }
     var heroCity = null;
     matches.forEach(function (c) { if (!heroCity || heroBetter(c, heroCity)) heroCity = c; });
     var order = heroCity ? [heroCity].concat(vis.filter(function (c) { return c !== heroCity; })) : vis;
@@ -429,6 +430,23 @@
         el.addEventListener("click", function () { expand(i); }); })(card, c._i);
       feed.appendChild(card);
     });
+    // 딜이 적은 출발지에 사실을 알린다 — **"적은 게 비정상"으로 읽히지 않게** 사실만 적고,
+    // 더 많은 선택지가 있는 출발지를 알려준다. 최다 허브는 **그날 데이터에서 계산**한다
+    // (고정으로 박으면 딜이 바뀔 때마다 틀린다). 판정선 10건. (SPEC §CH3 F2 · COPY.md)
+    if (CITY.length && CITY.length < SPARSE_AT) {
+      var best = null, k, n;
+      for (k in D.origins) {
+        if (!D.origins[k]) continue;
+        n = dealCount(k);
+        if (!best || n > best.n) best = { k: k, n: n, name: D.origins[k].name };
+      }
+      var sp = document.createElement("div"); sp.className = "feednote sparse";
+      sp.innerHTML = "<b>" + ORIGIN.n + " 출발은 오늘 " + CITY.length + "곳이에요.</b>" +
+        // 최다 허브가 지금 출발지면 둘째 줄은 거짓말이 된다 — 그때는 첫 줄만 둔다.
+        (best && best.k !== ORIGIN_KEY && best.n > CITY.length
+          ? "<span>" + best.name + "에서 출발하면 " + best.n + "곳까지 늘어나요.</span>" : "");
+      feed.appendChild(sp);
+    }
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
     if (active !== null) paintActive();
@@ -837,6 +855,18 @@
     fnote.hidden = false;
   }
 
+  // 딜이 하나도 없는 날. 실측상 **4일 연속 수집 실패**라야 여기까지 온다 — 마지막 방어선이다.
+  // 화면0이 있을 땐 "핀도 안내도 없는 막다른 길"이었고, 없앤 지금은 **빈 지도와 빈 피드**가 된다.
+  // 지도 자리를 안내로 바꾸고, **노선별 페이지 링크를 함께 준다** — 발견 홈이 줄 게 없는 날에도
+  // 노선 시세는 살아 있다. (SPEC §CH3 F1 · COPY.md S0)
+  function emptyDay() {
+    var ed = document.getElementById("emptyday"); if (ed) ed.hidden = false;
+    // 고를 게 없는 조작은 치운다 — 눌러도 아무 일이 안 일어나는 버튼을 남기지 않는다.
+    // 피드 칼럼도 치운다 — 빈 340px 을 남겨두면 "로딩 중인가?" 로 읽힌다.
+    // 안내가 화면 한가운데 오는 게 이 화면의 전부다.
+    var off = [".prompt", ".stagebar", "#stepper", "#fdock", ".originwrap", "#firstnote", ".feed"], i, e;
+    for (i = 0; i < off.length; i++) { e = document.querySelector(off[i]); if (e) e.hidden = true; }
+  }
   var ORIGIN_KEY = null;
   function pickOrigin(k, initial) {
     var o = D.origins[k]; if (!o) return;
@@ -845,6 +875,11 @@
     resetBudget();          // 출발지가 바뀌면 딜이 통째로 바뀌므로 예산 범위도 새로 잡는다
     lsSet(LS_ORIGIN, k);    // 내 기기에서 나만 겪는 편의다 — 필터를 URL에 안 넣는 것과 다른 문제
     if (pill) pill.textContent = o.name + " 출발 ▾";
+    // 출발지를 바꿨다면 안내 띠는 **역할이 끝났다** — 바꾸는 곳을 이미 찾았다는 뜻이다.
+    // 문구를 갱신하지 않고 닫는 이유: 띠는 "지금 서울로 보고 있고 바꿀 수 있다"를 알리는 것이지
+    // 현재 출발지를 계속 중계하는 자리가 아니다. 안 닫으면 `지금 서울 출발로 보고 있어요` 가
+    // 제주 화면에 그대로 남는다(실측으로 발견).
+    if (!initial) hideNote();
     syncDropSel();
     stageIdx = 0; expandedI = null; active = null; render();
     // 지도가 통째로 다른 나라로 날아가는 유일한 전환이라 600ms 다(SPEC §CH1 트윈 표).
@@ -856,7 +891,7 @@
   // 시작 출발지: 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 T3(빈 상태)에서 다룬다.
   (function boot() {
     var live = liveOrigins();
-    if (!live.length) return;              // 오늘 딜 0건 — 화면0이 없어졌으니 여기가 막다른 길이다 (T3)
+    if (!live.length) return emptyDay();   // 오늘 딜 0건 (SPEC §CH3 F1)
     buildDrop();
     var saved = lsGet(LS_ORIGIN);
     var k = (saved && live.indexOf(saved) >= 0) ? saved
