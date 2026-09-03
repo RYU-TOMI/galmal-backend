@@ -125,14 +125,17 @@ def render_home(data, deals_json, world_json, route_index):
 <div class="hdr">
   <span class="gm-logo">갈래<em>말래</em>{LOGO_SVG}</span>
   <span class="nav"><span class="on">발견</span><span class="muted">노선별</span></span>
-  <span class="tools"><span class="pill origin" id="originPill">출발지 ▾</span></span>
+  <span class="tools"><span class="originwrap">
+    <button type="button" class="pill origin" id="originPill" aria-haspopup="listbox" aria-expanded="false">출발지 ▾</button>
+    <div class="origindrop" id="originDrop" role="listbox" hidden></div>
+  </span></span>
+</div>
+<div class="firstnote" id="firstnote" hidden>
+  <span id="fnText"></span>
+  <button type="button" class="fn-go" id="fnChange">바꾸기</button>
+  <button type="button" class="fn-x" id="fnClose" aria-label="이 안내 닫기">×</button>
 </div>
 <div class="layout">
-  <div class="intro" id="intro">
-    <h2>어디서 출발하세요?</h2>
-    <p>출발 공항을 고르면 오늘 싼 곳들이 열려요</p>
-    <div class="krwrap"><svg id="introMap" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet"></svg></div>
-  </div>
   <div class="feed" id="feed"></div>
   <div class="stage">
     <svg class="map" id="map" preserveAspectRatio="xMidYMid slice" role="img" aria-label="여행지 발견 지도">

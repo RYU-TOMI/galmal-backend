@@ -21,14 +21,17 @@
 <div class="hdr">
   <span class="gm-logo">갈래<em>말래</em><svg class="lg" viewBox="0 0 170 46" overflow="visible" aria-hidden="true"><defs><linearGradient id="gmlg" x1="0" x2="1"><stop offset="0" stop-color="#F2603F" stop-opacity="0"/><stop offset="1" stop-color="#F2603F" stop-opacity=".95"/></linearGradient></defs><path d="M6,34 Q76,40 114,19" fill="none" stroke="url(#gmlg)" stroke-width="3" stroke-linecap="round"/><g transform="translate(120,16) rotate(-28.6) scale(1.02)"><path class="pl-btm" d="M13,0 L-4,0 L-11,8 Z"/><path class="pl-top" d="M13,0 L-11,-8 L-4,0 Z"/><path class="pl-crease" d="M13,0 L-4,0"/></g></svg></span>
   <span class="nav"><span class="on">발견</span><span class="muted">노선별</span></span>
-  <span class="tools"><span class="pill origin" id="originPill">출발지 ▾</span></span>
+  <span class="tools"><span class="originwrap">
+    <button type="button" class="pill origin" id="originPill" aria-haspopup="listbox" aria-expanded="false">출발지 ▾</button>
+    <div class="origindrop" id="originDrop" role="listbox" hidden></div>
+  </span></span>
+</div>
+<div class="firstnote" id="firstnote" hidden>
+  <span id="fnText"></span>
+  <button type="button" class="fn-go" id="fnChange">바꾸기</button>
+  <button type="button" class="fn-x" id="fnClose" aria-label="이 안내 닫기">×</button>
 </div>
 <div class="layout">
-  <div class="intro" id="intro">
-    <h2>어디서 출발하세요?</h2>
-    <p>출발 공항을 고르면 오늘 싼 곳들이 열려요</p>
-    <div class="krwrap"><svg id="introMap" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet"></svg></div>
-  </div>
   <div class="feed" id="feed"></div>
   <div class="stage">
     <svg class="map" id="map" preserveAspectRatio="xMidYMid slice" role="img" aria-label="여행지 발견 지도">

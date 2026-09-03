@@ -742,34 +742,103 @@
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
   if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작
 
-  // ---- 화면0: 출발지 선택 ----
-  function renderIntro() {
-    var im = document.getElementById("introMap"); if (!im) return;
-    var ip = d3.geoEquirectangular().rotate([-127.7, 0]).center([0, 35.9]).scale(3100).translate([200, 150]);
-    var ipath = d3.geoPath(ip);
-    var lp = document.createElementNS(SVGNS, "path"); lp.setAttribute("d", ipath(WORLD)); lp.setAttribute("class", "land"); im.appendChild(lp);
-    Object.keys(D.origins).forEach(function (k) {
-      var o = D.origins[k], p = ip([o.lon, o.lat]);
-      var g = document.createElementNS(SVGNS, "g"); g.setAttribute("class", "ap");
-      g.innerHTML = '<circle class="aph" cx="' + p[0] + '" cy="' + p[1] + '" r="14"/>' +
-        '<circle class="apr" cx="' + p[0] + '" cy="' + p[1] + '" r="7"/>' +
-        '<text class="aplabel" x="' + p[0] + '" y="' + (p[1] - 13) + '" text-anchor="middle">' + o.name + "</text>";
-      g.addEventListener("click", function () { pickOrigin(k); });
-      im.appendChild(g);
-    });
+  // ---- 출발지: 서울 기본 + 헤더 알약에서 변경 (SPEC §CH3, 2026-09-01 확정) ----
+  // 화면0(전체 화면 인트로)을 없앴다. `어디서 출발해요?`는 **아무 가치도 안 준 채 질문부터** 하고,
+  // `서울 → 제주 33,004원`은 그 자체로 제품 설명이다. 첫 화면이 질문이면 이탈 지점이 하나 는다.
+  var DEFAULT_ORIGIN = "SEL";          // 딜의 과반이고 인천이 관문이다
+  var LS_ORIGIN = "gm.origin", LS_NOTE = "gm.originNote";
+  // 사생활 보호 모드·저장 차단에서는 접근 자체가 던진다. 없으면 없는 대로 돈다.
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 무시 */ } }
+
+  function dealCount(k) {
+    var n = 0; for (var i = 0; i < (D.deals || []).length; i++) if (D.deals[i].o === k) n++;
+    return n;
   }
-  function pickOrigin(k) {
-    var o = D.origins[k]; ORIGIN = { n: o.name, lon: o.lon, lat: o.lat };
+  // 딜이 있는 허브만 고를 수 있게 한다 — 고르면 빈 화면이 나오는 선택지는 선택지가 아니다.
+  function liveOrigins() {
+    var out = [], k;
+    for (k in D.origins) if (D.origins[k] && dealCount(k)) out.push(k);
+    out.sort(function (a, b) { return dealCount(b) - dealCount(a); });   // 많은 곳부터
+    return out;
+  }
+  var drop = document.getElementById("originDrop"), pill = document.getElementById("originPill");
+  function buildDrop() {
+    if (!drop) return;
+    // **건수를 붙인다** — 희소 허브는 고르기 전에 티를 낸다(`제주 10곳`). (SPEC §CH3)
+    drop.innerHTML = liveOrigins().map(function (k) {
+      return '<button type="button" class="odopt" role="option" data-o="' + k + '">' +
+             '<b>' + D.origins[k].name + '</b><i>' + dealCount(k) + "곳</i></button>";
+    }).join("");
+    var els = drop.querySelectorAll(".odopt");
+    for (var i = 0; i < els.length; i++) (function (el) {
+      el.addEventListener("click", function () { closeDrop(); pickOrigin(el.getAttribute("data-o")); });
+    })(els[i]);
+  }
+  function openDrop() {
+    if (!drop) return;
+    syncDropSel(); drop.hidden = false;
+    if (pill) pill.setAttribute("aria-expanded", "true");
+  }
+  function closeDrop() {
+    if (!drop) return;
+    drop.hidden = true;
+    if (pill) pill.setAttribute("aria-expanded", "false");
+  }
+  function syncDropSel() {
+    if (!drop) return;
+    var els = drop.querySelectorAll(".odopt");
+    for (var i = 0; i < els.length; i++) {
+      var on = els[i].getAttribute("data-o") === ORIGIN_KEY;
+      els[i].classList.toggle("on", on); els[i].setAttribute("aria-selected", on ? "true" : "false");
+    }
+  }
+  if (pill) pill.addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (drop && drop.hidden) openDrop(); else closeDrop();
+  });
+  // **드롭다운을 미리 펼쳐 두지 않는다** — 그건 작아진 화면0이고 딜을 가린다. (SPEC §CH3)
+  document.addEventListener("click", function () { closeDrop(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrop(); });
+
+  // 첫 방문 안내 띠 — **막지 않는다.** 닫으면 끝이고 다시 안 뜬다.
+  // 유일한 위험은 "서울 전용 서비스"로 읽히는 것이다. 서울이 아닌 사람이 바꾸는 곳을 못 찾으면 그냥 나간다.
+  var fnote = document.getElementById("firstnote"), fnText = document.getElementById("fnText");
+  function hideNote() { if (fnote) fnote.hidden = true; lsSet(LS_NOTE, "1"); }
+  var fnx = document.getElementById("fnClose"), fng = document.getElementById("fnChange");
+  if (fnx) fnx.addEventListener("click", hideNote);
+  if (fng) fng.addEventListener("click", function (e) { e.stopPropagation(); hideNote(); openDrop(); });
+  function maybeNote() {
+    if (!fnote || lsGet(LS_NOTE)) return;
+    if (fnText) fnText.textContent = "지금 " + ORIGIN.n + " 출발로 보고 있어요";
+    fnote.hidden = false;
+  }
+
+  var ORIGIN_KEY = null;
+  function pickOrigin(k, initial) {
+    var o = D.origins[k]; if (!o) return;
+    ORIGIN_KEY = k; ORIGIN = { n: o.name, lon: o.lon, lat: o.lat };
     CITY = D.deals.filter(function (dl) { return dl.o === k; }).map(toCity);
     resetBudget();          // 출발지가 바뀌면 딜이 통째로 바뀌므로 예산 범위도 새로 잡는다
-    var pill = document.getElementById("originPill"); if (pill) pill.textContent = o.name + " 출발 ▾";
-    document.getElementById("intro").classList.add("hide");
+    lsSet(LS_ORIGIN, k);    // 내 기기에서 나만 겪는 편의다 — 필터를 URL에 안 넣는 것과 다른 문제
+    if (pill) pill.textContent = o.name + " 출발 ▾";
+    syncDropSel();
     stageIdx = 0; expandedI = null; active = null; render();
-    // 화면0 → 지도: "지도가 스르륵 열린다". 근거리보다 더 당긴 자리에서 줌아웃한다.
-    if (CURV && !reduceMotion()) tweenTo({ lon: CURV.lon, lat: CURV.lat, scale: CURV.scale * 2.6 }, CURV, 600);
+    // 지도가 통째로 다른 나라로 날아가는 유일한 전환이라 600ms 다(SPEC §CH1 트윈 표).
+    // 첫 로드는 전환이 아니라 **그냥 그 화면**이라 트윈하지 않는다.
+    if (!initial && CURV && !reduceMotion())
+      tweenTo({ lon: CURV.lon, lat: CURV.lat, scale: CURV.scale * 2.6 }, CURV, 600);
   }
-  var pill0 = document.getElementById("originPill");
-  if (pill0) pill0.addEventListener("click", function () { document.getElementById("intro").classList.remove("hide"); });
 
-  renderIntro();
+  // 시작 출발지: 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 T3(빈 상태)에서 다룬다.
+  (function boot() {
+    var live = liveOrigins();
+    if (!live.length) return;              // 오늘 딜 0건 — 화면0이 없어졌으니 여기가 막다른 길이다 (T3)
+    buildDrop();
+    var saved = lsGet(LS_ORIGIN);
+    var k = (saved && live.indexOf(saved) >= 0) ? saved
+          : (live.indexOf(DEFAULT_ORIGIN) >= 0 ? DEFAULT_ORIGIN : live[0]);
+    pickOrigin(k, true);
+    maybeNote();
+  })();
 })();
