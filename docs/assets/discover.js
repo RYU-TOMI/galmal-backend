@@ -29,12 +29,19 @@
   function fmtMD(iso) { var p = iso.split("-"), dt = new Date(+p[0], +p[1] - 1, +p[2]); return (+p[1]) + "/" + (+p[2]) + "(" + WD[dt.getDay()] + ")"; }
   function fmtRange(dep, ret) { return ret ? fmtMD(dep) + "~" + fmtMD(ret) : fmtMD(dep); }
   function grad(tags) { for (var i = 0; i < tags.length; i++) if (TAG_GRAD[tags[i]]) return TAG_GRAD[tags[i]]; return "linear-gradient(135deg,#ffb89a,#c6502a)"; }
-  function whyOf(dl) {
-    if (dl.discount >= 25) return "평소보다 " + dl.discount + "%↓";
-    if (dl.transfers > 0) return "경유로 확 싸진 특가";
-    if (dl.when === "이번 주말") return "이번 주말 바로 출발";
-    if (dl.discount > 0) return "최근 " + dl.discount + "%↓ · " + dl.when;
-    return dl.when + " 최저가";
+  // ---- 교통 표기 (COPY.md §2 카드 피드, 2026-08-22 확정) ----
+  // **"왜 지금" 훅 줄은 폐기됐다.** 우리가 못 하는 주장을 하고 있었다 —
+  // `경유로 확 싸진 특가` 가 피드의 54%에 붙었는데 **직항 대비 가격 데이터가 없다**(SPEC F18).
+  // 훅이 말하던 사실은 각자 제자리로 갔다:
+  //   `평소보다 N%↓` → 도장(T4) · `{상대라벨} 최저가`·`이번 주말 바로 출발` → 날짜 줄이 이미 말한다
+  //   `경유로 확 싸진 특가` → **삭제**(근거 없음) · 그 자리에 `직항`/`경유 {N}회` 가 새로 온다
+  //
+  // 중·장거리 직항만 **배지**다. 근거리 직항은 당연해서 배지가 아니라 텍스트다.
+  function transportHTML(dl) {
+    if (dl.transfers > 0) return '<span class="trx">경유 ' + dl.transfers + "회</span>";
+    if (dl.haul === "short") return '<span class="trx">직항</span>';
+    // 배지는 **청록 채움**이다 — 도장(코랄)과 색이 겹치면 안 된다. 둘은 다른 종류의 정보다.
+    return '<span class="bdg"><i>✈</i>직항</span>';
   }
   // 할인 도장 = **3단계 티어, 15% 미만은 도장 없음** (SPEC §CH3, 2026-08-22 확정 F17/F19)
   // 그동안 할인율과 무관하게 무조건 붙였다 — 오늘 픽스처로 **128건 중 101건(79%)이
@@ -56,7 +63,7 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓", dtier: discTier(dl.discount || 0),
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
+      trans: transportHTML(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
       seen: dl.seen || "" };
   }
 
@@ -437,9 +444,8 @@
         // 히어로(104px 전폭)에만 사진 위로 얹는다. 그래서 작은 카드가 세로를 20% 덜 먹는다.
         '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c) : "") + "</div>" +
         '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b>' + stampHTML(c) + "</div>" +
-        '<div class="fprice"><small>₩</small>' + c.price + ' <span class="tilde">~</span></div>' +
+        '<div class="fprice"><span><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + c.trans + "</div>" +
         '<div class="fdate"><span class="when">' + c.when + "</span>" + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
-        '<div class="fwhy">' + c.why + "</div>" +
         (hero ? '<div class="gorow"><button class="go">갈래 → 자세히 보기</button></div>' : "") +
         "</div>";
       (function (el, i) { el.addEventListener("mouseenter", function () { highlight(i, false); });
@@ -548,7 +554,7 @@
   function bodyTop(c) {
     return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + stampHTML(c) + "</div>" +
       '<div class="hc-date">' + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
-      '<div class="hc-why">' + c.why + "</div>";
+      '<div class="hc-trans">' + c.trans + "</div>";
   }
   function priceCompare(c) {
     // 실데이터: 평소 시세(중앙값) 대비 발견가. 할인 없으면 생략.

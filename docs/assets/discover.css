@@ -60,11 +60,19 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 /* ⚠️ `썸네일 위로 떠오름`(translateY -16px)은 **히어로에만**. 히어로는 사진이 위에 있어 그 위로
    걸치지만, 작은 카드는 사진이 왼쪽이라 도장이 카드 밖으로 밀려 나간다. 호버카드도 같은 이유로 뺀다. */
 .fcard.hero .stamp.t3{transform:rotate(-9deg) translateY(-16px) scale(1.06)}
-.fprice{font-weight:900;font-size:1.12rem;color:var(--accent);letter-spacing:-.02em;margin-top:2px}.fprice small{font-size:.66rem}
+/* 교통은 **가격 줄 우측**이다 — 날짜 줄에 넣지 않는다 (COPY.md §2 카드 피드) */
+.fprice{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;font-size:1.12rem;color:var(--accent);letter-spacing:-.02em;margin-top:2px}.fprice small{font-size:.66rem}
+/* 근거리 직항·경유는 **텍스트**다. 배지로 만들면 당연한 사실이 소식처럼 읽힌다. */
+.trx{flex:none;font-size:.68rem;font-weight:700;color:var(--sub);letter-spacing:0}
+/* 직항 배지 — `--coast` 채움. **도장(코랄)과 색이 겹치면 안 된다**(DESIGN.md).
+   `--coast` 는 이미 지도 윤곽·차트에 쓰는 중립색이라 새 강조색을 만드는 게 아니다. */
+.bdg{flex:none;font-size:.6rem;font-weight:800;border-radius:99px;padding:2px 9px;
+ background:var(--coast);color:#fff;letter-spacing:0;white-space:nowrap}
+.bdg i{font-style:normal;margin-right:3px;font-size:.9em;opacity:.92}
+.hc-trans{margin-top:3px}
 .tilde{font-size:.66rem;color:var(--sub);font-weight:700}
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
 .when{background:var(--accent);color:#fff;font-weight:800;font-size:.62rem;padding:2px 8px;border-radius:99px}
-.fwhy{font-size:.72rem;color:var(--sub);margin-top:5px;line-height:1.4}
 /* 태그는 사진이 큰 자리에만 — 사진 위에 얹는다 (SPEC §CH2, design/density.html) */
 .phtags{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:3px;flex-wrap:wrap}
 .ovtag{font-size:.52rem;font-weight:800;color:#fff;background:rgba(6,20,18,.5);border-radius:4px;padding:1px 6px;white-space:nowrap}
@@ -171,7 +179,6 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .hc-photo .phtags{top:7px;bottom:auto;left:8px;right:74px}
 .hc-body{padding:9px 12px 11px}.hc-row{display:flex;align-items:baseline;justify-content:space-between}
 .hc-price{font-weight:900;font-size:1.22rem;color:var(--accent);letter-spacing:-.02em}.hc-price small{font-size:.7rem;font-weight:900}.hc-price .tilde{font-size:.7rem;color:var(--sub);font-weight:700}
-.hc-why{font-size:.64rem;color:var(--ink);opacity:.82;margin-top:2px;line-height:1.38}
 .hc-cta{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;font-size:.72rem;border-radius:8px;padding:7px 0}
 .hc-date{font-size:.66rem;color:var(--sub);font-weight:700;margin-top:3px}
 /* 확장(클릭) 상세 카드 */
