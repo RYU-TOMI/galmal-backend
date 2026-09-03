@@ -264,6 +264,11 @@ chrome.exe --headless=new --disable-gpu --hide-scrollbars --force-device-scale-f
 - **빌드 파이프라인이 아니다.** 사람이 확인용으로 한 번 돌린다 → "Node 금지·CDN 의존 0"과 무관하다.
 - 출발지 선택·칩 클릭 같은 조작은 `docs/_shot.html`(임시 복사본)에 스크립트를 주입해 재현한다.
   `docs/` 안에 둬야 `assets/` 상대경로가 산다. 다 찍고 반드시 지운다.
+- 🔴 **`*{transition:none!important}` 은 CSS 전환만 끈다 — rAF 트윈은 안 끈다.**
+  단계 전환은 `tweenTo()`(requestAnimationFrame)라서 이걸 넣어도 **중간 상태가 찍힌다.**
+  실제로 `아주 멀리` 클릭 **직후** `#lands` transform 을 읽고 "far 배율 계산이 틀렸다"는
+  **틀린 결론**을 냈다 — 트윈의 첫 동작이 `moveOnly(from)`(출발점으로 되돌림)이었다.
+  단계·필터를 바꾸고 재는 진단은 **400ms 뒤에** 읽어야 한다.
 - 🔴 **`*{transition:none!important}`을 항상 먼저 주입한다.** `--virtual-time-budget`이 CSS 전환을
   **중간에 얼린다.** 이걸 안 넣었을 때 상세 카드가 반투명하고 항로가 엉뚱한 데 그려진 것처럼 찍혀서
   **멀쩡한 걸 버그로 오진할 뻔했다.** 화면이 이상하면 렌더러를 의심하기 전에 전환부터 끈다.
