@@ -29,6 +29,34 @@
   function fmtMD(iso) { var p = iso.split("-"), dt = new Date(+p[0], +p[1] - 1, +p[2]); return (+p[1]) + "/" + (+p[2]) + "(" + WD[dt.getDay()] + ")"; }
   function fmtRange(dep, ret) { return ret ? fmtMD(dep) + "~" + fmtMD(ret) : fmtMD(dep); }
   function grad(tags) { for (var i = 0; i < tags.length; i++) if (TAG_GRAD[tags[i]]) return TAG_GRAD[tags[i]]; return "linear-gradient(135deg,#ffb89a,#c6502a)"; }
+  // ---- 신선도 배지 (SPEC §CH3 · COPY.md §3, 2026-08-22 확정) ----
+  // `seen` = 소스가 그 가격을 **마지막으로 관측한 시각**(CONTRACT.md). 우리가 수집한 시각이 아니라
+  // **가격 자체의 나이**다. **방문 시점에 브라우저가 계산**하므로 페이지가 캐시돼도 알아서 나이를 먹는다.
+  //
+  // ⚠️ **신호등(빨강·노랑) 금지.** 등급 차이는 명도·굵기·불투명도로만 낸다. 오래된 게 경고가 아니다.
+  // ⚠️ 정렬·필터·핀 인코딩에 **반영하지 않는다.** hero 동점 타이브레이커로만 쓴다(T2).
+  // ⚠️ 임계값(24h/72h)을 화면이 싱싱해 보이게 옮기지 않는다 — **재는 자가 아니라 재는 대상이 그렇다.**
+  function freshOf(seen) {
+    var t = seen ? Date.parse(seen) : NaN;
+    if (isNaN(t)) return { cls: "none", text: "스캔 시점 기준" };
+    var h = (Date.now() - t) / 36e5; if (h < 0) h = 0;
+    if (h < 3) return { cls: "fresh", text: "방금 확인" };
+    if (h < 24) return { cls: "fresh", text: Math.round(h) + "시간 전 확인" };
+    if (h < 48) return { cls: "ok", text: "어제 확인" };
+    // "나흘/닷새"처럼 고유어가 3·4·5일마다 갈리면 검수가 불가능해진다 → `{N}일 전`으로 통일. (COPY.md)
+    return { cls: h > 72 ? "stale" : "ok", text: Math.floor(h / 24) + "일 전 확인" };
+  }
+  // 새 요소를 얹지 않는다 — **가격 라벨의 뒷부분을 치환**한다. 신선도는 딜이 아니라 **가격의 속성**이다.
+  function freshHTML(c) {
+    var f = freshOf(c.seen);
+    return '<div class="fr ' + f.cls + '">발견가 · ' + (f.cls === "fresh" ? '<i class="dot"></i>' : "") + f.text + "</div>";
+  }
+  // 확장 상세에는 **절대 시각**도 준다. `seen` 은 계약상 오프셋이 전부 `+09:00` 이라 문자열을 그대로
+  // 자른다 — `Date` 로 로컬 변환하면 해외에서 보는 사람에게 다른 시각이 뜬다.
+  function seenAbs(c) {
+    if (!c.seen || c.seen.length < 16) return "";
+    return c.seen.slice(0, 16).replace("T", " ") + " 관측 · " + freshOf(c.seen).text;
+  }
   // ---- 교통 표기 (COPY.md §2 카드 피드, 2026-08-22 확정) ----
   // **"왜 지금" 훅 줄은 폐기됐다.** 우리가 못 하는 주장을 하고 있었다 —
   // `경유로 확 싸진 특가` 가 피드의 54%에 붙었는데 **직항 대비 가격 데이터가 없다**(SPEC F18).
@@ -445,6 +473,7 @@
         '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c) : "") + "</div>" +
         '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b>' + stampHTML(c) + "</div>" +
         '<div class="fprice"><span><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + c.trans + "</div>" +
+        freshHTML(c) +
         '<div class="fdate"><span class="when">' + c.when + "</span>" + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
         (hero ? '<div class="gorow"><button class="go">갈래 → 자세히 보기</button></div>' : "") +
         "</div>";
@@ -571,7 +600,7 @@
   function bodyTop(c) {
     return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + stampHTML(c) + "</div>" +
       '<div class="hc-date">' + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
-      '<div class="hc-trans">' + c.trans + "</div>";
+      '<div class="hc-trans">' + c.trans + "</div>" + freshHTML(c);
   }
   function priceCompare(c) {
     // 실데이터: 평소 시세(중앙값) 대비 발견가. 할인 없으면 생략.
@@ -608,6 +637,9 @@
       '<div class="hc-detail">' +
       priceCompare(c) +
       '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links) +
+      (freshOf(c.seen).cls === "stale"
+        ? '<div class="hc-stale">사흘 전에 본 가격이에요. 지금은 다를 수 있으니 예약처에서 확인해 주세요.</div>' : "") +
+      (seenAbs(c) ? '<div class="hc-seen">' + seenAbs(c) + "</div>" : "") +
       '<div class="hc-ad">위 가격은 발견가(스캔 시점) · 실시간 최저가는 각 사이트에서 확인하세요' +
       (adLinks(c.links) ? '<br>(광고) 표시는 예약하시면 저희가 수수료를 받는 링크예요 · 가격은 같아요' : "") + "</div>" +
       "</div></div>";

@@ -72,6 +72,17 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
  background:var(--coast);color:#fff;letter-spacing:0;white-space:nowrap}
 .bdg i{font-style:normal;margin-right:3px;font-size:.9em;opacity:.92}
 .hc-trans{margin-top:3px}
+/* 신선도 배지 (DESIGN.md · design/freshness.html). **신호등 금지** — 명도·굵기·불투명도로만. */
+.fr{display:flex;align-items:center;gap:5px;font-size:.7rem;letter-spacing:-.01em;margin-top:4px}
+.fr .dot{width:5px;height:5px;border-radius:99px;background:var(--accent);flex:none;margin-left:1px}
+.fr.fresh{color:var(--ink);font-weight:700}
+.fr.ok{color:var(--sub);font-weight:500}
+/* ⚠️ opacity 는 **라벨에만**. 카드 전체를 흐리게 하면 오늘 데이터로 72%가 흐려진다. */
+.fr.stale{color:var(--sub);font-weight:500;opacity:.7}
+.fr.none{color:var(--sub);font-weight:500}
+.hovercard .fr{font-size:.62rem;margin-top:3px}
+.hc-seen{font-size:.56rem;color:var(--sub);opacity:.75;margin-top:6px;text-align:center}
+.hc-stale{font-size:.6rem;color:var(--ink);background:var(--soft);border-radius:8px;padding:7px 9px;margin-top:8px;line-height:1.45}
 .tilde{font-size:.66rem;color:var(--sub);font-weight:700}
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
 .when{background:var(--accent);color:#fff;font-weight:800;font-size:.62rem;padding:2px 8px;border-radius:99px}
