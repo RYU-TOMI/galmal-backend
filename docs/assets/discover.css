@@ -82,7 +82,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .fr.none{color:var(--sub);font-weight:500}
 .hovercard .fr{font-size:.62rem;margin-top:3px}
 .hc-seen{font-size:.56rem;color:var(--sub);opacity:.75;margin-top:6px;text-align:center}
-.hc-stale{font-size:.6rem;color:var(--ink);background:var(--soft);border-radius:8px;padding:7px 9px;margin-top:8px;line-height:1.45}
 .tilde{font-size:.66rem;color:var(--sub);font-weight:700}
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
 .when{background:var(--accent);color:#fff;font-weight:800;font-size:.62rem;padding:2px 8px;border-radius:99px}
