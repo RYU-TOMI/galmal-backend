@@ -57,9 +57,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
  transform:translateX(-130%);animation:sheen 2.8s ease-in-out infinite}
 @keyframes sheen{0%,62%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
 @media(prefers-reduced-motion:reduce){.stamp.t3::after{animation:none;opacity:0}}
-/* ⚠️ `썸네일 위로 떠오름`(translateY -16px)은 **히어로에만**. 히어로는 사진이 위에 있어 그 위로
-   걸치지만, 작은 카드는 사진이 왼쪽이라 도장이 카드 밖으로 밀려 나간다. 호버카드도 같은 이유로 뺀다. */
-.fcard.hero .stamp.t3{transform:rotate(-9deg) translateY(-16px) scale(1.06)}
+/* 🔴 떠오름(translateY -16px)은 **「사진이 카드 위에 있는 카드」에만** 적용한다
+   (DESIGN.md 2026-09-04 — 프론트가 발견하고 기획이 축을 고쳤다).
+   카드 종류가 아니라 **사진 위치**가 기준이다 — 종류로 가르면 모바일에서 또 갈라진다(B32와 같은 축).
+   해당: 히어로 · 확장/호버 카드 · (CH5) 모바일 피드 카드   해당 없음: 데스크톱 작은 카드(사진이 왼쪽) */
+.fcard.hero .stamp.t3,.hovercard .stamp.t3{transform:rotate(-9deg) translateY(-16px) scale(1.06)}
 /* 교통은 **가격 줄 우측**이다 — 날짜 줄에 넣지 않는다 (COPY.md §2 카드 피드) */
 .fprice{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;font-size:1.12rem;color:var(--accent);letter-spacing:-.02em;margin-top:2px}.fprice small{font-size:.66rem}
 /* 근거리 직항·경유는 **텍스트**다. 배지로 만들면 당연한 사실이 소식처럼 읽힌다. */

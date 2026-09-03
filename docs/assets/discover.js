@@ -452,22 +452,39 @@
         el.addEventListener("click", function () { expand(i); }); })(card, c._i);
       feed.appendChild(card);
     });
-    // 딜이 적은 출발지에 사실을 알린다 — **"적은 게 비정상"으로 읽히지 않게** 사실만 적고,
-    // 더 많은 선택지가 있는 출발지를 알려준다. 최다 허브는 **그날 데이터에서 계산**한다
-    // (고정으로 박으면 딜이 바뀔 때마다 틀린다). 판정선 10건. (SPEC §CH3 F2 · COPY.md)
-    if (CITY.length && CITY.length < SPARSE_AT) {
+    // 피드 끝 안내 — **두 단계** (SPEC §CH3 F2, 2026-09-04 개정)
+    //   1순위: 무대 안 N < 출발지 전체 M → `더 멀리까지 보면 {M}곳이에요.`
+    //   2순위: 전체 M 이 10건 미만 → 출발지가 원래 적다는 사실 + 최다 허브 제안
+    //
+    // **1순위가 먼저인 이유**: 제주가 무대 3곳 / 전체 9곳이면 사용자가 할 수 있는 진짜 행동은
+    // **거리를 넓히는 것**이다. 출발지를 바꾸라는 건 여행 계획 자체를 바꾸라는 말이라 훨씬 무겁다.
+    // 가벼운 해결책을 먼저 제안한다.
+    //
+    // 그리고 이 순서가 **모순도 없앤다** — 헤더는 `제주 출발 · 3곳`(무대 안)인데 안내가
+    // `오늘 9곳이에요`(전체)라고 하면 둘 다 맞는 숫자인데도 하나가 틀린 것처럼 보였다.
+    // `{M}` 을 "더 멀리까지 보면"이라는 **범위와 함께** 말하면 헤더와 달라야 정상이 된다. (B37)
+    var TOTAL = ORIGIN_KEY ? dealCount(ORIGIN_KEY) : 0;
+    // N 은 **무대 안 딜 수**(필터와 무관). 필터 개수를 쓰면 거리 탓이 아닌데 "더 멀리"라고 하게 된다.
+    // 마지막 단계에서는 더 넓힐 곳이 없으므로 1순위를 걸지 않는다.
+    var note = null;
+    if (vis.length < TOTAL && stageIdx < STAGES.length - 1 && !anyFilter()) {
+      note = "<b>더 멀리까지 보면 " + TOTAL + "곳이에요.</b>";
+    } else if (TOTAL && TOTAL < SPARSE_AT) {
       var best = null, k, n;
       for (k in D.origins) {
         if (!D.origins[k]) continue;
         n = dealCount(k);
         if (!best || n > best.n) best = { k: k, n: n, name: D.origins[k].name };
       }
-      var sp = document.createElement("div"); sp.className = "feednote sparse";
-      sp.innerHTML = "<b>" + ORIGIN.n + " 출발은 오늘 " + CITY.length + "곳이에요.</b>" +
+      // 판정선 10건은 **출발지 전체 M 기준**이다. 무대 기준으로 재면 `가까운 곳`에서 서울조차 희소로 잡힌다.
+      note = "<b>" + ORIGIN.n + " 출발은 오늘 " + TOTAL + "곳이에요.</b>" +
         // 최다 허브가 지금 출발지면 둘째 줄은 거짓말이 된다 — 그때는 첫 줄만 둔다.
-        (best && best.k !== ORIGIN_KEY && best.n > CITY.length
+        (best && best.k !== ORIGIN_KEY && best.n > TOTAL
           ? "<span>" + best.name + "에서 출발하면 " + best.n + "곳까지 늘어나요.</span>" : "");
-      feed.appendChild(sp);
+    }
+    if (note) {
+      var sp = document.createElement("div"); sp.className = "feednote sparse";
+      sp.innerHTML = note; feed.appendChild(sp);
     }
     var sps = feed.querySelectorAll(".spill");
     for (var s = 0; s < sps.length; s++) (function (el) { el.addEventListener("click", function () { sortMode = el.dataset.sort; collapse(); render(); }); })(sps[s]);
