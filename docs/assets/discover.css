@@ -1,6 +1,11 @@
 :root{--accent:#F2603F;--accent2:#C6472A;--ink:#20353A;--sub:#5E7A7C;
   --sea:#EDF4F3;--land:#D2E7DE;--coast:#33534F;--line:#E6EDEC;--soft:#F0F5F4;--bg:#F4F8F7;--card:#FFFFFF;}
 *{box-sizing:border-box;margin:0}
+/* `[hidden]` 은 브라우저 기본 스타일의 display:none 이고 **명시도가 가장 낮아** 뒤에 오는
+   `.foo{display:flex}` 하나에 그냥 진다. 이 함정을 세 번 밟았다 — 예산 칩(안 사라짐) ·
+   출발지 드롭다운(처음부터 펼쳐짐) · 첫 방문 띠(× 를 눌러도 안 닫힘). 셋 다 **조용히 실패**했다.
+   전역에서 한 번 못박는다. (기획 제안, 2026-09-04) */
+[hidden]{display:none!important}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pretendard,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
 .hdr{position:relative;z-index:30;display:flex;align-items:center;height:56px;padding:0 18px;background:var(--card);border-bottom:1px solid var(--line);flex:0 0 auto}
@@ -54,9 +59,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .origindrop{position:absolute;right:0;top:calc(100% + 7px);min-width:150px;background:#fff;
  border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(20,40,40,.18);
  padding:5px;display:flex;flex-direction:column;gap:2px;z-index:31}
-/* ⚠️ `[hidden]` 은 UA 스타일의 display:none 이라 위의 display:flex 에 **덮인다.**
-   이걸 안 적으면 드롭다운이 처음부터 펼쳐진 채 뜬다 — 스펙이 금지한 "작아진 화면0"이 된다. */
-.origindrop[hidden]{display:none}
 .odopt{display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;background:none;
  font:inherit;font-size:.82rem;color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left}
 .odopt:hover{background:var(--soft)}
@@ -67,9 +69,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 /* 첫 방문 안내 띠 — 막지 않는다. 헤더 아래 한 줄, 닫으면 끝. */
 .firstnote{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 18px;
  background:#FFF3EF;border-bottom:1px solid #F7D6CC;font-size:.76rem;font-weight:700;color:var(--accent2)}
-/* 같은 함정: display:flex 가 `[hidden]` 을 덮는다. 이걸 안 적으면 **재방문자에게도 안내 띠가 계속 뜨고**,
-   × 를 눌러도 안 사라진다. (SPEC §CH3 "닫으면 끝") */
-.firstnote[hidden]{display:none}
 .fn-go{border:0;background:none;font:inherit;font-size:.76rem;font-weight:800;color:var(--accent);
  text-decoration:underline;cursor:pointer;padding:0}
 .fn-go::before{content:"·";display:inline-block;margin-right:7px;color:var(--accent2);opacity:.5}
@@ -125,7 +124,6 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .fchip.date i,.fchip.nights i,.fchip.moodf i,.fchip.budget i{font-style:normal;font-size:.62rem;font-weight:600;opacity:.62;margin-left:4px}
 .fchip.date.on i,.fchip.nights.on i,.fchip.moodf.on i,.fchip.budget.on i{opacity:.85}
 .fchip:disabled{opacity:.38;cursor:default}
-.fchip[hidden]{display:none}
 .budgetwrap{display:flex;align-items:flex-end;gap:8px;font-size:.78rem;font-weight:700;color:var(--sub)}
 .budgetwrap b{color:var(--ink);white-space:nowrap}
 /* 히스토그램은 슬라이더 **위에** 깐다 — 딜이 어디 몰려 있나를 보고 손잡이를 옮긴다.

@@ -278,32 +278,35 @@
     return a.l - LAB_GAP_X < b.l + b.w && b.l - LAB_GAP_X < a.l + a.w &&
            a.t - LAB_GAP_Y < b.t + b.h && b.t - LAB_GAP_Y < a.t + a.h;
   }
-  // 도크·줌 버튼이 덮는 사각형은 라벨 자리에서 제외한다 — 무대 밖 처리와 같다. (SPEC §CH2, B16)
+  // 지도 위 **불투명한 UI 아래에서는 글자가 읽히지 않는다** → 라벨 자리에서 제외한다. (SPEC §CH1 5)
+  // 판정은 **성질**이지 이름 목록이 아니다. 기획이 규칙을 그렇게 고쳤다(`7e2073c`) —
+  // 처음엔 "도크·줌 컨트롤"로 이름을 나열해 뒀는데, 그 뒤 흰 박스가 넷이 되면서 갈라졌다.
+  // 새 UI를 지도 위에 올리면 **이 목록에 같이 넣는다.**
+  var MAP_UI = ["#fdock", "#stepper", ".stagebar", ".prompt"];
   // 화면 좌표 → viewBox 좌표는 CTM 역행렬로 옮긴다. slice 배율을 손으로 다시 계산하지 않는다.
   function clientToVb(m, x, y) { var p = svg.createSVGPoint(); p.x = x; p.y = y; return p.matrixTransform(m); }
   // 도크는 **펼친 상태 기준**으로 잰다 — 접었다 펼 때마다 라벨이 재배치되면 산만하다(SPEC §CH2).
   // 접혀 있으면 클래스를 잠깐 떼고 재서 되돌린다. 같은 태스크 안이라 화면엔 안 나타난다.
+  // 그 밖의 요소는 **지금 상태 그대로** 잰다 — 숨겨진 것은 자리를 안 먹으므로 라벨이 돌아온다.
   function uiBoxes() {
     // 레이아웃 전이라 CTM 이 없으면 UI 사각형 없이 배치한다 — 라벨을 통째로 잃는 것보다 낫다.
     var ctm = svg.getScreenCTM(); if (!ctm) return [];
-    var inv = ctm.inverse();
-    var out = [], els = [document.getElementById("fdock"), document.getElementById("stepper")];
-    for (var i = 0; i < els.length; i++) {
-      var e = els[i]; if (!e) continue;
+    var inv = ctm.inverse(), out = [], i;
+    for (i = 0; i < MAP_UI.length; i++) {
+      var e = document.querySelector(MAP_UI[i]); if (!e) continue;
       var col = e.classList.contains("collapsed");
       if (col) e.classList.remove("collapsed");
       var r = e.getBoundingClientRect();
       if (col) e.classList.add("collapsed");
-      if (!r.width || !r.height) continue;
+      if (!r.width || !r.height) continue;          // 숨겨졌거나 빈 요소는 건너뛴다
       var a = clientToVb(inv, r.left, r.top), b = clientToVb(inv, r.right, r.bottom);
-      out.push({ l: a.x, t: a.y, w: b.x - a.x, h: b.y - a.y });
+      out.push({ l: a.x, t: a.y, w: b.x - a.x, h: b.y - a.y, city: null });
     }
     return out;
   }
-  // 피해야 할 사각형은 셋이다: 이미 놓인 라벨 · **다른 도시의 핀** · 도크/줌 컨트롤. (SPEC §CH1 5)
-  // 처음엔 라벨끼리만 봤다. 필터를 켜서 매칭 41곳에 라벨이 다 붙자 드러났다 —
-  // `타이베이`가 핀에 덮여 `이베이`로, `다낭`이 `낭`으로 읽혔다.
-  // **자기 핀은 뺀다** — 아래 후보(y+5.1~y+21.1)가 자기 핀(y±7.1)과 원래 겹치게 설계돼 있다.
+  // 피해야 할 사각형에 **다른 도시의 핀**도 들어간다. 자기 핀은 뺀다 —
+  // 기본 자리(아래)가 `y+5.1~y+21.1` 이고 자기 핀이 `y±7.1` 이라 **원래 겹치게 설계돼 있다**
+  // (2단계의 `PIN_R+11` 오프셋). 안 빼면 모든 도시가 기본 자리를 못 쓴다. (SPEC §CH1 5)
   function pinBoxes(vis) {
     var out = [], i, c, r;
     for (i = 0; i < vis.length; i++) {
@@ -312,12 +315,14 @@
     }
     // 출발지 핀·라벨도 넣는다 — 다른 그룹(`#origin`)에 있다고 빼면 `베이징`과 겹친다. (B31)
     if (ORIGIN && ORIGIN.x != null) {
-      out.push({ l: ORIGIN.x - 9, t: ORIGIN.y - 9, w: 18, h: 18 });   // ring r=9
+      out.push({ l: ORIGIN.x - 9, t: ORIGIN.y - 9, w: 18, h: 18, city: null });   // ring r=9
       var t = ORIGIN.n + " 출발", w = labW(t);
-      out.push({ l: ORIGIN.x - w / 2, t: ORIGIN.y - 13 - (LAB_FS * 0.8 + 1.5), w: w, h: LAB_FS + 3 });
+      out.push({ l: ORIGIN.x - w / 2, t: ORIGIN.y - 13 - (LAB_FS * 0.8 + 1.5), w: w, h: LAB_FS + 3, city: null });
     }
     return out;
   }
+  // ⚠️ 호버카드·확장 상세는 **넣지 않는다.** 사용자가 열고 닫는 것이라 넣으면 카드를 여닫을
+  //    때마다 라벨이 튄다. 카드는 지나가는 것이고 라벨 위에 덮여 그려지므로 읽기를 막지 않는다.
   function placeLabels(vis) {
     var band = usableBand(),
         x0 = W / 2 - band.vbW / 2, x1 = W / 2 + band.vbW / 2,
@@ -858,5 +863,12 @@
           : (live.indexOf(DEFAULT_ORIGIN) >= 0 ? DEFAULT_ORIGIN : live[0]);
     pickOrigin(k, true);
     maybeNote();
+    // ⚠️ boot 은 **파싱 중**에 돈다(화면0이 없어져 사용자 클릭을 기다리지 않는다).
+    //    그 시점엔 `svg.getScreenCTM()` 이 아직 없어 `uiBoxes()` 가 빈 배열이 되고,
+    //    **라벨이 도크 자리에 놓인다** — 실측: `삿포로` 가 도크 안에 36.3×17.0px 통째로 들어갔다.
+    //    재렌더 계기가 없으면 그 상태가 첫 화면으로 남는다.
+    //    레이아웃이 끝난 뒤(rAF) 한 번 더 배치한다. 첫 렌더를 미루지 않는 이유는
+    //    **빈 지도가 한 프레임 보이는 게 더 나쁘기** 때문이다. path 는 transform 한 줄이라 비용이 없다.
+    if (window.requestAnimationFrame) requestAnimationFrame(function () { if (ORIGIN) render(); });
   })();
 })();

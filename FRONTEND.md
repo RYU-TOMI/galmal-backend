@@ -49,6 +49,23 @@
 - [ ] **확장 상세 열린 채로 다른 조작**(정렬 변경, 단계 변경, 필터 변경)
 - [ ] 데이터 0건인 날 가정 — `deals: []`여도 화면이 살아 있어야 함 (`CONTRACT.md` §3)
 - [ ] `node --check docs/assets/discover.js` — 문법 오류 사전 차단
+- [ ] 🔴 **정의 없는 호출 확인** — `node --check` 는 **문법만** 본다. 함수를 지우고 호출부를 남기면
+      통과하는데 런타임에 `ReferenceError` 로 **렌더가 통째로 죽는다.** 실제로 겪었다(2026-09-04):
+      `pinBoxes` 를 블록 교체 중에 지웠는데 `placeLabels` 가 계속 불러서 **핀 0개·피드 0장**이 됐고,
+      `node --check` 는 OK 였다. 화면을 안 찍었으면 못 봤다.
+      ```
+      python - <<'EOF'
+      import io,re
+      s=io.open('docs/assets/discover.js',encoding='utf-8').read()
+      defs=set(re.findall(r'function\s+([A-Za-z_$][\w$]*)\s*\(',s))
+      calls=set(re.findall(r'(?<![\w$.])([A-Za-z_$][\w$]*)\s*\(',s))
+      print(sorted(calls-defs))   # d3 반환값·내장은 오탐이니 눈으로 걸러 본다
+      EOF
+      ```
+- [ ] 🔴 **첫 화면을 반드시 찍어 본다.** 화면0이 없어진 뒤로 `boot()` 이 **파싱 중**에 돈다 —
+      그 시점엔 `svg.getScreenCTM()` 이 없어 UI 회피가 무력화되고, 재렌더 계기가 없으면
+      **그 상태가 첫 화면으로 굳는다.** 실측: `삿포로` 라벨이 도크 안에 36.3×17.0px 통째로 들어갔다.
+      레이아웃에 의존하는 계산은 `requestAnimationFrame` 뒤에 한 번 더 돌려야 한다.
 
 > `node --check`는 **문법 검사에만** 쓴다. 빌드에 node를 끌어들이는 게 아니므로
 > "Node/npm 빌드 도입 금지"(`CLAUDE.md`)에 어긋나지 않는다. 배포물은 여전히 순수 JS 파일 그대로다.
