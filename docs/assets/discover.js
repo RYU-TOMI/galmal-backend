@@ -40,7 +40,8 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓",
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0 };
+      why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
+      seen: dl.seen || "" };
   }
 
   // ---- 파싱/공용 ----
@@ -346,6 +347,23 @@
       c._lab = spots[0]; c._lab.off = true;
     });
   }
+  // hero 선정 = **할인율 최고 → 가격 낮은 순 → 신선한 순** (SPEC §CH3, 2026-08-22 수정 F16)
+  // 2순위가 출발일이었는데 스펙은 가격이다. 3순위(신선도)는 아예 없었다.
+  //
+  // 신선도는 **게이트가 아니라 3순위 타이브레이커**다. 원래 스펙은 `fresh`(<24h) 중에서만 뽑았는데,
+  // 방문 시점 기준 `fresh` 가 3%뿐이라(하루 한 번 수집하는 구조에서 다음 수집 직전에 방문한
+  // **정상** 모습) 게이트가 사실상 "아무거나"를 뽑았다. 할인율 기준은 가장 나쁜 시간대에도 뽑힌다.
+  //
+  // 정렬(가성비/임박/할인율)을 바꿔도 hero 는 고정이다 — 최댓값이라 입력 순서와 무관하다.
+  function heroBetter(a, b) {
+    var da = discNum(a.disc), db = discNum(b.disc);
+    if (da !== db) return da > db;
+    var pa = num(a.price), pb = num(b.price);
+    if (pa !== pb) return pa < pb;
+    // `seen` 은 ISO8601 이고 계약상 오프셋이 전부 `+09:00` 이라 문자열 비교 = 시간 비교다.
+    // 오프셋이 섞이기 시작하면 이 줄이 조용히 틀린다 (CONTRACT.md §seen).
+    return (a.seen || "") > (b.seen || "");
+  }
   function render() {
     if (!ORIGIN) return;
     tweenId++; svg.classList.remove("tweening");  // 진행 중 트윈이 있으면 무효화
@@ -387,7 +405,7 @@
     var matches = vis.filter(function (c) { return !dimmed(c); });
     if (anyFilter() && matches.length === 0) { var nt = document.createElement("div"); nt.className = "feednote"; nt.textContent = "이 조건엔 딜이 없어요 — 조건을 바꿔보세요"; feed.appendChild(nt); }
     var heroCity = null;
-    matches.forEach(function (c) { if (!heroCity || discNum(c.disc) > discNum(heroCity.disc) || (discNum(c.disc) === discNum(heroCity.disc) && depkey(c) < depkey(heroCity))) heroCity = c; });
+    matches.forEach(function (c) { if (!heroCity || heroBetter(c, heroCity)) heroCity = c; });
     var order = heroCity ? [heroCity].concat(vis.filter(function (c) { return c !== heroCity; })) : vis;
     order.forEach(function (c) {
       var hero = (c === heroCity);
