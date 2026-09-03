@@ -36,9 +36,25 @@
     if (dl.discount > 0) return "최근 " + dl.discount + "%↓ · " + dl.when;
     return dl.when + " 최저가";
   }
+  // 할인 도장 = **3단계 티어, 15% 미만은 도장 없음** (SPEC §CH3, 2026-08-22 확정 F17/F19)
+  // 그동안 할인율과 무관하게 무조건 붙였다 — 오늘 픽스처로 **128건 중 101건(79%)이
+  // 붙지 말아야 할 도장**을 달고 있었고, 그중 56건은 `0%↓` 였다.
+  // **"특가"라고 써놓고 할인율이 0%면 우리가 파는 신뢰를 화면이 스스로 깎는다.**
+  // 임계값은 `15/28/42`. 지금 만지지 않는다 — `median` 이 기간 창 없이 전체 이력을 써서
+  // **재는 자가 흔들리는 중**이다(백엔드 BB4). 자를 고치기 전에 눈금을 옮기지 않는다.
+  var DISC_TIERS = [[42, "t3"], [28, "t2"], [15, "t1"]];
+  function discTier(v) {
+    for (var i = 0; i < DISC_TIERS.length; i++) if (v >= DISC_TIERS[i][0]) return DISC_TIERS[i][1];
+    return "";
+  }
+  // 문구는 **`평소보다 {N}%↓`** 다 (COPY.md §2 카드 피드). `50%↓` 만 쓰면 무엇 대비인지 안 말한다.
+  // 발견 홈에서 `특가` 라는 단어는 안 쓴다 — 제품 안에 정의가 둘이라 단어를 나눴다(SPEC F19).
+  function stampHTML(c) {
+    return c.dtier ? '<span class="stamp ' + c.dtier + '">평소보다 ' + c.disc + "</span>" : "";
+  }
   function toCity(dl) {
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
-      price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓",
+      price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓", dtier: discTier(dl.discount || 0),
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
       why: whyOf(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
       seen: dl.seen || "" };
@@ -420,7 +436,7 @@
         // 작은 썸네일(62px)엔 태그를 안 넣는다 — 사진이 태그를 담기엔 작다.
         // 히어로(104px 전폭)에만 사진 위로 얹는다. 그래서 작은 카드가 세로를 20% 덜 먹는다.
         '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c) : "") + "</div>" +
-        '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b><span class="stamp">' + c.disc + "</span></div>" +
+        '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b>' + stampHTML(c) + "</div>" +
         '<div class="fprice"><small>₩</small>' + c.price + ' <span class="tilde">~</span></div>' +
         '<div class="fdate"><span class="when">' + c.when + "</span>" + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
         '<div class="fwhy">' + c.why + "</div>" +
@@ -530,7 +546,7 @@
   function svgToClient(x, y) { var pt = svg.createSVGPoint(); pt.x = x; pt.y = y; return pt.matrixTransform(svg.getScreenCTM()); }
   function photoHTML(c) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span>' + ovTags(c) + '<span class="cityname">' + c.n + "</span></div>"; }
   function bodyTop(c) {
-    return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span><span class="stamp">특가 ' + c.disc + "</span></div>" +
+    return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + stampHTML(c) + "</div>" +
       '<div class="hc-date">' + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
       '<div class="hc-why">' + c.why + "</div>";
   }

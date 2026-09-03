@@ -40,7 +40,26 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .fbody{flex:1;min-width:0}
 .frow{display:flex;justify-content:space-between;align-items:center}
 .fcity{font-size:.98rem;font-weight:900;letter-spacing:-.02em}
-.stamp{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);font-weight:900;font-size:.56rem;padding:1px 5px;border-radius:4px}
+/* 할인 도장 3단계 (DESIGN.md · SPEC §CH3 F17). **15% 미만은 아예 안 붙는다** — 붙일지 말지는 JS. */
+.stamp{flex:none;position:relative;font-weight:900;white-space:nowrap;border-radius:4px}
+/* T1 15~27% — 테두리 */
+.stamp.t1{transform:rotate(-7deg);border:1.5px solid var(--accent);color:var(--accent);
+ font-size:.54rem;padding:1px 5px;background:#fff}
+/* T2 28~41% — 채움 */
+.stamp.t2{transform:rotate(-8deg);background:var(--accent);color:#fff;border:0;
+ font-size:.6rem;padding:2px 7px;box-shadow:0 2px 6px rgba(242,96,63,.34)}
+/* T3 42%+ — 그라디언트 + 흰 링 + 후광 + 광택 sweep */
+.stamp.t3{transform:rotate(-9deg);background:linear-gradient(135deg,#F2603F 0%,#FF8A63 42%,#C6472A 100%);
+ color:#fff;border:0;font-size:.66rem;padding:3px 9px;overflow:hidden;
+ box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(242,96,63,.20),0 5px 14px rgba(198,71,42,.36)}
+.stamp.t3::after{content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.72) 50%,transparent 62%);
+ transform:translateX(-130%);animation:sheen 2.8s ease-in-out infinite}
+@keyframes sheen{0%,62%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+@media(prefers-reduced-motion:reduce){.stamp.t3::after{animation:none;opacity:0}}
+/* ⚠️ `썸네일 위로 떠오름`(translateY -16px)은 **히어로에만**. 히어로는 사진이 위에 있어 그 위로
+   걸치지만, 작은 카드는 사진이 왼쪽이라 도장이 카드 밖으로 밀려 나간다. 호버카드도 같은 이유로 뺀다. */
+.fcard.hero .stamp.t3{transform:rotate(-9deg) translateY(-16px) scale(1.06)}
 .fprice{font-weight:900;font-size:1.12rem;color:var(--accent);letter-spacing:-.02em;margin-top:2px}.fprice small{font-size:.66rem}
 .tilde{font-size:.66rem;color:var(--sub);font-weight:700}
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
