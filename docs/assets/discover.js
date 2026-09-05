@@ -266,6 +266,11 @@
   //    지도를 30% 줄여 피하는 쪽이 대가가 더 크다는 판단이다. 라벨 쪽은 T7에서 닫았다.
   function usableBand() {
     var box = stageEl.getBoundingClientRect(), cw = box.width || W, ch = box.height || H;
+    // 모바일은 **시트 높이와 무관하게 `half` 기준**으로 잰다. 무대가 시트만큼 줄어드는데
+    // 그 무대로 집합까지 정하면 **시트를 키울수록 목록이 줄어든다** — 더 보려고 키웠는데
+    // 줄어드는 건 명백히 거꾸로다(실측: full 에서 21곳 → 9곳).
+    // 고정하면 시트를 끌 때 지도가 재배치되지 않는 이점도 같이 온다.
+    if (isMobile() && layoutEl) ch = Math.max(120, layoutEl.clientHeight - SHEET_HALF);
     var sf = Math.max(cw / W, ch / H);                 // preserveAspectRatio="slice" = cover
     var vbW = cw / sf, vbH = ch / sf;                  // 보이는 viewBox 크기
     return { vbW: vbW, vbH: vbH, half: Math.max(60, vbW / 2 - LABEL_PAD) };
@@ -280,7 +285,16 @@
     var lat = (Math.PI * s < b.vbH) ? 0 : FAR_LAT;
     return { lon: a.lon, lat: lat, scale: s };
   }
-  function viewOf(stage) { return stage === "far" ? farView() : VIEWS[stage]; }
+  // `가까운 곳`·`조금 더 멀리` 는 **고정 배율**인데, 그 값(1500·720)은 **데스크톱 무대 폭을
+  // 전제**한다. 모바일은 가시 viewBox 폭이 1000 → 390 으로 좁아져 같은 배율이면 보이는 경도
+  // 범위가 2.6배 좁다 — 실측: 390px 에서 `가까운 곳` 이 육지만 꽉 차고 핀이 1개만 남았다.
+  // 가시 폭에 비례시켜 **어느 화면에서든 같은 넓이**를 열어 준다. `아주 멀리` 는 원래
+  // 무대에서 계산하므로(farView) 손댈 게 없다.
+  function viewOf(stage) {
+    if (stage === "far") return farView();
+    var v = VIEWS[stage], f = Math.min(1, usableBand().vbW / W);
+    return { lon: v.lon, lat: v.lat, scale: v.scale * f };
+  }
 
   function colorMaker(vis) {
     var vn = vis.map(function (c) { return num(c.price); }), lo = Math.min.apply(null, vn), hi = Math.max.apply(null, vn);
@@ -398,6 +412,17 @@
     var filtering = anyFilter();
     var cands = vis.filter(function (c) { return c.tier !== "minor" && !(filtering && dimmed(c)); })
                    .sort(function (a, b) { return num(a.price) - num(b.price); });
+    // 🔴 **모바일에서는 상시 라벨을 붙이지 않는다.** (SPEC 미정 — 프론트 판단, 2026-09-05)
+    //
+    // 자리가 **원천적으로** 안 난다. 무대 390×415 를 `slice` 로 맞추면 가시 viewBox 가 639×680
+    // 인데(데스크톱은 963×680) **라벨 폭은 viewBox 단위라 그대로**다 — 상대적으로 1.5배 크다.
+    // 거기에 도크·단계바가 가로 전체로 하단 23%를 막는다.
+    // 실측: major 12개 → **12개 전부 실패**, 상위 6개로 줄여도 **6개 전부 실패**.
+    //
+    // 지도는 모바일에서 **"어디쯤인지" 보여주는 배경**이고 **이름은 카드에 있다.**
+    // 핀을 누르면 그 카드가 시트 맨 위로 오고(B10), 활성 핀의 라벨은 `.pin.act` 로 덮어 그린다 —
+    // **필요한 순간에는 이름이 나온다.** 없는 자리를 억지로 만들어 잘린 글자를 내보내지 않는다.
+    if (isMobile()) cands = [];
     vis.forEach(function (c) { c._lab = null; });
     cands.forEach(function (c) {
       var spots = labSpots(c), i, s, j, ok;
@@ -988,6 +1013,86 @@
       setBudget(a ? +a : BUDGET_MAX);            // `상관없어` = 트랙 최대치 = 필터 꺼짐
     });
   })(budgEls[bi]);
+  // ---- 모바일 3단 시트 (SPEC §CH4 확정) ----
+  // **비중은 우리가 정할 문제가 아니다.** 지도를 볼 때와 훑을 때 필요한 비중이 다르고,
+  // 고정하면 둘 중 하나는 늘 답답하다. peek 160 · half 340 · full(화면 대부분).
+  //
+  // ✅ **자유 줌·팬을 안 넣기로 한 게(§CH1) 여기서 값을 한다** — 지도에 드래그 제스처가 없으므로
+  //    시트 끌기와 안 부딪힌다. 자유 줌을 넣었다면 이 설계가 성립하지 않았다.
+  var SHEET_PEEK = 160, SHEET_HALF = 340;
+  var sheetH = SHEET_HALF;
+  function isMobile() { return window.innerWidth <= 860; }
+  // ⚠️ `full` 을 **무대 높이**로 잡으면 안 된다 — 무대는 시트만큼 줄어드는데, 그 무대로 다시
+  // `full` 을 재면 시트를 키울수록 상한이 내려가 **커지질 않는다**(실측: 위로 300 끌었는데 340 유지).
+  // 시트와 무관한 `.layout` 높이를 기준으로 쓴다.
+  var layoutEl = document.querySelector(".layout");
+  function sheetFull() {
+    var h = layoutEl ? layoutEl.clientHeight : 600;
+    return Math.max(SHEET_HALF + 40, h - 72);      // 지도를 조금은 남긴다
+  }
+  function sheetSnaps() { return [SHEET_PEEK, SHEET_HALF, sheetFull()]; }
+  function setSheet(h, animate) {
+    if (!isMobile()) return;
+    var sn = sheetSnaps();
+    h = Math.max(sn[0], Math.min(sn[2], h));
+    sheetH = h;
+    if (!animate) document.body.classList.add("sheet-drag");
+    feed.style.height = h + "px";
+    // 단계바·도크가 시트 위에 얹혀 따라 올라온다.
+    document.documentElement.style.setProperty("--sheet-h", h + "px");
+    // full 은 "훑고 비교할 때"라 지도 조작이 필요 없다. 무대가 72px 까지 줄면 단계바·도크가
+    // 무대 밖으로 밀려 헤더와 안내 띠를 덮는다(실측) — 그때는 치운다.
+    document.body.classList.toggle("sheet-full", h >= sheetFull() - 20);
+    if (animate) {
+      document.body.classList.remove("sheet-drag");
+      // 무대가 시트만큼 짧아졌다 → 중심·배율·LOD·라벨을 다시 잡는다.
+      // 전환이 끝난 뒤에 한 번만 — 끄는 동안 매 프레임 다시 그리면 굼떠진다.
+      if (ORIGIN) setTimeout(function () { render(); }, 300);
+    }
+  }
+  function snapSheet() {
+    var sn = sheetSnaps(), best = sn[0], d = Infinity, i;
+    for (i = 0; i < sn.length; i++) { var dd = Math.abs(sn[i] - sheetH); if (dd < d) { d = dd; best = sn[i]; } }
+    document.body.classList.remove("sheet-drag");
+    setSheet(best, true);
+  }
+  // 손잡이는 **헤더**다 — 잡는 자리와 스크롤 자리를 나눠야 드래그가 안 부딪힌다.
+  // 시트 안 스크롤은 `.feed` 가 그대로 갖는다.
+  (function sheetDrag() {
+    var startY = 0, startH = 0, dragging = false;
+    // 손잡이는 **헤더**다 — 잡는 자리와 스크롤 자리를 나눠야 드래그가 안 부딪힌다.
+    // 헤더는 `render()` 가 다시 그리므로 **document 위임**으로 잡는다.
+    // (`e.currentTarget` 은 읽기 전용이라 대입해서 넘기려던 앞 판이 조용히 안 먹었다.)
+    function grip(e) {
+      var t = e.target;
+      if (!t || !t.closest) return false;
+      return !!t.closest(".feedhead") && !t.closest(".spill");
+    }
+    function yOf(e) { return e.touches && e.touches[0] ? e.touches[0].clientY : e.clientY; }
+    function onDown(e) {
+      if (!isMobile() || !grip(e)) return;
+      dragging = true; startY = yOf(e); startH = sheetH;
+      document.body.classList.add("sheet-drag");
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      setSheet(startH + (startY - yOf(e)), false);      // 위로 끌면 커진다
+      if (e.cancelable) e.preventDefault();
+    }
+    function onUp() { if (!dragging) return; dragging = false; snapSheet(); }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown, { passive: true });
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchend", onUp);
+  })();
+  if (isMobile()) setSheet(SHEET_HALF, true);
+  window.addEventListener("resize", function () {
+    if (isMobile()) setSheet(sheetH, true);
+    else { feed.style.height = ""; document.documentElement.style.removeProperty("--sheet-h"); }
+  });
+
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
   if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작
