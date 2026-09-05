@@ -5,9 +5,17 @@
   라이트 브랜드 #23538F / 특가 #D9482B (surface #FAF6EF)
   다크   브랜드 #5D8FE0 / 특가 #E85D35 (surface #121820)
 """
+import html
 import json
 
-BASE_URL = "https://ryu-tomi.github.io/promo-ticket-site"
+# 사이트 정본 주소. canonical · og:url · sitemap · JSON-LD · 알림 메일이 전부
+# 여기서 파생된다. **도메인 문자열은 이 저장소에서 여기 한 곳뿐이다** — 갈라지면
+# 어떤 화면은 옛 주소를, 어떤 화면은 새 주소를 가리키게 된다.
+#
+# 2026-09-05 `galmal.kr`로 전환. 커스텀 도메인 파일은 `docs/CNAME`에 있고 GitHub이
+# Pages 설정에서 만든다. `build_site.py`는 `docs/`를 지우지 않으므로(덮어쓰기만)
+# 크론 재빌드가 그 파일을 날리지 않는다 — 날아가면 사이트가 죽는 게 아니라 404가 된다.
+BASE_URL = "https://galmal.kr"
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SITE_NAME = "갈래말래"
 
@@ -20,6 +28,37 @@ SITE_NAME = "갈래말래"
 # 원본과 재생성 스크립트는 기획 구역이다 — `design/og.png` · `python design/build_og.py`.
 # 크론은 `build_site.py`만 부르므로 이 파일은 빌드 의존이 아니다.
 OG_IMAGE = BASE_URL + "/assets/og.png"
+
+
+# 검색엔진 소유확인 메타 태그. 서치콘솔·서치어드바이저가 주는 값을 여기 넣으면
+# 모든 페이지 <head>에 나간다.
+#
+# **비밀이 아니다.** 서비스가 우리 HTML을 읽어 확인하는 공개값이라 커밋해도 된다.
+# (시크릿은 `TP_TOKEN`·메일 비밀번호 쪽이고 그건 `.env`에 있다.)
+#
+# ⚠️ 구글은 이게 **필요 없을 수 있다.** 서치콘솔에 **도메인 속성**(`galmal.kr`)으로
+#    등록하면 DNS TXT 레코드로 확인하고, 서브도메인과 http/https 변형을 전부 덮는다.
+#    HTML 태그는 **URL 접두어 속성**일 때만 쓴다. 도메인을 우리가 소유하고 DNS도
+#    직접 만지므로 도메인 속성 쪽이 낫다 — 그 경우 여기는 비워 둔다.
+SITE_VERIFICATION = {
+    # "google-site-verification": "…",   # URL 접두어 속성으로 등록할 때만
+    # "naver-site-verification": "…",
+}
+
+
+def verification_meta():
+    """소유확인 태그들.
+
+    설정된 게 없으면 **빈 문자열**이라 `<head>`에 빈 줄도 안 남고, 있으면 끝에
+    줄바꿈을 붙여 다음 태그가 같은 줄에 붙지 않게 한다. 둘 다 안 하면 하나는
+    깨진다 — 빈 줄이 남거나, `<link rel="canonical">`이 메타 태그에 들러붙는다.
+    """
+    tags = "\n".join(
+        f'<meta name="{html.escape(k)}" content="{html.escape(v)}">'
+        for k, v in SITE_VERIFICATION.items() if v)
+    return tags + "\n" if tags else ""
+
+
 ACCENT = "#F2603F"
 
 # 로고 항적/비행기 기하 (DESIGN.md). "말래" 밑 페이드 비행운 + 접힌 종이비행기.
@@ -297,7 +336,7 @@ def page(title, description, canonical_path, body, extra_script="", jsonld=None,
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <meta name="description" content="{description}">
-<link rel="canonical" href="{url}">
+{verification_meta()}<link rel="canonical" href="{url}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE_NAME}">
 <meta property="og:title" content="{og_title}">

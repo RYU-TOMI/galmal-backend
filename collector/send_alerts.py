@@ -21,12 +21,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
 from affiliates import booking_link
 from detect_deals import compute_deals
+import theme
 from labels import airline_name, city
 from mail_ingest import load_env
 from subscriptions import load_subscribers
 
 SMTP_HOST = "smtp.gmail.com"
-SITE_URL = "https://ryu-tomi.github.io/promo-ticket-site/"
+# 도메인은 `theme.BASE_URL`이 정본이다. 여기 따로 적어두면 도메인을 바꾸는 날
+# 알림 메일만 옛 주소를 가리킨다 — 화면은 멀쩡하고 메일만 틀리므로 아무도 모른다.
+SITE_URL = theme.BASE_URL + "/"
 
 
 def email_hash(addr: str) -> str:
