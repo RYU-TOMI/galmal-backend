@@ -264,6 +264,17 @@ chrome.exe --headless=new --disable-gpu --hide-scrollbars --force-device-scale-f
 - **빌드 파이프라인이 아니다.** 사람이 확인용으로 한 번 돌린다 → "Node 금지·CDN 의존 0"과 무관하다.
 - 출발지 선택·칩 클릭 같은 조작은 `docs/_shot.html`(임시 복사본)에 스크립트를 주입해 재현한다.
   `docs/` 안에 둬야 `assets/` 상대경로가 산다. 다 찍고 반드시 지운다.
+- 🔴 **`--window-size` 로는 모바일 폭을 못 만든다.** 창에 **최소 폭(~500px)** 이 걸려 있어서
+  `--window-size=390` 을 줘도 **실제 뷰포트는 489px**(dsf 2) 또는 500px(dsf 1)이다.
+  `--window-size=200` 도 512px 이고 `--headless=old` 도 512px 다. 데스크톱은 정확하다(1440 → 1418).
+  **그래서 "390px 에서 확인했다"고 보고한 것들이 전부 489px 이었다** — B36(무대가 뷰포트보다 넓다)은
+  그 착오에서 나온 오진이다.
+  → **CDP `Emulation.setDeviceMetricsOverride` 로 뷰포트를 직접 지정한다**(`cdp.py`, 스크래치패드).
+  `--remote-debugging-port` 로 띄우고 웹소켓으로 붙는다. 표준 라이브러리만 쓴다.
+  ```
+  with Chrome() as c: c.shot(url, out, width=390, height=844, dsf=2, mobile=True)
+  ```
+  화면 폭이 관련된 확인은 **반드시 실제 `clientWidth` 를 같이 찍어 본다.**
 - 🔴 **`*{transition:none!important}` 은 CSS 전환만 끈다 — rAF 트윈은 안 끈다.**
   단계 전환은 `tweenTo()`(requestAnimationFrame)라서 이걸 넣어도 **중간 상태가 찍힌다.**
   실제로 `아주 멀리` 클릭 **직후** `#lands` transform 을 읽고 "far 배율 계산이 틀렸다"는
