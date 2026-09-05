@@ -106,5 +106,63 @@ class DeployedArtifactTest(unittest.TestCase):
         self.assertEqual(f"https://{host}", theme.BASE_URL)
 
 
+class VerificationMetaTest(unittest.TestCase):
+    """검색엔진 소유확인 태그 자리 (BE7 T2).
+
+    서치콘솔·서치어드바이저가 값을 주면 넣을 자리를 미리 만들어 둔다. 그때
+    코드를 고치기 시작하면 5분이면 될 일이 챕터가 된다.
+
+    **비밀이 아니다** — 서비스가 우리 HTML을 읽어 확인하는 공개값이라 커밋해도 된다.
+    """
+
+    def setUp(self):
+        self.saved = dict(theme.SITE_VERIFICATION)
+
+    def tearDown(self):
+        theme.SITE_VERIFICATION.clear()
+        theme.SITE_VERIFICATION.update(self.saved)
+
+    def head_lines(self):
+        lines = theme.page("T", "D", "/", "<p>x</p>").splitlines()
+        i = next(j for j, l in enumerate(lines) if "description" in l)
+        return lines[i + 1:i + 5]
+
+    def test_nothing_configured_leaves_no_blank_line(self):
+        """빈 줄이 남으면 `<head>`가 지저분해지고 diff에 잡음이 낀다."""
+        theme.SITE_VERIFICATION.clear()
+        self.assertEqual(theme.verification_meta(), "")
+        self.assertTrue(self.head_lines()[0].startswith("<link rel=\"canonical\""))
+
+    def test_tags_do_not_glue_to_the_next_element(self):
+        """줄바꿈을 안 붙이면 `<link rel="canonical">`이 메타 태그에 들러붙는다."""
+        theme.SITE_VERIFICATION.clear()
+        theme.SITE_VERIFICATION["google-site-verification"] = "abc"
+        lines = self.head_lines()
+        self.assertEqual(
+            lines[0], '<meta name="google-site-verification" content="abc">')
+        self.assertTrue(lines[1].startswith("<link rel=\"canonical\""))
+
+    def test_every_configured_service_is_emitted(self):
+        theme.SITE_VERIFICATION.clear()
+        theme.SITE_VERIFICATION.update({"google-site-verification": "g",
+                                        "naver-site-verification": "n"})
+        html_out = theme.page("T", "D", "/", "<p>x</p>")
+        for name, val in theme.SITE_VERIFICATION.items():
+            with self.subTest(service=name):
+                self.assertIn(f'<meta name="{name}" content="{val}">', html_out)
+
+    def test_empty_values_are_skipped(self):
+        """자리만 잡아두고 값을 안 받은 상태에서 빈 태그가 나가면 안 된다."""
+        theme.SITE_VERIFICATION.clear()
+        theme.SITE_VERIFICATION["naver-site-verification"] = ""
+        self.assertEqual(theme.verification_meta(), "")
+
+    def test_values_are_escaped(self):
+        """공개값이지만 따옴표가 섞이면 속성이 깨진다."""
+        theme.SITE_VERIFICATION.clear()
+        theme.SITE_VERIFICATION["google-site-verification"] = 'a"b'
+        self.assertIn("&quot;", theme.verification_meta())
+
+
 if __name__ == "__main__":
     unittest.main()
