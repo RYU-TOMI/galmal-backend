@@ -469,6 +469,10 @@
       '<button class="spill' + (sortMode === "imminent" ? " on" : "") + '" data-sort="imminent">임박순</button>' +
       '<button class="spill' + (sortMode === "discount" ? " on" : "") + '" data-sort="discount">할인율순</button>' +
       "</div></div>";
+    if (missNote) {
+      var mn = document.createElement("div"); mn.className = "missnote"; mn.innerHTML = missNote;
+      feed.appendChild(mn);
+    }
     var matches = vis.filter(function (c) { return !dimmed(c); });
     if (anyFilter() && matches.length === 0) { var nt = document.createElement("div"); nt.className = "feednote"; nt.textContent = "이 조건엔 맞는 곳이 없어요 — 조건을 바꿔보세요"; feed.appendChild(nt); }
     var heroCity = null;
@@ -703,6 +707,7 @@
     // **같은 것을 다시 누르면 닫힌다** (SPEC §CH4 열고닫기). 지금은 다시 그려서 아무 일도 안
     // 일어난 것처럼 보였다 — 누른 게 먹었는지 알 수 없다.
     if (expandedI === i) { closeByUser(); return; }
+    missNote = "";                 // 다른 딜을 열었으면 "그 딜이 없다" 안내는 역할이 끝났다
     expandedI = i; showCard(i, true, true);
     var c = cityByI(i);
     if (c && ORIGIN_KEY) writeHash(ORIGIN_KEY + "-" + c.dcode, true);   // 상세는 히스토리를 쌓는다
@@ -1045,6 +1050,38 @@
       tweenTo({ lon: CURV.lon, lat: CURV.lat, scale: CURV.scale * 2.6 }, CURV, 600);
   }
 
+  // ---- 딥링크한 딜이 오늘 없을 때 (SPEC §CH4 F5/FL-4 · COPY.md) ----
+  // **딜은 매일 바뀐다.** 어제 공유한 `#SEL-DAD` 가 오늘은 없을 수 있다.
+  // **오류처럼 보이게 하지 않는다** — 출발지는 정상 적용되고 피드는 평소대로 뜬다. 안내만 위에 얹는다.
+  // COPY.md 는 `{도시}는` 으로 적혀 있지만 **한국어 조사는 받침을 따른다** — 그대로 쓰면
+  // `베이징는` 이 화면에 나간다(실측). 문구를 지어내는 게 아니라 **조사를 바르게 고르는 것**이다.
+  // 한글 종성 판정: `(코드 - 0xAC00) % 28 !== 0` 이면 받침이 있다.
+  function eunNeun(w) {
+    var ch = w.charCodeAt(w.length - 1);
+    var jong = (ch >= 0xAC00 && ch <= 0xD7A3) && ((ch - 0xAC00) % 28 !== 0);
+    return w + (jong ? "은" : "는");
+  }
+  var missNote = "";
+  function findElsewhere(code) {
+    for (var i = 0; i < (D.deals || []).length; i++) {
+      var dl = D.deals[i];
+      if (dl.d === code && dl.o !== ORIGIN_KEY && D.origins[dl.o]) return dl;
+    }
+    return null;
+  }
+  function noteMissing(code) {
+    // ⭐ 같은 목적지가 **다른 허브에 있으면 그걸 제안한다.** 실측: 목적지 78곳 중 37곳(47%)이
+    //    여러 허브에서 간다 — 절반 가까이는 건질 수 있다.
+    var alt = findElsewhere(code);
+    if (alt) {
+      // **도시명은 다른 허브에 있을 때만 쓸 수 있다** — 딜이 아예 없으면 `ko` 를 알 방법이 없고
+      // IATA 코드를 화면에 내보낼 순 없다(`DAD 특가는 없어요` 는 말이 안 된다).
+      missNote = '<b>' + ORIGIN.n + " 출발 " + eunNeun(alt.ko) + " 오늘 없지만, " +
+        D.origins[alt.o].name + ' 출발이 있어요</b><a class="miss-go" href="#' + alt.o + "-" + code + '">그 특가 보러 가기 →</a>';
+    } else {
+      missNote = "<b>찾으시던 특가는 오늘 없어요</b>";
+    }
+  }
   // 해시를 화면에 적용한다. 로드 때 한 번, 그리고 뒤로/앞으로 갈 때마다.
   // **해시가 형식에 안 맞으면 무시하고 기본 화면**을 띄운다. 오류 문구를 내지 않는다. (SPEC §CH4)
   function applyHash(fromPop) {
@@ -1062,6 +1099,8 @@
       var c = null;
       if (k !== ORIGIN_KEY) pickOrigin(k, !fromPop);   // 뒤로가기로 허브가 바뀌면 트윈해도 좋다
       if (h && h.d) c = cityByCode(h.d);
+      missNote = "";
+      if (!c && h && h.d) noteMissing(h.d);   // 허브는 유효한데 그 딜만 없다
       if (c) {
         // 딥링크 진입은 **이동 없이 그 위치에서 시작**한다 — 첫 화면부터 움직이면 어지럽다.
         var want = stageForHaul(c.haul);
@@ -1078,7 +1117,12 @@
     // 해시가 깨졌거나 허브가 오늘 없으면 주소를 실제 상태로 맞춘다.
     if (!h || h.o !== ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
   }
-  if (window.addEventListener) window.addEventListener("popstate", function () { applyHash(true); });
+  if (window.addEventListener) {
+    window.addEventListener("popstate", function () { applyHash(true); });
+    // 안내의 `그 특가 보러 가기` 처럼 **앵커로 해시가 바뀌는 경로**도 있다. `popstate` 만 들으면
+    // 브라우저에 따라 놓친다 — `hashchange` 를 같이 듣고, 이미 반영된 상태면 안에서 걸러진다.
+    window.addEventListener("hashchange", function () { applyHash(true); });
+  }
 
   // 시작 출발지: 해시 → 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 빈 날 화면(§CH3 F1).
   (function boot() {
