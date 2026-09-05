@@ -652,6 +652,9 @@
     return '<button type="button" class="hc-x" aria-label="상세 닫기">×</button>' +
       photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail">' +
+      // **딥링크를 만들어 놓고 공유 수단이 없으면 반쪽이다.** 특히 모바일에서 주소창 복사는 어렵다.
+      // 커뮤니티 시딩(`PRODUCT.md` §유입)이 이걸로 비로소 가능해진다. (SPEC §CH4)
+      '<button type="button" class="hc-share">공유</button>' +
       priceCompare(c) +
       // `links` 가 비면 **섹션을 통째로 생략**한다 — 지금은 헤더만 남아 "비교해보세요" 라고
       // 해놓고 비교할 게 없는 화면이 된다. 오늘 픽스처는 131건 전부 5개라 **장애 시 방어**다.
@@ -722,12 +725,37 @@
   }
   // 사용자가 **명시적으로 닫으면**(지도 배경 클릭) `history.back()` 이다. URL 과 화면이 어긋나지
   // 않게 하려는 것이고, 뒤로가기가 자연스럽게 동작한다(상세 → 지도). (SPEC §CH4)
+  // `navigator.share` 가 있으면 그걸(모바일), 없으면 **클립보드 복사 + 짧은 피드백**. (COPY.md:164-165)
+  // 공유하는 건 **지금 주소 그대로**다 — 상세가 열려 있으면 이미 `#{허브}-{목적지}` 다.
+  function shareCurrent(btn) {
+    var url = location.href, done = function () {
+      if (!btn) return;
+      var old = btn.textContent; btn.textContent = "링크를 복사했어요"; btn.disabled = true;
+      setTimeout(function () { btn.textContent = old; btn.disabled = false; }, 1600);
+    };
+    if (navigator.share) {
+      // 취소해도 reject 된다 — 사용자가 그만둔 것이지 실패가 아니므로 아무 말도 하지 않는다.
+      try { navigator.share({ url: url }).catch(function () {}); return; } catch (e) { /* 폴백으로 */ }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { fallbackCopy(url, done); });
+    } else { fallbackCopy(url, done); }
+  }
+  // `clipboard` 가 없거나 막힌 환경(구형·비보안 컨텍스트) — 임시 입력에 넣고 복사한다.
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;left:-9999px";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { /* 조용히 포기한다 */ }
+    document.body.removeChild(ta);
+  }
   function closeByUser() {
     if (expandedI !== null && window.history && history.pushState && parseHash() && parseHash().d) history.back();
     else collapse();
   }
   hc.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("hc-x")) { e.stopPropagation(); closeByUser(); return; }
+    if (e.target && e.target.classList.contains("hc-share")) { e.stopPropagation(); shareCurrent(e.target); return; }
     e.stopPropagation(); if (expandedI === null && active !== null) expand(active);
   });
 
