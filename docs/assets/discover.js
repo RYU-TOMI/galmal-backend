@@ -671,10 +671,15 @@
       (adLinks(c.links) ? '<br>(광고) 표시는 예약하시면 저희가 수수료를 받는 링크예요 · 가격은 같아요' : "") + "</div>" +
       "</div></div>";
   }
-  function positionCard(c) {
+  function positionCard(c, at) {
     if (window.innerWidth <= 860) { hc.style.left = ""; hc.style.top = ""; hc.style.maxHeight = ""; return; }  // 모바일=하단 시트(CSS)
-    var cp = svgToClient(c.x, c.y), box = stageEl.getBoundingClientRect(), h = hc.offsetHeight;
-    var maxH = box.height - 16;
+    // 확장 상세는 **핀이 도착할 자리**를 기준으로 놓는다 — 지도가 미끄러지는 동안 카드가 같이
+    // 흔들리면 안 되고, 도착하면 어차피 그 자리다. 컴팩트(호버)는 지금 핀을 그대로 따라간다.
+    var cp = at || svgToClient(c.x, c.y), box = stageEl.getBoundingClientRect(), h = hc.offsetHeight;
+    // **카드 최대 높이 = 핀 y − 16px** (SPEC §CH4, 2026-09-02 — 링크가 5개가 되며 고친 규칙).
+    // 넘치면 카드 안에서 스크롤한다. **링크를 접거나 3개만 보이는 건 안 된다** — 비교 패널의
+    // 중립성을 깬다. 위쪽 여백 8px 을 더 빼야 카드가 실제로 핀 **위**에 놓인다.
+    var maxH = at ? (at.y - box.top) - 16 - 8 : box.height - 16;
     if (h > maxH) { hc.style.maxHeight = maxH + "px"; hc.style.overflowY = "auto"; h = maxH; }
     else { hc.style.maxHeight = ""; hc.style.overflowY = ""; }
     var left = cp.x - box.left, top = cp.y - box.top - 16 - h;
@@ -696,13 +701,42 @@
     }
     left = Math.max(120, Math.min(box.width - 120, left)); hc.style.left = left + "px"; hc.style.top = top + "px";
   }
+  // ---- 상세를 열면 지도가 그 핀으로 미끄러진다 (SPEC §CH4, 2026-09-01 확정) ----
+  // 사용자가 고른 인터랙션이다 — *"어디로 가는지 정확히 알 수 있잖아"*.
+  // 발견 서비스에서 카드를 눌렀는데 지도가 안 움직이면 **지구 어디인지 모른 채 예약하러 간다.**
+  //
+  // **핀은 무대 아래쪽 72% · 가로 46%** 에 놓는다. 카드가 핀 **위로** 피어나므로 가운데에 두면
+  // 카드가 무대 밖으로 넘친다(2026-09-02, 예약처 5곳 반영).
+  var PIN_AT_X = 0.46, PIN_AT_Y = 0.72;
+  function pinTarget() {
+    var box = stageEl.getBoundingClientRect();
+    return { x: box.left + box.width * PIN_AT_X, y: box.top + box.height * PIN_AT_Y, box: box };
+  }
+  // **배율은 안 건드린다.** 거리 단계가 뷰를 정하는 모델이라(§CH1) 확대까지 하면 그 모델이 깨진다.
+  // 이동만 한다 — 지금 배율을 유지한 채 중심만 옮긴다.
+  function viewForPin(c, cur) {
+    var box = stageEl.getBoundingClientRect(), cw = box.width || W, ch = box.height || H;
+    var sf = Math.max(cw / W, ch / H);                       // slice = cover
+    var tx = W / 2 + (cw * PIN_AT_X - cw / 2) / sf;          // 목표 지점을 viewBox 좌표로
+    var ty = H / 2 + (ch * PIN_AT_Y - ch / 2) / sf;
+    var k = cur.scale / BASE, p = proj([c.lon, c.lat]);
+    // p*k + t = (tx,ty) 이고 중심은 (W/2,H/2) 로 간다 → 중심의 기준 좌표를 역산한다.
+    var cx = p[0] + (W / 2 - tx) / k, cy = p[1] + (H / 2 - ty) / k;
+    var lat = -(cy - H / 2) / BASE * 180 / Math.PI;
+    if (lat > 84) lat = 84; else if (lat < -84) lat = -84;   // 극지방으로 넘어가지 않게
+    return { lon: norm(ROT + (cx - W / 2) / BASE * 180 / Math.PI), lat: lat, scale: cur.scale };
+  }
+  // **이동량이 클 때 620ms 가 짧고, 짧은 이동이 느리면 굼떠 보인다** → 거리에 따라 420~760ms.
+  function slideMs(from, to) {
+    return Math.round(420 + Math.min(1, Math.abs(norm(to.lon - from.lon)) / 180) * 340);
+  }
   function showCard(i, scroll, expanded) {
     active = i; var c = cityByI(i); paintActive();
     if (!c || c.x == null) { hc.classList.remove("show"); return; }
     drawArc(c);
     hc.classList.toggle("expanded", !!expanded);
     hc.innerHTML = expanded ? detailHTML(c) : compactHTML(c);
-    hc.classList.add("show"); positionCard(c);
+    hc.classList.add("show"); positionCard(c, expanded ? pinTarget() : null);
     if (scroll) { var card = document.querySelector('.fcard[data-i="' + i + '"]'); if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" }); }
   }
   function highlight(i, scroll) { if (expandedI !== null) return; showCard(i, scroll, false); }
@@ -711,14 +745,31 @@
     // 일어난 것처럼 보였다 — 누른 게 먹었는지 알 수 없다.
     if (expandedI === i) { closeByUser(); return; }
     missNote = "";                 // 다른 딜을 열었으면 "그 딜이 없다" 안내는 역할이 끝났다
-    expandedI = i; showCard(i, true, true);
+    expandedI = i;
     var c = cityByI(i);
     if (c && ORIGIN_KEY) writeHash(ORIGIN_KEY + "-" + c.dcode, true);   // 상세는 히스토리를 쌓는다
+    // 🔴 `prefers-reduced-motion` 이면 **전부 0ms**. 큰 화면 이동이라 어지럼증을 유발할 수 있다 —
+    //    선택이 아니라 필수다. 이동도 등장도 즉시.
+    if (!c || !CURV || reduceMotion()) { showCard(i, true, true); return; }
+    var to = viewForPin(c, CURV);
+    // 이미 그 자리면 굳이 움직이지 않는다 — 딥링크 진입은 **이동 없이 그 위치에서 시작**한다.
+    if (Math.abs(norm(to.lon - CURV.lon)) < 0.3 && Math.abs(to.lat - CURV.lat) < 0.3) {
+      showCard(i, true, true); return;
+    }
+    // **이동 중 다른 카드를 누르면 진행 중인 이동을 가로챈다.** 큐에 쌓지 않는다 —
+    // `tweenTo` 가 `tweenId` 로 이미 그렇게 동작한다. 예약해 둔 카드 등장도 같이 취소한다.
+    if (openT) { clearTimeout(openT); openT = null; }
+    tweenTo(CURV, to, slideMs(CURV, to));
+    // **왜 300ms 를 기다리나**: 지도가 아직 움직이는 중에 카드가 뜨면 **카드가 미끄러지는 것처럼**
+    // 보인다. 시선이 목적지에 도착한 뒤 열어야 "여기다" 가 된다.
+    openT = setTimeout(function () { openT = null; if (expandedI === i) showCard(i, true, true); }, 300);
   }
+  var openT = null;
   function clearHi() { if (expandedI !== null) return; active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
   // 정렬·필터·단계를 바꾸면 상세가 닫힌다 — 그건 **사용자가 닫은 게 아니라 부수 효과**라
   // 히스토리를 쌓지 않고 `replaceState` 로 URL 만 맞춘다. 안 맞추면 주소는 상세인데 화면은 지도다.
   function collapse() {
+    if (openT) { clearTimeout(openT); openT = null; }   // 예약된 카드 등장이 남아 있으면 취소한다
     expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded");
     if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); }
     if (ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
