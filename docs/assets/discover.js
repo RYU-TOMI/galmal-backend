@@ -101,7 +101,7 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓", dtier: discTier(dl.discount || 0),
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      trans: transportHTML(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
+      trans: transportHTML(dl), tags: dl.tags, dcode: dl.d, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
       seen: dl.seen || "" };
   }
 
@@ -679,9 +679,25 @@
     if (scroll) { var card = document.querySelector('.fcard[data-i="' + i + '"]'); if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" }); }
   }
   function highlight(i, scroll) { if (expandedI !== null) return; showCard(i, scroll, false); }
-  function expand(i) { expandedI = i; showCard(i, true, true); }
+  function expand(i) {
+    expandedI = i; showCard(i, true, true);
+    var c = cityByI(i);
+    if (c && ORIGIN_KEY) writeHash(ORIGIN_KEY + "-" + c.dcode, true);   // 상세는 히스토리를 쌓는다
+  }
   function clearHi() { if (expandedI !== null) return; active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
-  function collapse() { expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
+  // 정렬·필터·단계를 바꾸면 상세가 닫힌다 — 그건 **사용자가 닫은 게 아니라 부수 효과**라
+  // 히스토리를 쌓지 않고 `replaceState` 로 URL 만 맞춘다. 안 맞추면 주소는 상세인데 화면은 지도다.
+  function collapse() {
+    expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded");
+    if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); }
+    if (ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
+  }
+  // 사용자가 **명시적으로 닫으면**(지도 배경 클릭) `history.back()` 이다. URL 과 화면이 어긋나지
+  // 않게 하려는 것이고, 뒤로가기가 자연스럽게 동작한다(상세 → 지도). (SPEC §CH4)
+  function closeByUser() {
+    if (expandedI !== null && window.history && history.pushState && parseHash() && parseHash().d) history.back();
+    else collapse();
+  }
   hc.addEventListener("click", function (e) { e.stopPropagation(); if (expandedI === null && active !== null) expand(active); });
 
   // ---- 단계 · 필터 도크 ----
@@ -726,7 +742,7 @@
   })(stepEls[z]);
   syncStepper();
   stageEl.addEventListener("mouseleave", function () { if (matchMedia("(hover:hover)").matches) clearHi(); });
-  svg.addEventListener("click", function (e) { if (e.target === svg || e.target.classList.contains("land")) collapse(); });
+  svg.addEventListener("click", function (e) { if (e.target === svg || e.target.classList.contains("land")) closeByUser(); });
 
   // 초기 예산값은 출발지를 고를 때 resetBudget() 이 잡는다.
   function updCount() {
@@ -950,6 +966,37 @@
     var off = [".prompt", ".stagebar", "#stepper", "#fdock", ".originwrap", "#firstnote", ".feed"], i, e;
     for (i = 0; i < off.length; i++) { e = document.querySelector(off[i]); if (e) e.hidden = true; }
   }
+  // ---- URL 해시로 상태를 남긴다 (SPEC §CH4, IA-2/F7) ----
+  //   출발지 선택됨   `#SEL`
+  //   딜 상세 열림    `#SEL-DAD`
+  // **필터·정렬·거리 단계는 URL 에 안 넣는다** — 공유받은 사람에게 남의 필터를 강요하게 되고
+  // 휘발성 상태다. 단계는 URL 에 없지만 **딥링크로 들어오면 딜의 `haul` 을 따라간다**(아래).
+  //
+  // 키가 `(허브, 목적지)` 인 이유: 백엔드가 그 단위로 최저가 1건만 내보내서 **1:1 로 유일**하다
+  // (오늘 픽스처 131/131, 중복 0).
+  var HASH_RE = /^#([A-Z]{3})(?:-([A-Z]{3}))?$/;
+  var applyingHash = false;          // 해시를 적용하는 중엔 히스토리를 다시 쌓지 않는다
+  function parseHash() {
+    var m = HASH_RE.exec(location.hash || "");
+    return m ? { o: m[1], d: m[2] || null } : null;
+  }
+  function writeHash(h, push) {
+    var next = "#" + h;
+    if (location.hash === next || applyingHash) return;
+    if (window.history && history.pushState) {
+      if (push) history.pushState(null, "", next); else history.replaceState(null, "", next);
+    } else { location.hash = next; }   // 아주 오래된 브라우저 — 히스토리 구분은 포기한다
+  }
+  function cityByCode(code) {
+    for (var i = 0; i < CITY.length; i++) if (CITY[i].dcode === code) return CITY[i];
+    return null;
+  }
+  // 딥링크로 들어오면 **거리 단계를 그 딜에 맞춘다.** `#SEL-LAX`(장거리)로 왔는데 `가까운 곳`이면
+  // 핀이 화면 밖이라 안 보인다 — F15 재발이다. 단계는 URL 에 없어도 상태는 딜을 따라간다.
+  function stageForHaul(haul) {
+    var st = HAUL2STAGE[haul] || "far", i = STAGES.indexOf(st);
+    return i < 0 ? 0 : i;
+  }
   var ORIGIN_KEY = null;
   function pickOrigin(k, initial) {
     var o = D.origins[k]; if (!o) return;
@@ -957,6 +1004,7 @@
     CITY = D.deals.filter(function (dl) { return dl.o === k; }).map(toCity);
     resetBudget();          // 출발지가 바뀌면 딜이 통째로 바뀌므로 예산 범위도 새로 잡는다
     lsSet(LS_ORIGIN, k);    // 내 기기에서 나만 겪는 편의다 — 필터를 URL에 안 넣는 것과 다른 문제
+    writeHash(k, !initial); // 첫 진입은 히스토리를 쌓지 않는다 — 뒤로 눌렀는데 같은 화면이면 이상하다
     if (pill) pill.textContent = o.name + " 출발 ▾";
     // 출발지를 바꿨다면 안내 띠는 **역할이 끝났다** — 바꾸는 곳을 이미 찾았다는 뜻이다.
     // 문구를 갱신하지 않고 닫는 이유: 띠는 "지금 서울로 보고 있고 바꿀 수 있다"를 알리는 것이지
@@ -971,15 +1019,47 @@
       tweenTo({ lon: CURV.lon, lat: CURV.lat, scale: CURV.scale * 2.6 }, CURV, 600);
   }
 
-  // 시작 출발지: 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 T3(빈 상태)에서 다룬다.
+  // 해시를 화면에 적용한다. 로드 때 한 번, 그리고 뒤로/앞으로 갈 때마다.
+  // **해시가 형식에 안 맞으면 무시하고 기본 화면**을 띄운다. 오류 문구를 내지 않는다. (SPEC §CH4)
+  function applyHash(fromPop) {
+    var live = liveOrigins(); if (!live.length) return;
+    var h = parseHash();
+    // 딥링크 우선 — 저장값도 기본값도 무시한다. 없으면 저장값 → 서울 → 딜이 가장 많은 허브.
+    var k = (h && live.indexOf(h.o) >= 0) ? h.o : null;
+    if (!k) {
+      var saved = lsGet(LS_ORIGIN);
+      k = (saved && live.indexOf(saved) >= 0) ? saved
+        : (live.indexOf(DEFAULT_ORIGIN) >= 0 ? DEFAULT_ORIGIN : live[0]);
+    }
+    applyingHash = true;
+    try {
+      var c = null;
+      if (k !== ORIGIN_KEY) pickOrigin(k, !fromPop);   // 뒤로가기로 허브가 바뀌면 트윈해도 좋다
+      if (h && h.d) c = cityByCode(h.d);
+      if (c) {
+        // 딥링크 진입은 **이동 없이 그 위치에서 시작**한다 — 첫 화면부터 움직이면 어지럽다.
+        var want = stageForHaul(c.haul);
+        if (want !== stageIdx) {
+          stageIdx = want; render();
+          var bs = document.querySelectorAll(".stagebar .pill");
+          for (var b = 0; b < bs.length; b++) bs[b].classList.toggle("on", b === stageIdx);
+        }
+        expand(c._i);
+      } else if (expandedI !== null) {
+        collapse();
+      }
+    } finally { applyingHash = false; }
+    // 해시가 깨졌거나 허브가 오늘 없으면 주소를 실제 상태로 맞춘다.
+    if (!h || h.o !== ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
+  }
+  if (window.addEventListener) window.addEventListener("popstate", function () { applyHash(true); });
+
+  // 시작 출발지: 해시 → 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 빈 날 화면(§CH3 F1).
   (function boot() {
     var live = liveOrigins();
     if (!live.length) return emptyDay();   // 오늘 딜 0건 (SPEC §CH3 F1)
     buildDrop();
-    var saved = lsGet(LS_ORIGIN);
-    var k = (saved && live.indexOf(saved) >= 0) ? saved
-          : (live.indexOf(DEFAULT_ORIGIN) >= 0 ? DEFAULT_ORIGIN : live[0]);
-    pickOrigin(k, true);
+    applyHash(false);
     maybeNote();
     // ⚠️ boot 은 **파싱 중**에 돈다(화면0이 없어져 사용자 클릭을 기다리지 않는다).
     //    그 시점엔 `svg.getScreenCTM()` 이 아직 없어 `uiBoxes()` 가 빈 배열이 되고,
