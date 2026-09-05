@@ -81,6 +81,20 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .fr.stale{color:var(--sub);font-weight:500;opacity:.7}
 .fr.none{color:var(--sub);font-weight:500}
 .hovercard .fr{font-size:.62rem;margin-top:3px}
+/* `×` — 사진 위에 얹는다. 카드가 크면 누를 배경이 안 보이므로 닫는 수단이 카드 안에 있어야 한다. */
+.hc-x{position:absolute;right:7px;top:7px;z-index:2;width:24px;height:24px;border:0;border-radius:99px;
+ background:#0000004d;color:#fff;font:inherit;font-size:1rem;line-height:1;cursor:pointer;padding:0}
+.hc-x:hover{background:#0009}
+/* `×` 는 확장 상세에만 있다 — 그 자리를 `사진 준비중` 배지가 쓰고 있어 겹쳤다(실측).
+   확장은 238px 이라 밀 여유가 있고, 컴팩트(184px)는 `×` 가 없어 그대로 둔다. */
+.hovercard.expanded .hc-photo .ph-tag{right:38px}
+.hovercard.expanded .hc-photo .phtags{right:106px}
+/* 공유 — 비교 섹션 위. 예약처 버튼(흰색)과 구분되게 하되 **CTA 보다 약하게** 둔다. */
+.hc-share{width:100%;border:1.5px solid var(--line);background:#fff;color:var(--sub);font:inherit;
+ font-size:.7rem;font-weight:800;border-radius:9px;padding:8px 0;cursor:pointer;margin-bottom:9px}
+.hc-share:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.hc-share:disabled{color:var(--accent);border-color:var(--accent);cursor:default}
+.hc-none{font-size:.66rem;color:var(--sub);text-align:center;padding:12px 8px;background:var(--soft);border-radius:9px}
 .hc-seen{font-size:.56rem;color:var(--sub);opacity:.75;margin-top:6px;text-align:center}
 .tilde{font-size:.66rem;color:var(--sub);font-weight:700}
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
@@ -178,6 +192,10 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .customdates{display:none;gap:6px;align-items:center;margin-top:8px;font-size:.72rem;color:var(--sub)}
 .customdates.show{display:flex}
 .customdates input{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font:inherit;font-size:.72rem;color:var(--ink);accent-color:var(--accent)}
+/* 딥링크한 딜이 오늘 없을 때 — 피드 맨 위. **오류처럼 보이지 않게** 담백하게. */
+.missnote{display:flex;flex-direction:column;gap:5px;background:#FFF3EF;border:1px solid #F7D6CC;
+ border-radius:10px;padding:11px 12px;font-size:.76rem;color:var(--accent2);font-weight:700}
+.miss-go{align-self:flex-start;color:var(--accent);font-weight:800;text-decoration:underline}
 .feednote{background:var(--soft);border:1px dashed var(--line2,#cfd8d7);border-radius:10px;padding:11px 12px;font-size:.76rem;color:var(--sub);font-weight:600;text-align:center}
 .prompt{position:absolute;left:18px;top:16px;background:#ffffffdd;border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:.74rem;color:var(--sub)}
 .prompt b{color:var(--ink);font-weight:800}
@@ -194,7 +212,13 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .hc-cta{margin-top:8px;background:var(--accent);color:#fff;text-align:center;font-weight:800;font-size:.72rem;border-radius:8px;padding:7px 0}
 .hc-date{font-size:.66rem;color:var(--sub);font-weight:700;margin-top:3px}
 /* 확장(클릭) 상세 카드 */
-.hovercard.expanded{width:238px;pointer-events:auto}
+.hovercard.expanded{width:238px;pointer-events:auto;
+ /* **카드가 핀에서 피어난다** — 340ms · `cubic-bezier(.2,.9,.3,1.2)` (SPEC §CH4).
+    기준점을 아래 중앙에 두어야 **핀 쪽에서** 자라 오른다. 컴팩트(호버)는 짧게 그대로. */
+ transform-origin:50% 100%;
+ transition:opacity .34s cubic-bezier(.2,.9,.3,1.2),transform .34s cubic-bezier(.2,.9,.3,1.2)}
+/* 🔴 큰 화면 이동이라 어지럼증을 유발할 수 있다 — **선택이 아니라 필수다.** */
+@media(prefers-reduced-motion:reduce){.hovercard,.hovercard.expanded{transition:none}}
 .hc-detail{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
 .hc-sec{font-size:.63rem;font-weight:800;color:var(--sub);margin:2px 0 6px}
 .hc-ad{font-size:.56rem;color:var(--sub);opacity:.85;margin-top:6px;text-align:center}

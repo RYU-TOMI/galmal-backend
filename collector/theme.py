@@ -41,8 +41,10 @@ OG_IMAGE = BASE_URL + "/assets/og.png"
 #    HTML 태그는 **URL 접두어 속성**일 때만 쓴다. 도메인을 우리가 소유하고 DNS도
 #    직접 만지므로 도메인 속성 쪽이 낫다 — 그 경우 여기는 비워 둔다.
 SITE_VERIFICATION = {
-    # "google-site-verification": "…",   # URL 접두어 속성으로 등록할 때만
-    # "naver-site-verification": "…",
+    # 구글은 **도메인 속성**으로 등록해 DNS TXT로 확인한다 — 여기 태그가 필요 없다.
+    # URL 접두어 속성으로 바꿀 일이 생기면 그때 아래 줄을 살린다.
+    # "google-site-verification": "…",
+    "naver-site-verification": "bebd1abc617405ec549b1d6d94eca8da36df8d6a",
 }
 
 

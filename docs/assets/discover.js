@@ -101,7 +101,7 @@
     return { n: dl.ko, lon: dl.lon, lat: dl.lat, tier: dl.tier, haul: HAUL2STAGE[dl.haul] || "far",
       price: (dl.price).toLocaleString("en-US"), disc: (dl.discount || 0) + "%↓", dtier: discTier(dl.discount || 0),
       when: dl.when, date: fmtRange(dl.dep, dl.ret), nights: dl.nights || "", dep: dl.dep,
-      trans: transportHTML(dl), tags: dl.tags, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
+      trans: transportHTML(dl), tags: dl.tags, dcode: dl.d, g: grad(dl.tags), country: dl.country, links: dl.links || [], median: dl.median || 0,
       seen: dl.seen || "" };
   }
 
@@ -469,6 +469,10 @@
       '<button class="spill' + (sortMode === "imminent" ? " on" : "") + '" data-sort="imminent">임박순</button>' +
       '<button class="spill' + (sortMode === "discount" ? " on" : "") + '" data-sort="discount">할인율순</button>' +
       "</div></div>";
+    if (missNote) {
+      var mn = document.createElement("div"); mn.className = "missnote"; mn.innerHTML = missNote;
+      feed.appendChild(mn);
+    }
     var matches = vis.filter(function (c) { return !dimmed(c); });
     if (anyFilter() && matches.length === 0) { var nt = document.createElement("div"); nt.className = "feednote"; nt.textContent = "이 조건엔 맞는 곳이 없어요 — 조건을 바꿔보세요"; feed.appendChild(nt); }
     var heroCity = null;
@@ -643,10 +647,21 @@
     }).join("") + "</div>";
   }
   function detailHTML(c) {
-    return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
+    // `×` 로 닫을 수 있어야 한다 (SPEC §CH4 열고닫기). 지금은 지도 배경을 눌러야만 닫혔는데,
+    // 카드가 크면 **누를 배경이 안 보인다.**
+    return '<button type="button" class="hc-x" aria-label="상세 닫기">×</button>' +
+      photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail">' +
+      // **딥링크를 만들어 놓고 공유 수단이 없으면 반쪽이다.** 특히 모바일에서 주소창 복사는 어렵다.
+      // 커뮤니티 시딩(`PRODUCT.md` §유입)이 이걸로 비로소 가능해진다. (SPEC §CH4)
+      '<button type="button" class="hc-share">공유</button>' +
       priceCompare(c) +
-      '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links) +
+      // `links` 가 비면 **섹션을 통째로 생략**한다 — 지금은 헤더만 남아 "비교해보세요" 라고
+      // 해놓고 비교할 게 없는 화면이 된다. 오늘 픽스처는 131건 전부 5개라 **장애 시 방어**다.
+      // ⚠️ 배열 길이를 하드코딩하지 않는다 — 5개는 지금 사실이지 계약이 아니다(SPEC §CH4).
+      (c.links && c.links.length
+        ? '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links)
+        : '<div class="hc-none">예약처 링크를 준비하지 못했어요</div>') +
       (seenAbs(c) ? '<div class="hc-seen">' + seenAbs(c) + "</div>" : "") +
       // **설명은 여기 한 번만.** 카드는 스캔하는 자리라 짧아야 하고, 상세는 **결정하는 자리**다.
       // 변명하지 않는다(`죄송하지만`·`양해 부탁` 금지) — 사실만 적는다. 바로 아래 실시간 고지가
@@ -656,10 +671,15 @@
       (adLinks(c.links) ? '<br>(광고) 표시는 예약하시면 저희가 수수료를 받는 링크예요 · 가격은 같아요' : "") + "</div>" +
       "</div></div>";
   }
-  function positionCard(c) {
+  function positionCard(c, at) {
     if (window.innerWidth <= 860) { hc.style.left = ""; hc.style.top = ""; hc.style.maxHeight = ""; return; }  // 모바일=하단 시트(CSS)
-    var cp = svgToClient(c.x, c.y), box = stageEl.getBoundingClientRect(), h = hc.offsetHeight;
-    var maxH = box.height - 16;
+    // 확장 상세는 **핀이 도착할 자리**를 기준으로 놓는다 — 지도가 미끄러지는 동안 카드가 같이
+    // 흔들리면 안 되고, 도착하면 어차피 그 자리다. 컴팩트(호버)는 지금 핀을 그대로 따라간다.
+    var cp = at || svgToClient(c.x, c.y), box = stageEl.getBoundingClientRect(), h = hc.offsetHeight;
+    // **카드 최대 높이 = 핀 y − 16px** (SPEC §CH4, 2026-09-02 — 링크가 5개가 되며 고친 규칙).
+    // 넘치면 카드 안에서 스크롤한다. **링크를 접거나 3개만 보이는 건 안 된다** — 비교 패널의
+    // 중립성을 깬다. 위쪽 여백 8px 을 더 빼야 카드가 실제로 핀 **위**에 놓인다.
+    var maxH = at ? (at.y - box.top) - 16 - 8 : box.height - 16;
     if (h > maxH) { hc.style.maxHeight = maxH + "px"; hc.style.overflowY = "auto"; h = maxH; }
     else { hc.style.maxHeight = ""; hc.style.overflowY = ""; }
     var left = cp.x - box.left, top = cp.y - box.top - 16 - h;
@@ -667,7 +687,48 @@
       top = cp.y - box.top + 20;
       if (top + h > box.height - 8) top = Math.max(8, box.height - 8 - h);
     }
+    // **필터 도크·줌 컨트롤을 피한다** (SPEC §CH4 — B16과 같은 뿌리).
+    // 딥링크 `#SEL-LAX` 로 확인: 오른쪽 끝 핀이면 카드가 도크를 통째로 덮고, 그 뒤의 핀도 가린다.
+    // 카드는 `translate(-50%,0)` 이라 `left` 는 **중심**이다.
+    // 세로로 안 겹치는 UI 는 건드리지 않는다 — 무조건 밀면 멀쩡한 자리를 버린다.
+    var halfW = hc.offsetWidth / 2, sel = ["#fdock", "#stepper"], si, ue, ur;
+    for (si = 0; si < sel.length; si++) {
+      ue = document.querySelector(sel[si]); if (!ue || ue.hidden) continue;
+      ur = ue.getBoundingClientRect(); if (!ur.width || !ur.height) continue;
+      if (top + h <= ur.top - box.top || top >= ur.bottom - box.top) continue;
+      var uL = ur.left - box.left - 8;                       // 8px 는 숨 쉴 틈
+      if (left + halfW > uL) left = uL - halfW;
+    }
     left = Math.max(120, Math.min(box.width - 120, left)); hc.style.left = left + "px"; hc.style.top = top + "px";
+  }
+  // ---- 상세를 열면 지도가 그 핀으로 미끄러진다 (SPEC §CH4, 2026-09-01 확정) ----
+  // 사용자가 고른 인터랙션이다 — *"어디로 가는지 정확히 알 수 있잖아"*.
+  // 발견 서비스에서 카드를 눌렀는데 지도가 안 움직이면 **지구 어디인지 모른 채 예약하러 간다.**
+  //
+  // **핀은 무대 아래쪽 72% · 가로 46%** 에 놓는다. 카드가 핀 **위로** 피어나므로 가운데에 두면
+  // 카드가 무대 밖으로 넘친다(2026-09-02, 예약처 5곳 반영).
+  var PIN_AT_X = 0.46, PIN_AT_Y = 0.72;
+  function pinTarget() {
+    var box = stageEl.getBoundingClientRect();
+    return { x: box.left + box.width * PIN_AT_X, y: box.top + box.height * PIN_AT_Y, box: box };
+  }
+  // **배율은 안 건드린다.** 거리 단계가 뷰를 정하는 모델이라(§CH1) 확대까지 하면 그 모델이 깨진다.
+  // 이동만 한다 — 지금 배율을 유지한 채 중심만 옮긴다.
+  function viewForPin(c, cur) {
+    var box = stageEl.getBoundingClientRect(), cw = box.width || W, ch = box.height || H;
+    var sf = Math.max(cw / W, ch / H);                       // slice = cover
+    var tx = W / 2 + (cw * PIN_AT_X - cw / 2) / sf;          // 목표 지점을 viewBox 좌표로
+    var ty = H / 2 + (ch * PIN_AT_Y - ch / 2) / sf;
+    var k = cur.scale / BASE, p = proj([c.lon, c.lat]);
+    // p*k + t = (tx,ty) 이고 중심은 (W/2,H/2) 로 간다 → 중심의 기준 좌표를 역산한다.
+    var cx = p[0] + (W / 2 - tx) / k, cy = p[1] + (H / 2 - ty) / k;
+    var lat = -(cy - H / 2) / BASE * 180 / Math.PI;
+    if (lat > 84) lat = 84; else if (lat < -84) lat = -84;   // 극지방으로 넘어가지 않게
+    return { lon: norm(ROT + (cx - W / 2) / BASE * 180 / Math.PI), lat: lat, scale: cur.scale };
+  }
+  // **이동량이 클 때 620ms 가 짧고, 짧은 이동이 느리면 굼떠 보인다** → 거리에 따라 420~760ms.
+  function slideMs(from, to) {
+    return Math.round(420 + Math.min(1, Math.abs(norm(to.lon - from.lon)) / 180) * 340);
   }
   function showCard(i, scroll, expanded) {
     active = i; var c = cityByI(i); paintActive();
@@ -675,14 +736,79 @@
     drawArc(c);
     hc.classList.toggle("expanded", !!expanded);
     hc.innerHTML = expanded ? detailHTML(c) : compactHTML(c);
-    hc.classList.add("show"); positionCard(c);
+    hc.classList.add("show"); positionCard(c, expanded ? pinTarget() : null);
     if (scroll) { var card = document.querySelector('.fcard[data-i="' + i + '"]'); if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" }); }
   }
   function highlight(i, scroll) { if (expandedI !== null) return; showCard(i, scroll, false); }
-  function expand(i) { expandedI = i; showCard(i, true, true); }
+  function expand(i) {
+    // **같은 것을 다시 누르면 닫힌다** (SPEC §CH4 열고닫기). 지금은 다시 그려서 아무 일도 안
+    // 일어난 것처럼 보였다 — 누른 게 먹었는지 알 수 없다.
+    if (expandedI === i) { closeByUser(); return; }
+    missNote = "";                 // 다른 딜을 열었으면 "그 딜이 없다" 안내는 역할이 끝났다
+    expandedI = i;
+    var c = cityByI(i);
+    if (c && ORIGIN_KEY) writeHash(ORIGIN_KEY + "-" + c.dcode, true);   // 상세는 히스토리를 쌓는다
+    // 🔴 `prefers-reduced-motion` 이면 **전부 0ms**. 큰 화면 이동이라 어지럼증을 유발할 수 있다 —
+    //    선택이 아니라 필수다. 이동도 등장도 즉시.
+    if (!c || !CURV || reduceMotion()) { showCard(i, true, true); return; }
+    var to = viewForPin(c, CURV);
+    // 이미 그 자리면 굳이 움직이지 않는다 — 딥링크 진입은 **이동 없이 그 위치에서 시작**한다.
+    if (Math.abs(norm(to.lon - CURV.lon)) < 0.3 && Math.abs(to.lat - CURV.lat) < 0.3) {
+      showCard(i, true, true); return;
+    }
+    // **이동 중 다른 카드를 누르면 진행 중인 이동을 가로챈다.** 큐에 쌓지 않는다 —
+    // `tweenTo` 가 `tweenId` 로 이미 그렇게 동작한다. 예약해 둔 카드 등장도 같이 취소한다.
+    if (openT) { clearTimeout(openT); openT = null; }
+    tweenTo(CURV, to, slideMs(CURV, to));
+    // **왜 300ms 를 기다리나**: 지도가 아직 움직이는 중에 카드가 뜨면 **카드가 미끄러지는 것처럼**
+    // 보인다. 시선이 목적지에 도착한 뒤 열어야 "여기다" 가 된다.
+    openT = setTimeout(function () { openT = null; if (expandedI === i) showCard(i, true, true); }, 300);
+  }
+  var openT = null;
   function clearHi() { if (expandedI !== null) return; active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
-  function collapse() { expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
-  hc.addEventListener("click", function (e) { e.stopPropagation(); if (expandedI === null && active !== null) expand(active); });
+  // 정렬·필터·단계를 바꾸면 상세가 닫힌다 — 그건 **사용자가 닫은 게 아니라 부수 효과**라
+  // 히스토리를 쌓지 않고 `replaceState` 로 URL 만 맞춘다. 안 맞추면 주소는 상세인데 화면은 지도다.
+  function collapse() {
+    if (openT) { clearTimeout(openT); openT = null; }   // 예약된 카드 등장이 남아 있으면 취소한다
+    expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded");
+    if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); }
+    if (ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
+  }
+  // 사용자가 **명시적으로 닫으면**(지도 배경 클릭) `history.back()` 이다. URL 과 화면이 어긋나지
+  // 않게 하려는 것이고, 뒤로가기가 자연스럽게 동작한다(상세 → 지도). (SPEC §CH4)
+  // `navigator.share` 가 있으면 그걸(모바일), 없으면 **클립보드 복사 + 짧은 피드백**. (COPY.md:164-165)
+  // 공유하는 건 **지금 주소 그대로**다 — 상세가 열려 있으면 이미 `#{허브}-{목적지}` 다.
+  function shareCurrent(btn) {
+    var url = location.href, done = function () {
+      if (!btn) return;
+      var old = btn.textContent; btn.textContent = "링크를 복사했어요"; btn.disabled = true;
+      setTimeout(function () { btn.textContent = old; btn.disabled = false; }, 1600);
+    };
+    if (navigator.share) {
+      // 취소해도 reject 된다 — 사용자가 그만둔 것이지 실패가 아니므로 아무 말도 하지 않는다.
+      try { navigator.share({ url: url }).catch(function () {}); return; } catch (e) { /* 폴백으로 */ }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { fallbackCopy(url, done); });
+    } else { fallbackCopy(url, done); }
+  }
+  // `clipboard` 가 없거나 막힌 환경(구형·비보안 컨텍스트) — 임시 입력에 넣고 복사한다.
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;left:-9999px";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { /* 조용히 포기한다 */ }
+    document.body.removeChild(ta);
+  }
+  function closeByUser() {
+    if (expandedI !== null && window.history && history.pushState && parseHash() && parseHash().d) history.back();
+    else collapse();
+  }
+  hc.addEventListener("click", function (e) {
+    if (e.target && e.target.classList.contains("hc-x")) { e.stopPropagation(); closeByUser(); return; }
+    if (e.target && e.target.classList.contains("hc-share")) { e.stopPropagation(); shareCurrent(e.target); return; }
+    e.stopPropagation(); if (expandedI === null && active !== null) expand(active);
+  });
 
   // ---- 단계 · 필터 도크 ----
   // 필터를 켜고 끌 때도 단계 전환과 같은 모션으로 움직인다(400ms · cubic-out · 배율 로그 보간).
@@ -726,7 +852,7 @@
   })(stepEls[z]);
   syncStepper();
   stageEl.addEventListener("mouseleave", function () { if (matchMedia("(hover:hover)").matches) clearHi(); });
-  svg.addEventListener("click", function (e) { if (e.target === svg || e.target.classList.contains("land")) collapse(); });
+  svg.addEventListener("click", function (e) { if (e.target === svg || e.target.classList.contains("land")) closeByUser(); });
 
   // 초기 예산값은 출발지를 고를 때 resetBudget() 이 잡는다.
   function updCount() {
@@ -950,6 +1076,37 @@
     var off = [".prompt", ".stagebar", "#stepper", "#fdock", ".originwrap", "#firstnote", ".feed"], i, e;
     for (i = 0; i < off.length; i++) { e = document.querySelector(off[i]); if (e) e.hidden = true; }
   }
+  // ---- URL 해시로 상태를 남긴다 (SPEC §CH4, IA-2/F7) ----
+  //   출발지 선택됨   `#SEL`
+  //   딜 상세 열림    `#SEL-DAD`
+  // **필터·정렬·거리 단계는 URL 에 안 넣는다** — 공유받은 사람에게 남의 필터를 강요하게 되고
+  // 휘발성 상태다. 단계는 URL 에 없지만 **딥링크로 들어오면 딜의 `haul` 을 따라간다**(아래).
+  //
+  // 키가 `(허브, 목적지)` 인 이유: 백엔드가 그 단위로 최저가 1건만 내보내서 **1:1 로 유일**하다
+  // (오늘 픽스처 131/131, 중복 0).
+  var HASH_RE = /^#([A-Z]{3})(?:-([A-Z]{3}))?$/;
+  var applyingHash = false;          // 해시를 적용하는 중엔 히스토리를 다시 쌓지 않는다
+  function parseHash() {
+    var m = HASH_RE.exec(location.hash || "");
+    return m ? { o: m[1], d: m[2] || null } : null;
+  }
+  function writeHash(h, push) {
+    var next = "#" + h;
+    if (location.hash === next || applyingHash) return;
+    if (window.history && history.pushState) {
+      if (push) history.pushState(null, "", next); else history.replaceState(null, "", next);
+    } else { location.hash = next; }   // 아주 오래된 브라우저 — 히스토리 구분은 포기한다
+  }
+  function cityByCode(code) {
+    for (var i = 0; i < CITY.length; i++) if (CITY[i].dcode === code) return CITY[i];
+    return null;
+  }
+  // 딥링크로 들어오면 **거리 단계를 그 딜에 맞춘다.** `#SEL-LAX`(장거리)로 왔는데 `가까운 곳`이면
+  // 핀이 화면 밖이라 안 보인다 — F15 재발이다. 단계는 URL 에 없어도 상태는 딜을 따라간다.
+  function stageForHaul(haul) {
+    var st = HAUL2STAGE[haul] || "far", i = STAGES.indexOf(st);
+    return i < 0 ? 0 : i;
+  }
   var ORIGIN_KEY = null;
   function pickOrigin(k, initial) {
     var o = D.origins[k]; if (!o) return;
@@ -957,6 +1114,7 @@
     CITY = D.deals.filter(function (dl) { return dl.o === k; }).map(toCity);
     resetBudget();          // 출발지가 바뀌면 딜이 통째로 바뀌므로 예산 범위도 새로 잡는다
     lsSet(LS_ORIGIN, k);    // 내 기기에서 나만 겪는 편의다 — 필터를 URL에 안 넣는 것과 다른 문제
+    writeHash(k, !initial); // 첫 진입은 히스토리를 쌓지 않는다 — 뒤로 눌렀는데 같은 화면이면 이상하다
     if (pill) pill.textContent = o.name + " 출발 ▾";
     // 출발지를 바꿨다면 안내 띠는 **역할이 끝났다** — 바꾸는 곳을 이미 찾았다는 뜻이다.
     // 문구를 갱신하지 않고 닫는 이유: 띠는 "지금 서울로 보고 있고 바꿀 수 있다"를 알리는 것이지
@@ -971,15 +1129,86 @@
       tweenTo({ lon: CURV.lon, lat: CURV.lat, scale: CURV.scale * 2.6 }, CURV, 600);
   }
 
-  // 시작 출발지: 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 T3(빈 상태)에서 다룬다.
+  // ---- 딥링크한 딜이 오늘 없을 때 (SPEC §CH4 F5/FL-4 · COPY.md) ----
+  // **딜은 매일 바뀐다.** 어제 공유한 `#SEL-DAD` 가 오늘은 없을 수 있다.
+  // **오류처럼 보이게 하지 않는다** — 출발지는 정상 적용되고 피드는 평소대로 뜬다. 안내만 위에 얹는다.
+  // COPY.md 는 `{도시}는` 으로 적혀 있지만 **한국어 조사는 받침을 따른다** — 그대로 쓰면
+  // `베이징는` 이 화면에 나간다(실측). 문구를 지어내는 게 아니라 **조사를 바르게 고르는 것**이다.
+  // 한글 종성 판정: `(코드 - 0xAC00) % 28 !== 0` 이면 받침이 있다.
+  function eunNeun(w) {
+    var ch = w.charCodeAt(w.length - 1);
+    var jong = (ch >= 0xAC00 && ch <= 0xD7A3) && ((ch - 0xAC00) % 28 !== 0);
+    return w + (jong ? "은" : "는");
+  }
+  var missNote = "";
+  function findElsewhere(code) {
+    for (var i = 0; i < (D.deals || []).length; i++) {
+      var dl = D.deals[i];
+      if (dl.d === code && dl.o !== ORIGIN_KEY && D.origins[dl.o]) return dl;
+    }
+    return null;
+  }
+  function noteMissing(code) {
+    // ⭐ 같은 목적지가 **다른 허브에 있으면 그걸 제안한다.** 실측: 목적지 78곳 중 37곳(47%)이
+    //    여러 허브에서 간다 — 절반 가까이는 건질 수 있다.
+    var alt = findElsewhere(code);
+    if (alt) {
+      // **도시명은 다른 허브에 있을 때만 쓸 수 있다** — 딜이 아예 없으면 `ko` 를 알 방법이 없고
+      // IATA 코드를 화면에 내보낼 순 없다(`DAD 특가는 없어요` 는 말이 안 된다).
+      missNote = '<b>' + ORIGIN.n + " 출발 " + eunNeun(alt.ko) + " 오늘 없지만, " +
+        D.origins[alt.o].name + ' 출발이 있어요</b><a class="miss-go" href="#' + alt.o + "-" + code + '">그 특가 보러 가기 →</a>';
+    } else {
+      missNote = "<b>찾으시던 특가는 오늘 없어요</b>";
+    }
+  }
+  // 해시를 화면에 적용한다. 로드 때 한 번, 그리고 뒤로/앞으로 갈 때마다.
+  // **해시가 형식에 안 맞으면 무시하고 기본 화면**을 띄운다. 오류 문구를 내지 않는다. (SPEC §CH4)
+  function applyHash(fromPop) {
+    var live = liveOrigins(); if (!live.length) return;
+    var h = parseHash();
+    // 딥링크 우선 — 저장값도 기본값도 무시한다. 없으면 저장값 → 서울 → 딜이 가장 많은 허브.
+    var k = (h && live.indexOf(h.o) >= 0) ? h.o : null;
+    if (!k) {
+      var saved = lsGet(LS_ORIGIN);
+      k = (saved && live.indexOf(saved) >= 0) ? saved
+        : (live.indexOf(DEFAULT_ORIGIN) >= 0 ? DEFAULT_ORIGIN : live[0]);
+    }
+    applyingHash = true;
+    try {
+      var c = null;
+      if (k !== ORIGIN_KEY) pickOrigin(k, !fromPop);   // 뒤로가기로 허브가 바뀌면 트윈해도 좋다
+      if (h && h.d) c = cityByCode(h.d);
+      missNote = "";
+      if (!c && h && h.d) noteMissing(h.d);   // 허브는 유효한데 그 딜만 없다
+      if (c) {
+        // 딥링크 진입은 **이동 없이 그 위치에서 시작**한다 — 첫 화면부터 움직이면 어지럽다.
+        var want = stageForHaul(c.haul);
+        if (want !== stageIdx) {
+          stageIdx = want; render();
+          var bs = document.querySelectorAll(".stagebar .pill");
+          for (var b = 0; b < bs.length; b++) bs[b].classList.toggle("on", b === stageIdx);
+        }
+        expand(c._i);
+      } else if (expandedI !== null) {
+        collapse();
+      }
+    } finally { applyingHash = false; }
+    // 해시가 깨졌거나 허브가 오늘 없으면 주소를 실제 상태로 맞춘다.
+    if (!h || h.o !== ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
+  }
+  if (window.addEventListener) {
+    window.addEventListener("popstate", function () { applyHash(true); });
+    // 안내의 `그 특가 보러 가기` 처럼 **앵커로 해시가 바뀌는 경로**도 있다. `popstate` 만 들으면
+    // 브라우저에 따라 놓친다 — `hashchange` 를 같이 듣고, 이미 반영된 상태면 안에서 걸러진다.
+    window.addEventListener("hashchange", function () { applyHash(true); });
+  }
+
+  // 시작 출발지: 해시 → 저장값 → 서울 → 딜이 가장 많은 허브. 딜이 아예 없으면 빈 날 화면(§CH3 F1).
   (function boot() {
     var live = liveOrigins();
     if (!live.length) return emptyDay();   // 오늘 딜 0건 (SPEC §CH3 F1)
     buildDrop();
-    var saved = lsGet(LS_ORIGIN);
-    var k = (saved && live.indexOf(saved) >= 0) ? saved
-          : (live.indexOf(DEFAULT_ORIGIN) >= 0 ? DEFAULT_ORIGIN : live[0]);
-    pickOrigin(k, true);
+    applyHash(false);
     maybeNote();
     // ⚠️ boot 은 **파싱 중**에 돈다(화면0이 없어져 사용자 클릭을 기다리지 않는다).
     //    그 시점엔 `svg.getScreenCTM()` 이 아직 없어 `uiBoxes()` 가 빈 배열이 되고,
