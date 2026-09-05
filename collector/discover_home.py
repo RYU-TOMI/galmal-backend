@@ -7,7 +7,7 @@
 import html
 
 from labels import city
-from theme import BASE_URL, OG_IMAGE, SITE_NAME
+from theme import BASE_URL, OG_IMAGE, SITE_NAME, verification_meta
 
 # "말래" 밑 페이드 비행운 + 접힌 종이비행기 (theme.logo와 동일 기하)
 LOGO_SVG = (
@@ -114,7 +114,7 @@ def render_home(data, deals_json, world_json, route_index):
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{BASE_URL}/">
-<meta property="og:type" content="website">
+{verification_meta()}<meta property="og:type" content="website">
 <meta property="og:site_name" content="{SITE_NAME}">
 <meta property="og:title" content="{og_title}">
 <meta property="og:description" content="{og_desc}">
