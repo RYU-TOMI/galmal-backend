@@ -643,10 +643,18 @@
     }).join("") + "</div>";
   }
   function detailHTML(c) {
-    return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
+    // `×` 로 닫을 수 있어야 한다 (SPEC §CH4 열고닫기). 지금은 지도 배경을 눌러야만 닫혔는데,
+    // 카드가 크면 **누를 배경이 안 보인다.**
+    return '<button type="button" class="hc-x" aria-label="상세 닫기">×</button>' +
+      photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail">' +
       priceCompare(c) +
-      '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links) +
+      // `links` 가 비면 **섹션을 통째로 생략**한다 — 지금은 헤더만 남아 "비교해보세요" 라고
+      // 해놓고 비교할 게 없는 화면이 된다. 오늘 픽스처는 131건 전부 5개라 **장애 시 방어**다.
+      // ⚠️ 배열 길이를 하드코딩하지 않는다 — 5개는 지금 사실이지 계약이 아니다(SPEC §CH4).
+      (c.links && c.links.length
+        ? '<div class="hc-sec">어디가 제일 싼지 비교해보세요</div>' + compareHTML(c.links)
+        : '<div class="hc-none">예약처 링크를 준비하지 못했어요</div>') +
       (seenAbs(c) ? '<div class="hc-seen">' + seenAbs(c) + "</div>" : "") +
       // **설명은 여기 한 번만.** 카드는 스캔하는 자리라 짧아야 하고, 상세는 **결정하는 자리**다.
       // 변명하지 않는다(`죄송하지만`·`양해 부탁` 금지) — 사실만 적는다. 바로 아래 실시간 고지가
@@ -692,6 +700,9 @@
   }
   function highlight(i, scroll) { if (expandedI !== null) return; showCard(i, scroll, false); }
   function expand(i) {
+    // **같은 것을 다시 누르면 닫힌다** (SPEC §CH4 열고닫기). 지금은 다시 그려서 아무 일도 안
+    // 일어난 것처럼 보였다 — 누른 게 먹었는지 알 수 없다.
+    if (expandedI === i) { closeByUser(); return; }
     expandedI = i; showCard(i, true, true);
     var c = cityByI(i);
     if (c && ORIGIN_KEY) writeHash(ORIGIN_KEY + "-" + c.dcode, true);   // 상세는 히스토리를 쌓는다
@@ -710,7 +721,10 @@
     if (expandedI !== null && window.history && history.pushState && parseHash() && parseHash().d) history.back();
     else collapse();
   }
-  hc.addEventListener("click", function (e) { e.stopPropagation(); if (expandedI === null && active !== null) expand(active); });
+  hc.addEventListener("click", function (e) {
+    if (e.target && e.target.classList.contains("hc-x")) { e.stopPropagation(); closeByUser(); return; }
+    e.stopPropagation(); if (expandedI === null && active !== null) expand(active);
+  });
 
   // ---- 단계 · 필터 도크 ----
   // 필터를 켜고 끌 때도 단계 전환과 같은 모션으로 움직인다(400ms · cubic-out · 배율 로그 보간).

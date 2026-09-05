@@ -81,6 +81,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pre
 .fr.stale{color:var(--sub);font-weight:500;opacity:.7}
 .fr.none{color:var(--sub);font-weight:500}
 .hovercard .fr{font-size:.62rem;margin-top:3px}
+/* `×` — 사진 위에 얹는다. 카드가 크면 누를 배경이 안 보이므로 닫는 수단이 카드 안에 있어야 한다. */
+.hc-x{position:absolute;right:7px;top:7px;z-index:2;width:24px;height:24px;border:0;border-radius:99px;
+ background:#0000004d;color:#fff;font:inherit;font-size:1rem;line-height:1;cursor:pointer;padding:0}
+.hc-x:hover{background:#0009}
+/* `×` 는 확장 상세에만 있다 — 그 자리를 `사진 준비중` 배지가 쓰고 있어 겹쳤다(실측).
+   확장은 238px 이라 밀 여유가 있고, 컴팩트(184px)는 `×` 가 없어 그대로 둔다. */
+.hovercard.expanded .hc-photo .ph-tag{right:38px}
+.hovercard.expanded .hc-photo .phtags{right:106px}
+.hc-none{font-size:.66rem;color:var(--sub);text-align:center;padding:12px 8px;background:var(--soft);border-radius:9px}
 .hc-seen{font-size:.56rem;color:var(--sub);opacity:.75;margin-top:6px;text-align:center}
 .tilde{font-size:.66rem;color:var(--sub);font-weight:700}
 .fdate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:.74rem;font-weight:800;color:var(--ink)}
