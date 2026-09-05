@@ -667,6 +667,18 @@
       top = cp.y - box.top + 20;
       if (top + h > box.height - 8) top = Math.max(8, box.height - 8 - h);
     }
+    // **필터 도크·줌 컨트롤을 피한다** (SPEC §CH4 — B16과 같은 뿌리).
+    // 딥링크 `#SEL-LAX` 로 확인: 오른쪽 끝 핀이면 카드가 도크를 통째로 덮고, 그 뒤의 핀도 가린다.
+    // 카드는 `translate(-50%,0)` 이라 `left` 는 **중심**이다.
+    // 세로로 안 겹치는 UI 는 건드리지 않는다 — 무조건 밀면 멀쩡한 자리를 버린다.
+    var halfW = hc.offsetWidth / 2, sel = ["#fdock", "#stepper"], si, ue, ur;
+    for (si = 0; si < sel.length; si++) {
+      ue = document.querySelector(sel[si]); if (!ue || ue.hidden) continue;
+      ur = ue.getBoundingClientRect(); if (!ur.width || !ur.height) continue;
+      if (top + h <= ur.top - box.top || top >= ur.bottom - box.top) continue;
+      var uL = ur.left - box.left - 8;                       // 8px 는 숨 쉴 틈
+      if (left + halfW > uL) left = uL - halfW;
+    }
     left = Math.max(120, Math.min(box.width - 120, left)); hc.style.left = left + "px"; hc.style.top = top + "px";
   }
   function showCard(i, scroll, expanded) {
