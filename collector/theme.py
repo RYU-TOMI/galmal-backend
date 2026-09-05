@@ -7,7 +7,14 @@
 """
 import json
 
-BASE_URL = "https://ryu-tomi.github.io/promo-ticket-site"
+# 사이트 정본 주소. canonical · og:url · sitemap · JSON-LD · 알림 메일이 전부
+# 여기서 파생된다. **도메인 문자열은 이 저장소에서 여기 한 곳뿐이다** — 갈라지면
+# 어떤 화면은 옛 주소를, 어떤 화면은 새 주소를 가리키게 된다.
+#
+# 2026-09-05 `galmal.kr`로 전환. 커스텀 도메인 파일은 `docs/CNAME`에 있고 GitHub이
+# Pages 설정에서 만든다. `build_site.py`는 `docs/`를 지우지 않으므로(덮어쓰기만)
+# 크론 재빌드가 그 파일을 날리지 않는다 — 날아가면 사이트가 죽는 게 아니라 404가 된다.
+BASE_URL = "https://galmal.kr"
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SITE_NAME = "갈래말래"
 

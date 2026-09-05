@@ -17,6 +17,8 @@ import unittest
 from datetime import date
 from pathlib import Path
 
+import theme
+
 ROUTES_DIR = Path(__file__).resolve().parent.parent / "docs" / "routes"
 JSONLD_RE = re.compile(
     r'<script type="application/ld\+json">(.*?)</script>', re.S)
@@ -100,10 +102,13 @@ class RoutePageStructuredDataTest(unittest.TestCase):
                     href = item.get("item")
                     if not href:
                         continue        # 링크 없는 단계는 정상(지역·현재 페이지)
-                    rel = href.split("promo-ticket-site/", 1)[-1] or "index.html"
-                    target = docs / (rel if rel else "index.html")
-                    if target.is_dir() or not rel:
-                        target = docs / "index.html"
+                    # 도메인을 여기 다시 적지 않는다 — 2026-09-05 galmal.kr 전환 때
+                    # 이 줄이 "promo-ticket-site/"를 하드코딩하고 있어서 36개가
+                    # 한꺼번에 깨졌다. 정본은 theme.BASE_URL 하나다.
+                    rel = href[len(theme.BASE_URL):].lstrip("/")
+                    target = docs / (rel or "index.html")
+                    if target.is_dir():
+                        target = target / "index.html"
                     self.assertTrue(target.exists(), f"{href} → 파일 없음")
 
     def test_webpage_url_is_the_canonical_url(self):
