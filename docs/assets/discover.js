@@ -322,8 +322,15 @@
     for (i = 0; i < tags.length; i++) (TAG_TOP.indexOf(tags[i]) < 0 ? sub : top).push(tags[i]);
     return (sub.length ? sub.concat(top.slice(0, 1)) : top.slice(0, 2)).slice(0, 4);
   }
-  function ovTags(c) {
-    var t = cardTags(c.tags);
+  // 판정은 **사진 폭**이지 카드 종류가 아니다 (DESIGN.md 2026-09-04, B32).
+  // 종류로 가르면 모바일에서 또 갈라진다 — 실측 폭이 규칙을 갈라 준다:
+  //   모바일 히어로 344 · 확장 상세 238·390 → 200 이상, 태그 붙는다
+  //   작은 카드 썸네일 62 · **컴팩트 호버카드 177** → 200 미만, 안 붙는다
+  // 개수는 폭을 따른다 — 히어로·확장 상세 최대 4, **모바일 피드 카드는 최대 2**
+  // (스크롤로 지나가는 자리라 읽을 수 있는 개수만 얹는다).
+  function ovTags(c, max) {
+    if (!max) return "";
+    var t = cardTags(c.tags).slice(0, max);
     return t.length ? '<div class="phtags">' + t.map(function (x) { return '<span class="ovtag">' + x + "</span>"; }).join("") + "</div>" : "";
   }
   var SPARSE_AT = 10;   // 이 미만이면 "딜이 적은 출발지" 안내를 붙인다 (SPEC §CH3 F2)
@@ -513,7 +520,7 @@
       card.innerHTML =
         // 작은 썸네일(62px)엔 태그를 안 넣는다 — 사진이 태그를 담기엔 작다.
         // 히어로(104px 전폭)에만 사진 위로 얹는다. 그래서 작은 카드가 세로를 20% 덜 먹는다.
-        '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c) : "") + "</div>" +
+        '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c, isMobile() ? 2 : 4) : "") + "</div>" +
         '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b>' + stampHTML(c) + "</div>" +
         '<div class="fprice"><span><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + c.trans + "</div>" +
         freshHTML(c) +
@@ -639,7 +646,7 @@
     arc.getBoundingClientRect(); arc.style.transition = "stroke-dashoffset .42s ease"; arc.style.strokeDashoffset = 0;
   }
   function svgToClient(x, y) { var pt = svg.createSVGPoint(); pt.x = x; pt.y = y; return pt.matrixTransform(svg.getScreenCTM()); }
-  function photoHTML(c) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span>' + ovTags(c) + '<span class="cityname">' + c.n + "</span></div>"; }
+  function photoHTML(c, max) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span>' + ovTags(c, max) + '<span class="cityname">' + c.n + "</span></div>"; }
   function bodyTop(c) {
     return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + stampHTML(c) + "</div>" +
       '<div class="hc-date">' + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
@@ -657,7 +664,7 @@
       '<div class="pc-row now"><span>발견가</span><span>₩' + c.price + " · " + pct + "%↓</span></div>" +
       "</div>";
   }
-  function compactHTML(c) { return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
+  function compactHTML(c) { return photoHTML(c, 0) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
   // 제휴 링크가 실제로 있을 때만 (광고) 설명줄을 띄운다. 없는 날 "(광고) 표시는…"이 뜨면
   // 화면에 없는 표시를 설명하는 꼴이 된다.
   function adLinks(links) {
@@ -679,7 +686,7 @@
     // `×` 로 닫을 수 있어야 한다 (SPEC §CH4 열고닫기). 지금은 지도 배경을 눌러야만 닫혔는데,
     // 카드가 크면 **누를 배경이 안 보인다.**
     return '<button type="button" class="hc-x" aria-label="상세 닫기">×</button>' +
-      photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
+      photoHTML(c, 4) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail">' +
       // **딥링크를 만들어 놓고 공유 수단이 없으면 반쪽이다.** 특히 모바일에서 주소창 복사는 어렵다.
       // 커뮤니티 시딩(`PRODUCT.md` §유입)이 이걸로 비로소 가능해진다. (SPEC §CH4)

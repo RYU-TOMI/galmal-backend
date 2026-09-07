@@ -275,6 +275,9 @@ chrome.exe --headless=new --disable-gpu --hide-scrollbars --force-device-scale-f
   with Chrome() as c: c.shot(url, out, width=390, height=844, dsf=2, mobile=True)
   ```
   화면 폭이 관련된 확인은 **반드시 실제 `clientWidth` 를 같이 찍어 본다.**
+- 🔴 **같은 URL 로 `Page.navigate` 하면 재로드가 안 된다.** 폭을 바꿔 가며 같은 주소를 다시
+  열면 이전 상태가 남는다 — 실측: 데스크톱 확장 상세 태그가 **0개**로 나와 버그로 볼 뻔했는데,
+  `about:blank` 를 거쳐 새로 열자 **4개**였다. 조건을 바꿔 잴 때는 반드시 사이에 빈 페이지를 넣는다.
 - 🔴 **`*{transition:none!important}` 은 CSS 전환만 끈다 — rAF 트윈은 안 끈다.**
   단계 전환은 `tweenTo()`(requestAnimationFrame)라서 이걸 넣어도 **중간 상태가 찍힌다.**
   실제로 `아주 멀리` 클릭 **직후** `#lands` transform 을 읽고 "far 배율 계산이 틀렸다"는
