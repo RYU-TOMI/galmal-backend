@@ -422,8 +422,12 @@
     // 지도는 모바일에서 **"어디쯤인지" 보여주는 배경**이고 **이름은 카드에 있다.**
     // 핀을 누르면 그 카드가 시트 맨 위로 오고(B10), 활성 핀의 라벨은 `.pin.act` 로 덮어 그린다 —
     // **필요한 순간에는 이름이 나온다.** 없는 자리를 억지로 만들어 잘린 글자를 내보내지 않는다.
-    if (isMobile()) cands = [];
+    var mobileOnly = isMobile() ? cands : null;
+    if (mobileOnly) cands = [];
     vis.forEach(function (c) { c._lab = null; });
+    // 모바일은 배치를 안 하지만 **자리는 들고 있는다** — 활성 핀은 `.pin.act` 가 덮어 그리므로
+    // `_lab` 이 없으면 `<text>` 자체가 안 만들어져 **눌러도 이름이 안 나온다**(실측).
+    if (mobileOnly) mobileOnly.forEach(function (c) { c._lab = labSpots(c)[0]; c._lab.off = true; });
     cands.forEach(function (c) {
       var spots = labSpots(c), i, s, j, ok;
       for (i = 0; i < spots.length; i++) {
@@ -483,7 +487,7 @@
         (L ? '<text class="plabel' + (L.off ? " off" : "") + '" x="' + L.x + '" y="' + L.y +
              '" text-anchor="' + L.anchor + '">' + c.n + "</text>" : "");
       (function (el, i) { el.addEventListener("mouseenter", function () { highlight(i, true); });
-        el.addEventListener("click", function (e) { e.stopPropagation(); expand(i); }); })(g, c._i);
+        el.addEventListener("click", function (e) { e.stopPropagation(); pinTap(i); }); })(g, c._i);
       pins.appendChild(g);
     });
     // 카드 피드
@@ -762,7 +766,31 @@
     hc.classList.toggle("expanded", !!expanded);
     hc.innerHTML = expanded ? detailHTML(c) : compactHTML(c);
     hc.classList.add("show"); positionCard(c, expanded ? pinTarget() : null);
+    // **시트 두 장이 겹치지 않는다**(SPEC §CH4). 모바일에서 상세는 하단 시트라, 카드 시트를
+    // 그대로 두면 두 장이 포개진다. 상세가 열려 있는 동안 카드 시트를 내린다.
+    if (isMobile()) document.body.classList.toggle("detail-open", !!expanded);
     if (scroll) { var card = document.querySelector('.fcard[data-i="' + i + '"]'); if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" }); }
+  }
+  // ---- 핀 탭 (SPEC §CH4 열고닫기 · B10 확정 2026-09-05) ----
+  // **모바일에서 핀 탭은 상세를 열지 않는다.** 시트가 peek 으로 내려가고 그 카드가 시트 맨 위로 온다.
+  //
+  // **왜 상세를 안 여나 — 핀은 작고 겹친다.** 홍콩·선전·마카오가 `아주 멀리` 에서 1~2px 안에
+  // 스택된다(B20). **작고 오조작이 쉬운 대상에 되돌리기 비싼 동작을 걸지 않는다** —
+  // 잘못 눌러 전체 화면이 덮이면 되돌리는 데 두 번이 든다.
+  //
+  // 데스크톱은 hover=미리보기 / click=상세인데 **모바일엔 hover 가 없어** 탭이 둘 다를 해야 한다.
+  // 시트가 그 둘을 나눠 푼다 — **핀 탭이 hover 자리, 카드 탭이 click 자리.**
+  //
+  // peek 으로 내리는 이유: 핀을 누를 수 있었다는 건 **지도가 보였다는 뜻**이다.
+  // 지도를 조작한 사람에게 지도를 더 준다. 이미 peek 이면 그대로 둔다.
+  // (§CH4 의 「카드를 누르면 지도가 그 핀으로 미끄러진다」와 **정확히 역방향**이다.)
+  function pinTap(i) {
+    if (!isMobile()) { expand(i); return; }
+    if (sheetH > SHEET_PEEK) setSheet(SHEET_PEEK, true);
+    active = i; expandedI = null; paintActive();
+    var c = cityByI(i); if (c) drawArc(c);
+    var card = feed.querySelector('.fcard[data-i="' + i + '"]');
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function highlight(i, scroll) { if (expandedI !== null) return; showCard(i, scroll, false); }
   function expand(i) {
@@ -790,11 +818,12 @@
     openT = setTimeout(function () { openT = null; if (expandedI === i) showCard(i, true, true); }, 300);
   }
   var openT = null;
-  function clearHi() { if (expandedI !== null) return; active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
+  function clearHi() { if (expandedI !== null) return; document.body.classList.remove("detail-open"); active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
   // 정렬·필터·단계를 바꾸면 상세가 닫힌다 — 그건 **사용자가 닫은 게 아니라 부수 효과**라
   // 히스토리를 쌓지 않고 `replaceState` 로 URL 만 맞춘다. 안 맞추면 주소는 상세인데 화면은 지도다.
   function collapse() {
     if (openT) { clearTimeout(openT); openT = null; }   // 예약된 카드 등장이 남아 있으면 취소한다
+    document.body.classList.remove("detail-open");     // 카드 시트를 다시 올린다
     expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded");
     if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); }
     if (ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
