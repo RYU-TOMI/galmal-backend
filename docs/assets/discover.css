@@ -271,6 +271,14 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
   /* full 에서는 지도 조작을 치운다 — 무대가 72px 이라 밖으로 밀려 헤더를 덮는다. */
   .sheet-full .stagebar,.sheet-full .filterdock,.sheet-full .stepper{opacity:0;pointer-events:none}
   .filterdock{left:10px;right:10px;bottom:58px;width:auto;z-index:11}
+  /* 🔴 **펼친 도크는 하단 시트다.** 무대가 415px 인데 펼친 도크가 **507px** 라 그 자리에 못 둔다 —
+     실측: `top -61` 로 화면 위로 삐져나가 헤더를 덮었다.
+     아래에서 올라오게 하고 넘치면 안에서 스크롤한다. 카드 시트를 가리는 건 맞다 —
+     필터를 쓰는 동안은 필터가 앞이다. (SPEC §CH5 "필터 도크 = 하단 시트") */
+  .filterdock:not(.collapsed){position:fixed;left:0;right:0;bottom:0;top:auto;
+   border-radius:16px 16px 0 0;max-height:76vh;overflow-y:auto;z-index:32;
+   box-shadow:0 -10px 34px rgba(20,40,40,.26)}
+  .filterdock:not(.collapsed) .fdtoggle{position:sticky;top:0;background:#fff;z-index:1;padding:14px 15px}
   /* 플로팅/확장 카드 = 하단 시트 */
   .hovercard{position:fixed;left:0;right:0;bottom:0;top:auto!important;width:auto!important;max-width:none;
              transform:translateY(105%);border-radius:16px 16px 0 0;box-shadow:0 -10px 34px rgba(20,40,40,.26);
