@@ -581,6 +581,22 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - **안 고쳤다** — 표시 문자열이라 `COPY.md`(기획) 소관이고, 이전하면 프론트가 만든다.
     기획·프론트 양쪽에 알렸다.
 
+- **BB32. 구독 메일 주소가 두 곳에 있다 — 갈리면 아무도 모른다.** (2026-09-08, M3 준비 중 발견)
+  ```
+  theme.SUBSCRIBE_ADDR = "flightpromokr@gmail.com"   ← 화면·meta.json 이 쓰는 값
+  .env MAIL_ADDRESS                                  ← subscriptions.py 가 IMAP으로 로그인하는 메일함
+  ```
+  **오늘은 같다**(2026-09-08 실측). 하지만 **대조하는 게 아무것도 없다.**
+  갈리면 사이트는 A로 보내라 하고 우리는 B를 읽는다 — **반송도 안 온다**(A도 실재하는 주소라).
+  사용자는 신청했다고 믿고 우리는 신청이 없다고 믿는다. `BASE_URL`/`SITE_URL`(R1b)과
+  **글자 그대로 같은 유형**이고, 이번이 두 번째다.
+  - 🔴 **`SUBSCRIBE_ADDR`은 `theme.py`에 있을 물건이 아니다.** 사이트 정체성이 아니라
+    **우리 파서가 로그인하는 메일함**이다. 프론트가 `theme.py`를 가져가는 M3에서
+    같이 딸려가면 안 되고 **`subscriptions.py`로 옮겨야 한다**(제목 두 상수 옆).
+    그러면 `meta.json`의 `subscribe` 넷이 **전부 파서 한 모듈에서** 나온다.
+  - 프론트는 `meta.json`에서 받아 쓰므로 화면 쪽 의존은 저절로 끊긴다.
+  - **안 고쳤다** — M3 태스크다. 지금 옮기면 `build_site`의 표시 사용처가 같이 흔들린다.
+
 ---
 
 ## 8. 다른 세션에서 받은 요청 / 보낼 것
