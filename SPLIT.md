@@ -104,8 +104,9 @@ galmal-plan  (비공개)  ← promo-ticket-site를 rename
 | 위치 | 위반 | 옮길 곳 |
 |---|---|---|
 | `collector/build_site.py:191` `route_page()` **180줄** | P1 — sqlite를 물고 HTML을 짠다 | 프론트 `site/route.py` |
-| `collector/build_site.py:129` `deal_card()` 34줄 | P1 | 프론트 |
-| `collector/build_site.py:100` `sparkline()` 29줄 | P1 (SVG) | 프론트 |
+| `collector/charts.py` 전부 (SVG 11군데 · `NOT_ENOUGH` 문구) | P1 — 순수 화면 코드 | 프론트 |
+| `collector/labels.py`의 **포맷만** (`fmt_date` `fmt_month` `SQL_WEEKDAY`) | P1 | 프론트 |
+| `tests/test_charts.py` | 프론트 코드를 테스트한다 | 프론트 |
 | `collector/build_site.py:384` `build_seo()` 20줄 | P1·P2 | 프론트 `site/seo.py` |
 | `collector/theme.py` `BASE_URL` `SITE_NAME` `OG_IMAGE` `verification_meta` | P2 | 프론트 `site/shell.py` |
 | `collector/discover_home.py`(프론트 소유)가 `theme`(백엔드)를 import | 경계 역행 | 둘 다 프론트로 |
@@ -113,6 +114,25 @@ galmal-plan  (비공개)  ← promo-ticket-site를 rename
 
 `daily_min` `month_min` `weekday_min` `airline_min` `route_summary`(계 57줄)는 **통계 계산**이라
 백엔드에 남는다. 다만 HTML이 아니라 **JSON으로 결과를 낸다.**
+
+`labels.py`의 **참조 데이터**(`city` `airline_name` `region_of`)도 백엔드에 남는다.
+계약이 `o_name`·`d_name`·`airlines[].name`·`region`을 주므로 프론트는 이걸 안 봐도 된다.
+**한 파일이 두 성격이라 쪼갠다** — 참조는 백엔드, 포맷은 프론트(프론트 발견).
+
+### 🔴 옮기지 말 것 — 죽은 코드 (프론트 실측, 2026-09-08)
+
+| | 상태 |
+|---|---|
+| `build_site.py:129` `deal_card()` 34줄 | **아무도 안 부른다** |
+| `build_site.py:100` `sparkline()` 29줄 | `deal_card()`만 부른다 → 같이 죽었다 |
+| 산출물 흔적 | `docs/index.html`·`docs/routes/*.html`에 `class="card"` 0건, `class="spark"` 0건 |
+
+발견 홈이 옛 카드 홈을 대체하며 남은 잔해다. **M3에서 지운다. 옮기지 않는다.**
+초안 표가 이 63줄을 프론트로 옮기라고 했는데 취소한다.
+
+> 살아 있었다면 문제가 됐을 것이다 — `sparkline()`은 `daily_min(..., is_direct)`로
+> **딜별** 추이를 그리는데 계약의 `trend`는 **노선 단위**라 `is_direct` 축이 없다.
+> 죽어 있어서 문제가 안 됐다.
 
 ### 확인된 사실 — 걱정하지 않아도 되는 것
 
@@ -204,6 +224,11 @@ GET /v1/routes/{code}.json  노선 1개 통계 — 현재 route_page()가 conn�
 **DoD (T5가 이 이전 전체의 관문이다)**:
 `site/build.py`가 만든 37장이 현 배포본과 **diff 0**. 차이가 있으면 한 줄씩 설명하고
 "의도한 개선"인지 "깨뜨린 것"인지 판정한다.
+
+> 🔴 **그래서 이전은 동작을 바꾸지 않는다.** 개선하고 싶은 게 있으면 **이전 전에**
+> 현행 코드에서 고쳐 크론이 한 번 배포하게 하거나, **M3 이후에** 별도 챕터로 한다.
+> 이전 중에 바꾸면 diff가 났을 때 **이전이 깨뜨린 건지 우리가 고친 건지 구분할 수 없다.**
+> 프론트가 재현해야 할 현행 동작 3가지는 `CONTRACT.md` §「이전 중에는 동작을 바꾸지 않는다」.
 **+ 렌더 스크린샷 대조.** 이 프로젝트에서 반복 확인된 것: **테스트 통과는 화면이
 멀쩡하다는 증거가 아니다** (z-index가 「(광고)」 고지를 가린 건, 막대 1개짜리 차트,
 `[hidden]`이 `display:flex`에 밀린 건 3회 — 전부 테스트를 통과했다).
@@ -228,7 +253,7 @@ GET /v1/routes/{code}.json  노선 1개 통계 — 현재 route_page()가 conn�
 | T1 | **사용자** | `galmal-api`·`galmal-web` 생성 (**둘 다 public**) |
 | T2 | **사용자** | secrets 8종을 `galmal-api`에 등록 |
 | T3 | **사용자** | PAT 발급(무기한 fine-grained, `galmal-web`의 dispatch 권한만) → `galmal-api`의 secret. **`SITE_URL` 변수도 같이** |
-| T4 | 백 | `collector/` `data/` `tests/` `collect.yml` 이동. Pages 켜고 `docs/v1/` 발행 |
+| T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
 | T5 | 프 | `site/` `assets/` `fixtures/` `deploy.yml` 이동 |
 | T6 | 양쪽 | 배선: 백엔드 크론 끝 → `repository_dispatch` → 프론트 빌드·배포 |
 
