@@ -62,7 +62,7 @@ class MonthWindowTest(unittest.TestCase):
         future = self.today + timedelta(days=60)
         seed(self.conn, months(future, price=158_000))
         got = month_min(self.conn, "ICN", "XXX")
-        self.assertEqual(got, [(future.strftime("%Y-%m"), 158_000)])
+        self.assertEqual(got, [(future.strftime("%Y-%m"), 158_000, 3)])
 
     def test_today_itself_is_still_bookable(self):
         """경계 — 오늘 출발은 아직 살 수 있다. `>` 가 아니라 `>=` 다."""
@@ -80,9 +80,11 @@ class MonthWindowTest(unittest.TestCase):
         seed(self.conn, months(past, n=915, price=50_000))
         seed(self.conn, months(future, n=3, price=900_000))
         got = month_min(self.conn, "ICN", "XXX")
-        self.assertEqual([m for m, _ in got], [future.strftime("%Y-%m")])
+        self.assertEqual([m for m, _, _ in got], [future.strftime("%Y-%m")])
         # 화면은 이 결과의 최솟값으로 "○월 출발이 가장 저렴합니다"를 쓴다.
         self.assertEqual(min(got, key=lambda r: r[1])[1], 900_000)
+        # 🔴 표본수는 **나간다.** 거르는 건 프론트지만 판단 근거는 백엔드가 준다.
+        self.assertEqual(got[0][2], 3)
 
     def test_window_uses_the_users_today_not_the_runners(self):
         """🔴 `today_utc()`로 바꿔 쓰면 여기서 갈린다 — 크론은 UTC 러너에서 돈다.
