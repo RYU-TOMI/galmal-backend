@@ -24,6 +24,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import route  # noqa: E402  (위 sys.path 설정 뒤여야 한다)
+import seo    # noqa: E402
 
 
 def main():
@@ -48,8 +49,20 @@ def main():
     for name, html_text in pages.items():
         with open(os.path.join(dst, name), "w", encoding="utf-8", newline="") as f:
             f.write(html_text)
-
     print("노선 페이지 %d장 → %s" % (len(pages), dst))
+
+    # sitemap 은 전체 목록이라 `--only` 로 일부만 구웠으면 만들지 않는다 —
+    # 반쪽짜리 sitemap 을 내보내는 것이 안 내보내는 것보다 나쁘다.
+    if a.only:
+        print("--only 라 sitemap·robots 는 건너뛴다")
+        return
+    meta = route.fetch(a.api, "meta.json")
+    index = route.fetch(a.api, "routes/index.json")
+    os.makedirs(a.out, exist_ok=True)
+    for name, text in seo.build_all(index, meta["generated"][:10]).items():
+        with open(os.path.join(a.out, name), "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+        print("  %s" % name)
 
 
 if __name__ == "__main__":
