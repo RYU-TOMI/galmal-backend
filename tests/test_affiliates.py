@@ -225,3 +225,52 @@ class AdFlagTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CommittedArtifactTest(unittest.TestCase):
+    """🔴 커밋된 `deals.json`에 수수료 경로가 살아 있는가 (BB30).
+
+    위 `AdFlagTest`는 **함수**를 본다. 마커가 없으면 링크를 빼는 게 옳은 동작이므로
+    거기선 결함이 아니다. 결함은 **그 결과물이 커밋될 때** 생긴다.
+
+    2026-09-08, 프론트가 `index.html` 충돌을 `CLAUDE.md`의 「재빌드로 해결」
+    절차대로 풀었는데 로컬에 `TP_MARKER`가 없어 **딜 125건 전부에서 Aviasales
+    링크가 빠진 파일**이 나왔다. 커밋 직전에 알아채 복구했다.
+
+    **눈으로는 못 잡는다** — 지도도 카드도 멀쩡히 뜨고 수익 링크만 없다.
+    `build_site`가 stderr로 외치지만 **사람은 경고를 넘긴다.** 그래서 여기서
+    막는다. 배포되는 건 파일이고, 이 테스트는 그 파일을 본다.
+
+    (`test_site_url.DeployedArtifactTest`와 같은 부류 — 코드가 아니라 산출물을 본다.)
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+        path = Path(__file__).resolve().parent.parent / "docs" / "data" / "deals.json"
+        if not path.exists():
+            raise unittest.SkipTest("deals.json이 아직 생성되지 않았다")
+        cls.deals = json.loads(path.read_text(encoding="utf-8"))["deals"]
+        if not cls.deals:
+            raise unittest.SkipTest("딜이 비어 있다")
+
+    def test_every_deal_keeps_an_earning_link(self):
+        """수수료가 붙는 링크가 하나도 없는 딜이 있으면 실패한다."""
+        # 딜 객체를 통째로 비교하면 실패 메시지가 4천자짜리 dict 덤프가 된다.
+        # 읽히지 않는 실패는 안 잡히는 것과 비슷하다 — 노선 코드만 보여준다.
+        naked = [f"{d['o']}-{d['d']}" for d in self.deals
+                 if not any(AdFlagTest.earns(l["url"]) for l in d.get("links", []))]
+        self.assertEqual(
+            naked[:5], [],
+            f"수수료 경로가 없는 딜 {len(naked)}/{len(self.deals)}건 — "
+            "시크릿 없이 재빌드한 산출물일 수 있다 (BACKEND.md BB30)")
+
+    def test_ad_disclosure_matches_the_committed_urls(self):
+        """`ad` 표기와 실제 URL이 커밋본에서도 일치하는가.
+
+        고지는 법적 의무라(`CLAUDE.md`) 코드가 맞아도 **파일이 틀리면** 소용없다.
+        """
+        for i, d in enumerate(self.deals):
+            for l in d.get("links", []):
+                with self.subTest(deal=i, name=l.get("name")):
+                    self.assertEqual(l.get("ad", False), AdFlagTest.earns(l["url"]))
