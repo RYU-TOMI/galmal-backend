@@ -78,3 +78,21 @@ def age_hours(raw, now=None):
     if seen is None:
         return None
     return ((now or now_kst()) - seen).total_seconds() / 3600
+
+
+def parse_kst_stamp(raw):
+    """`"2026-09-08 15:20"` → KST aware datetime. 못 읽으면 `None`.
+
+    현행 `deals.json`의 `updated`가 이 모양이다 — **오프셋이 없는 표시 문자열**이라
+    그대로는 계약(`generated`, ISO 8601 + 오프셋)에 못 싣는다. 여기서 KST를 붙인다.
+
+    왜 "그냥 지금 시각"을 쓰지 않나: **하한선 미달로 갱신을 건너뛴 날**(BB1)
+    그 파일은 어제 것이고, 어제 데이터에 오늘 도장을 찍는 건 우리가 가장 안 하기로 한
+    일이다(2026-08-22 기획 합의). 파일이 말하는 시각을 그대로 옮긴다.
+    """
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+    except (TypeError, ValueError):
+        return None
