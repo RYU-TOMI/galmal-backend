@@ -30,6 +30,9 @@ from labels import (SQL_WEEKDAY, airline_name, city, fmt_date, fmt_month,
                     region_of)
 from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
 
+# 통계의 **창**. `meta.json`이 이 값을 그대로 싣는다 — 두 곳에 적으면 갈라진다.
+WINDOW_DAYS = 30
+
 # 화면은 월요일부터 보여준다. **표시 관례이지 데이터의 성질이 아니다.**
 WEEK_ORDER = (1, 2, 3, 4, 5, 6, 0)
 
@@ -38,7 +41,7 @@ DOCS = Path(__file__).resolve().parent.parent / "docs"
 
 # ---------------------------------------------------------------- 데이터 조회
 
-def daily_min(conn, origin, dest, days=30, direct_only=None):
+def daily_min(conn, origin, dest, days=WINDOW_DAYS, direct_only=None):
     since = (timeutil.today_utc() - timedelta(days=days)).isoformat()
     cond = ""
     if direct_only is True:
@@ -111,7 +114,7 @@ def airline_min(conn, origin, dest, limit=8):
              WHERE origin=? AND destination=? AND fetched_date>=?
              GROUP BY airline ORDER BY MIN(price)"""
     args = [origin, dest,
-            (timeutil.today_utc() - timedelta(days=30)).isoformat()]
+            (timeutil.today_utc() - timedelta(days=WINDOW_DAYS)).isoformat()]
     if limit is not None:
         sql, args = sql + " LIMIT ?", args + [limit]
     return conn.execute(sql, args).fetchall()
@@ -119,7 +122,7 @@ def airline_min(conn, origin, dest, limit=8):
 
 def route_summary(conn, origin, dest):
     """(최저가, 중앙값, 표본수) — 최근 30일 전체."""
-    since = (timeutil.today_utc() - timedelta(days=30)).isoformat()
+    since = (timeutil.today_utc() - timedelta(days=WINDOW_DAYS)).isoformat()
     prices = [p for (p,) in conn.execute(
         "SELECT price FROM offers WHERE origin=? AND destination=? AND fetched_date>=? ORDER BY price",
         (origin, dest, since))]
@@ -472,12 +475,23 @@ def main():
     n_disc = build_deals_json(conn, {code for code, _ in route_index})
     n_deals = build_index(conn, route_index)
     build_seo(route_index)
+    # v1 API 발행 — 현행 산출물과 **나란히** 나간다(`SPLIT.md` M1 T2).
+    # 이전이 끝나면 위의 HTML 생성이 프론트로 가고 이 줄만 남는다.
+    #
+    # 🔴 **함수 안에서 import하는 이유**: `publish_v1`이 통계 함수를 쓰려고
+    # 이 모듈을 import한다. 최상위에서 맞import하면 순환이다.
+    # 방향이 거꾸로라는 게 진짜 문제다 — **살아남을 쪽(`publish_v1`)이
+    # 사라질 쪽(`build_site`의 HTML)에 얹혀 있다.** M3에서 통계를 별도 모듈로
+    # 빼면 저절로 풀린다. 그때까지의 임시 조치이고, 그 사실을 여기 적어 둔다.
+    import publish_v1
+    n_v1 = publish_v1.publish(conn)
     conn.close()
     # n_disc < 0 = 하한선 미달로 갱신하지 않음(BB1). 기존 산출물이 그대로 인라인되므로
     # 홈은 정상 동작하며, 사이트는 어제 딜을 계속 보여 준다.
     disc = "유지(하한선 미달)" if n_disc < 0 else f"{n_disc}건"
     print(f"생성 완료: 발견 홈({n_deals}딜) + deals.json({disc}) "
-          f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots")
+          f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots "
+          f"+ v1 API(노선 {n_v1}개)")
     if unpaid:
         # 사람은 출력의 **끝**을 읽는다. 시작에서 외친 걸 여기서 한 번 더 말한다.
         print("  ⚠️ 수수료 마커 없이 만들어졌습니다 — docs/ 를 커밋하지 마십시오.",
