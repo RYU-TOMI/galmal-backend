@@ -226,7 +226,7 @@ import sys; sys.stdout.reconfigure(encoding='utf-8')   # 한글 출력 전 항�
 | **CH2** | **필터·정렬** | `when` 비교(B26) · 날짜 8칩 · 며칠 축 · 예산 범위·바로가기 칩 · 분위기 6종 · 0곳 칩 비활성 · 접힌 도크 조건 표시 · 필터 시 far 뷰 · 태그 사진 위 · 도크 라벨 제외 | ✅ **완료** (2026-09-03) |
 | CH3 | 카드 피드 | 화면0 제거 · hero 큐레이션 · 빈 상태 3종 · 할인 도장 3티어 · 훅 줄 폐기 · 신선도 배지 | ✅ **완료** (2026-09-04) |
 | CH4 | 상세 전환 | **딥링크(IA-2)** · 사라진 딜(F5) · 공유 버튼 · `links` 0건(F4) · 카드가 도크 회피 · 열고닫기 | ✅ **완료** (2026-09-05) |
-| CH5 | 모바일 | 탭 동작 확정(현재 compact 단계 없음) · 하단 시트 · 가로 스크롤 피드 | 대기 |
+| CH5 | 모바일 | 3단 시트(peek/half/full) · 핀 탭=peek(B10) · 사진 폭 태그 규칙 · 펼친 도크=하단 시트 · CDP 측정 도구 | ✅ **완료** (2026-09-05) |
 | CH6 | 접근성·마감 | 키보드 조작 · aria · noscript · 사진 정책 · 성능 | 대기 |
 
 - 순서는 **바닥부터 위로**: 정리 → 지도(무대) → 필터(입력) → 피드·상세(출력) → 모바일 → 마감.
@@ -264,6 +264,20 @@ chrome.exe --headless=new --disable-gpu --hide-scrollbars --force-device-scale-f
 - **빌드 파이프라인이 아니다.** 사람이 확인용으로 한 번 돌린다 → "Node 금지·CDN 의존 0"과 무관하다.
 - 출발지 선택·칩 클릭 같은 조작은 `docs/_shot.html`(임시 복사본)에 스크립트를 주입해 재현한다.
   `docs/` 안에 둬야 `assets/` 상대경로가 산다. 다 찍고 반드시 지운다.
+- 🔴 **`--window-size` 로는 모바일 폭을 못 만든다.** 창에 **최소 폭(~500px)** 이 걸려 있어서
+  `--window-size=390` 을 줘도 **실제 뷰포트는 489px**(dsf 2) 또는 500px(dsf 1)이다.
+  `--window-size=200` 도 512px 이고 `--headless=old` 도 512px 다. 데스크톱은 정확하다(1440 → 1418).
+  **그래서 "390px 에서 확인했다"고 보고한 것들이 전부 489px 이었다** — B36(무대가 뷰포트보다 넓다)은
+  그 착오에서 나온 오진이다.
+  → **CDP `Emulation.setDeviceMetricsOverride` 로 뷰포트를 직접 지정한다**(`cdp.py`, 스크래치패드).
+  `--remote-debugging-port` 로 띄우고 웹소켓으로 붙는다. 표준 라이브러리만 쓴다.
+  ```
+  with Chrome() as c: c.shot(url, out, width=390, height=844, dsf=2, mobile=True)
+  ```
+  화면 폭이 관련된 확인은 **반드시 실제 `clientWidth` 를 같이 찍어 본다.**
+- 🔴 **같은 URL 로 `Page.navigate` 하면 재로드가 안 된다.** 폭을 바꿔 가며 같은 주소를 다시
+  열면 이전 상태가 남는다 — 실측: 데스크톱 확장 상세 태그가 **0개**로 나와 버그로 볼 뻔했는데,
+  `about:blank` 를 거쳐 새로 열자 **4개**였다. 조건을 바꿔 잴 때는 반드시 사이에 빈 페이지를 넣는다.
 - 🔴 **`*{transition:none!important}` 은 CSS 전환만 끈다 — rAF 트윈은 안 끈다.**
   단계 전환은 `tweenTo()`(requestAnimationFrame)라서 이걸 넣어도 **중간 상태가 찍힌다.**
   실제로 `아주 멀리` 클릭 **직후** `#lands` transform 을 읽고 "far 배율 계산이 틀렸다"는
@@ -361,3 +375,220 @@ finally:
 - 기획 세션에 전달: (스펙 미확정으로 막힌 것)
 - 백엔드 세션에 전달: (CONTRACT 변경 요청)
 ```
+
+---
+
+## 8. 이전 직전 인수인계 (2026-09-08)
+
+> 저장소를 `galmal-web`(프론트)·`galmal-api`(백엔드)로 나누기로 사용자가 결정했다(기획 `SPLIT.md` `87ae866`).
+> 이전이 시작되면 챕터 진행이 멈춘다. **재개할 사람이 알아야 할 것을 여기 남긴다.**
+
+### 8-1. 🔴 먼저 처리할 것 — CH5 5커밋이 로컬에만 있다
+
+`origin/frontend`가 `f1e70b9`(BE7) 시점에 멈춰 있고, **CH5 T1~T5가 push되지 않았다.**
+
+```
+7c3fd61 CH5 T5  펼친 필터 도크를 하단 시트로
+814e169 CH5 T4  카드 태그 판정을 '사진 폭'으로
+052cc99 CH5 T3  핀 탭은 상세를 안 연다
+172db11 CH5 T2  모바일을 3단 시트로
+09c56be CH5 T1  CDP 측정 도구 + B36 오진 정정
+```
+
+`origin/main`에도 없다(`git log origin/main..frontend` = 위 5개).
+**이전 전에 push하고 main에 병합한다.** 안 하면 `SPLIT.md` M2 T5(동등성 증명)의
+기준이 되는 "현 배포본"에 모바일 작업이 빠진 채로 증명이 성립해 버린다.
+
+### 8-2. 챕터 상태
+
+| 챕터 | 상태 | 비고 |
+|---|---|---|
+| CH0~CH4 | ✅ 완료·**push됨**(`origin/main`) | CH4 T7(지도가 핀으로 미끄러진다) 포함해 전부 끝 |
+| CH5 | ✅ 완료·**로컬 전용** | 8-1 |
+| CH6 접근성·마감 | **미착수** | 8-3 |
+
+기획 세션이 "CH4 T1~T6 push 대기 · T7 착수 여부 불명"으로 파악하고 있었으나
+**CH4는 T7까지 끝나 `origin/main`에 있다.** 대기 중인 것은 CH5다.
+
+### 8-3. CH6 — 착수 전, 태스크 목록 미승인
+
+범위만 로드맵에 있고 태스크로 쪼개지 않았다. 재개하는 세션이 사용자 승인부터 받는다.
+지금까지 확인된 범위: 키보드 조작 · aria · `<noscript>` · 사진 정책 · 성능.
+
+착수 전에 알아야 할 것 하나 — **`<noscript>`는 CH6의 일이 아닐 수 있다.**
+`BACKLOG.md` B20(IA-1)이 "노선 26개 링크가 `<noscript>` 안에만 있어 JS 켜진 방문자는
+도달할 수 없다"인데, 이전 후 노선 페이지가 프론트 구역(`site/route.py`)으로 오면
+**그건 CH6가 아니라 이전 작업(M2 T2)에서 자연히 만져진다.** 순서를 정할 때 겹치는지 본다.
+
+### 8-4. 미해결 백로그
+
+- **B20**(핀 겹침) — 홍콩·선전·마카오가 `아주 멀리`에서 1~2px 안에 스택. 스펙이 "긴급하지 않다" 명시.
+- **B35**(`.prompt` 첫 방문 한정 + 닫기) — 기획 확정(2026-09-04), 미착수.
+- ⚠️ **B20 번호가 겹쳐 있다.** `BACKLOG.md:26`(핀 겹침)과 `:248`(네비 `노선별`이 링크가 아님, IA-1)이
+  같은 번호다. 뒤엣것을 인용할 때는 반드시 `B20(IA-1)`로 쓴다. 다음에 백로그를 만질 때 재번호한다.
+
+### 8-5. 재개 전제 — 없으면 확인 절차가 안 돈다
+
+1. **`cdp.py`는 저장소에 없었다.** 스크래치패드(세션별 임시 폴더)에만 있어 이전 중에 사라진다.
+   → 8-6에 전문을 박아 둔다. 재개하는 세션은 여기서 꺼내 쓴다.
+2. **확인은 `git show HEAD:docs/data/deals.json` 기준으로 한다.** 작업 트리의 `deals.json`은
+   빌드가 방금 덮어쓴 것이라 기준이 못 된다 (§4 「인라인 데이터를 커밋본으로 맞춘다」).
+3. **기획이 실기기 확인을 요청해 둔 상태다.** 헤드리스 CDP는 Safari·안드로이드 크롬과 다르다.
+   push 후 폰으로 봐야 닫히는 항목이다.
+4. CH5에서 **스펙 없이 내가 판단한 것 2가지** — 재개 시 기획 확인이 필요할 수 있다.
+   - 모바일은 **상시 라벨을 안 단다.** 배치 시도가 12/12·6/6 전부 실패해서, 활성 핀의 이름만
+     `.plabel{font-size:20px}`로 띄운다.
+   - `MOBILE` hero 태그 상한 2는 **당일 데이터로 실제로 걸리지 않았다.** 상한이 맞는지 미검증.
+
+### 8-6. `cdp.py` 전문 (저장소에 자리가 없어 문서에 박는다)
+
+§4의 `shot.py`는 데스크톱 전용이다. **모바일 폭은 반드시 이걸로 잰다** —
+`--window-size=390`은 실제 뷰포트 489px를 준다(§4 🔴 항목).
+
+<details><summary><b>cdp.py</b></summary>
+
+```python
+# -*- coding: utf-8 -*-
+"""CDP 스크린샷 — 헤드리스 창은 최소 폭 ~500px 라 `--window-size` 로는 390px 모바일을 못 만든다.
+`Emulation.setDeviceMetricsOverride` 로 **뷰포트를 직접 지정**한다.
+
+표준 라이브러리만 쓴다(websocket 패키지 없음). 사용:
+    from cdp import Chrome
+    with Chrome() as c:
+        c.shot(url, out_png, width=390, height=844, dsf=2, mobile=True, wait=2.5, js=None)
+"""
+import base64, hashlib, json, os, socket, struct, subprocess, sys, time, urllib.request
+
+CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+
+class WS:
+    def __init__(self, url):
+        _, rest = url.split("://", 1)
+        hostport, path = rest.split("/", 1)
+        host, port = hostport.split(":")
+        self.s = socket.create_connection((host, int(port)), timeout=30)
+        key = base64.b64encode(os.urandom(16)).decode()
+        self.s.sendall(("GET /%s HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\n"
+                        "Connection: Upgrade\r\nSec-WebSocket-Key: %s\r\n"
+                        "Sec-WebSocket-Version: 13\r\n\r\n" % (path, hostport, key)).encode())
+        buf = b""
+        while b"\r\n\r\n" not in buf:
+            buf += self.s.recv(4096)
+        acc = base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+        assert acc.encode() in buf, "웹소켓 핸드셰이크 실패"
+        self.buf = buf.split(b"\r\n\r\n", 1)[1]
+
+    def _read(self, n):
+        while len(self.buf) < n:
+            d = self.s.recv(65536)
+            if not d:
+                raise IOError("연결 끊김")
+            self.buf += d
+        out, self.buf = self.buf[:n], self.buf[n:]
+        return out
+
+    def send(self, obj):
+        p = json.dumps(obj).encode()
+        n = len(p)
+        h = b"\x81"
+        if n < 126:      h += struct.pack("!B", n | 0x80)
+        elif n < 65536:  h += struct.pack("!BH", 126 | 0x80, n)
+        else:            h += struct.pack("!BQ", 127 | 0x80, n)
+        m = os.urandom(4)
+        self.s.sendall(h + m + bytes(b ^ m[i % 4] for i, b in enumerate(p)))
+
+    def recv(self):
+        while True:
+            b1, b2 = self._read(2)
+            op, ln = b1 & 0x0F, b2 & 0x7F
+            if ln == 126:   ln = struct.unpack("!H", self._read(2))[0]
+            elif ln == 127: ln = struct.unpack("!Q", self._read(8))[0]
+            data = self._read(ln)
+            if op == 1:
+                return json.loads(data.decode())
+            if op == 8:
+                raise IOError("서버가 닫음")
+
+    def close(self):
+        try: self.s.close()
+        except Exception: pass
+
+
+class Chrome:
+    def __init__(self, port=9333):
+        self.port = port
+        self.proc = subprocess.Popen(
+            [CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--mute-audio",
+             "--no-first-run", "--remote-debugging-port=%d" % port,
+             "--user-data-dir=" + os.path.join(os.environ.get("TEMP", "."), "cdpprof%d" % port),
+             "about:blank"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(80):
+            try:
+                urllib.request.urlopen("http://127.0.0.1:%d/json/version" % port, timeout=1).read()
+                return
+            except Exception:
+                time.sleep(0.25)
+        raise RuntimeError("크롬이 안 떴다")
+
+    def __enter__(self): return self
+    def __exit__(self, *a): self.close()
+
+    def close(self):
+        try: self.proc.terminate()
+        except Exception: pass
+
+    def shot(self, url, out, width=390, height=844, dsf=2, mobile=True, wait=2.5, js=None):
+        req = urllib.request.Request("http://127.0.0.1:%d/json/new?%s" % (self.port, "about:blank"), method="PUT")
+        tgt = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        ws = WS(tgt["webSocketDebuggerUrl"]); i = [0]
+        def cmd(method, params=None):
+            i[0] += 1
+            ws.send({"id": i[0], "method": method, "params": params or {}})
+            while True:
+                m = ws.recv()
+                if m.get("id") == i[0]:
+                    if "error" in m: raise RuntimeError(method + ": " + json.dumps(m["error"], ensure_ascii=False))
+                    return m.get("result", {})
+        try:
+            cmd("Page.enable"); cmd("Runtime.enable")
+            cmd("Emulation.setDeviceMetricsOverride",
+                {"width": width, "height": height, "deviceScaleFactor": dsf, "mobile": mobile})
+            cmd("Page.navigate", {"url": url})
+            time.sleep(wait)
+            if js:
+                cmd("Runtime.evaluate", {"expression": js, "awaitPromise": False})
+                time.sleep(1.2)
+            r = cmd("Page.captureScreenshot", {"format": "png"})
+            open(out, "wb").write(base64.b64decode(r["data"]))
+            v = cmd("Runtime.evaluate", {"expression":
+                "document.documentElement.clientWidth+'x'+document.documentElement.clientHeight",
+                "returnByValue": True})
+            return v["result"]["value"]
+        finally:
+            ws.close()
+            try: urllib.request.urlopen("http://127.0.0.1:%d/json/close/%s" % (self.port, tgt["id"]), timeout=5).read()
+            except Exception: pass
+```
+
+</details>
+
+### 8-7. 이전이 프론트 구역에 가져오는 것 (`SPLIT.md` M2 — 참고)
+
+지금 프론트가 소유하지 **않는** 코드가 넘어온다. 착수 전에 규모를 알고 있어야 한다.
+
+| 넘어오는 것 | 현 위치 | 갈 곳 | 크기 |
+|---|---|---|---|
+| 노선 페이지 36장 | `collector/build_site.py:191 route_page()` | `site/route.py` | 180줄 |
+| 딜 카드 | `build_site.py:129 deal_card()` | 프론트 | 34줄 |
+| 스파크라인 SVG | `build_site.py:100 sparkline()` | 프론트 | 29줄 |
+| sitemap·robots | `build_site.py:384 build_seo()` | `site/seo.py` | 20줄 |
+| `BASE_URL`·`SITE_NAME`·`OG_IMAGE`·소유확인 메타 | `collector/theme.py` | `site/shell.py` | — |
+
+**경계 역행이 하나 있다**(실측): 프론트 소유 `collector/discover_home.py:9-10`이
+백엔드 모듈 `labels`·`theme`를 import 한다. 이전 때 같이 풀린다.
+
+데이터는 파일 경로가 아니라 URL로 받는다 — `https://api.galmal.kr/v1/deals.json` 외 3종.
+지금 `discover.js`는 `window.__DEALS`(HTML 인라인)만 읽으므로 **JS는 안 바뀐다.**
+바뀌는 건 그걸 인라인해 주는 빌드 쪽이다.

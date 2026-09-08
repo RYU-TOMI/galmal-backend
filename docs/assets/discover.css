@@ -226,29 +226,67 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;backgroun
 .pin.dim{opacity:.28}.pin.dim .core{stroke-width:1.4}
 .fcard.dim{opacity:.42;filter:saturate(.55)}
 @media(max-width:860px){
-  .layout{flex-direction:column}
-  .stage{flex:1 1 56%;min-height:0}
-  .feed{flex:1 1 44%;order:2;flex-direction:row;align-items:stretch;overflow-x:auto;overflow-y:hidden;border-right:0;border-top:1px solid var(--line);padding:10px;gap:9px}
-  /* 정렬 토글은 유지 — 스트립 맨 앞 세로 칩으로 */
-  .feedhead{order:-1;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;padding:0 4px 0 2px;border:0}
-  .fh-top{display:none}
-  .sortbar{flex-direction:column;gap:6px;margin:0}
-  /* 모바일 카드 = 세로 포스터형으로 통일(높이 균일, hero 배지 정상) */
-  .fcard{flex:0 0 208px;flex-direction:column;gap:0;padding:10px}
-  .fcard .thumb{width:100%;height:96px;flex:0 0 auto;margin:0 0 8px}
-  .fcard.hero .thumb{height:96px}
-  .feednote{flex:0 0 200px}
+  /* ---- 지도가 화면 전체를 채우고 카드 시트가 위로 올라온다. 높이는 세 단. (SPEC §CH4 확정) ----
+     데스크톱은 **좌우**로 나눴지만 모바일은 **위아래**라 저울이 통째로 다르다.
+     현행의 진짜 문제는 비중이 아니라 **방향**이었다 — 카드가 가로로 흘러 390px 에 **1.8장**만
+     보였다(실측). 발견 서비스에서 **비교가 안 되는** 게 치명적이다.
+     비중을 고정하지 않는다: 지도를 볼 때와 훑을 때 필요한 비중이 다르다. */
+  .layout{display:block;position:relative}
+  /* 무대를 **시트 위까지**로 둔다. 지도를 화면 전체로 깔면 중심·LOD·라벨이 전부 시트에 가린
+     영역까지 계산해서 지도가 위로 치우친다(실측: 한국·일본이 시트 뒤로 내려갔다).
+     무대를 보이는 영역과 일치시키면 그 계산들이 **자동으로** 맞는다. 시트는 불투명하니
+     뒤에 지도가 없어도 보이지 않는다. */
+  .stage{position:absolute;top:0;left:0;right:0;bottom:var(--sheet-h,340px);
+         transition:bottom .28s cubic-bezier(.22,.61,.36,1)}
+  .sheet-drag .stage{transition:none}
+  .feed{position:absolute;left:0;right:0;bottom:0;top:auto;z-index:10;
+        height:340px;                                 /* half — 기본값 */
+        flex-direction:column;gap:9px;padding:0 12px 12px;
+        background:var(--card);border:0;border-radius:16px 16px 0 0;
+        box-shadow:0 -8px 30px rgba(20,40,40,.16);
+        overflow-y:auto;overflow-x:hidden;
+        transition:height .28s cubic-bezier(.22,.61,.36,1);
+        overscroll-behavior:contain;touch-action:pan-y}
+  .sheet-drag .feed{transition:none}                  /* 끄는 동안은 손가락을 그대로 따라간다 */
+  /* 시트 손잡이 = 헤더. **잡는 자리와 스크롤 자리를 나눠야** 드래그가 안 부딪힌다. */
+  .feedhead{position:sticky;top:0;z-index:2;background:var(--card);
+            padding:16px 2px 8px;border:0;cursor:grab;touch-action:none;user-select:none}
+  .feedhead::before{content:"";position:absolute;left:50%;top:7px;transform:translateX(-50%);
+                    width:38px;height:4px;border-radius:99px;background:var(--line)}
+  .sortbar{margin-top:8px}
+  /* 카드는 **세로로** 쌓는다 — 세로로 읽는 화면에서 손가락 방향이 바뀌면 안 된다. */
+  .fcard{flex:0 0 auto}
   .gorow{display:none}
   /* 지도 위 요소 정리 */
   .prompt{display:none}
   .stepper{top:10px;right:10px}
-  .stagebar{left:10px;bottom:10px}
-  .filterdock{left:10px;right:10px;bottom:10px;width:auto}
+  /* 단계바는 **시트 바로 위에** 띄운다 — 지도 조작이라 지도 가까이 두되 엄지가 닿는 아래쪽이다.
+     시트 높이를 JS 가 `--sheet-h` 로 알려준다. */
+  /* 단계바는 **시트 바로 위** — 무대가 시트 위까지라 무대 하단이 곧 그 자리다.
+     지도 조작이라 지도 가까이 두되 **엄지가 닿는 아래쪽**이다. */
+  /* 라벨은 활성 핀에만 뜬다(위 JS). viewBox 단위 13px 은 모바일 배율(≈0.61)에서 화면 7.9px 라
+     못 읽는다 — 활성일 때만이라도 읽히게 키운다. */
+  .plabel{font-size:20px}
+  .stagebar{left:10px;right:10px;bottom:10px;z-index:11}
+  /* full 에서는 지도 조작을 치운다 — 무대가 72px 이라 밖으로 밀려 헤더를 덮는다. */
+  .sheet-full .stagebar,.sheet-full .filterdock,.sheet-full .stepper{opacity:0;pointer-events:none}
+  .filterdock{left:10px;right:10px;bottom:58px;width:auto;z-index:11}
+  /* 🔴 **펼친 도크는 하단 시트다.** 무대가 415px 인데 펼친 도크가 **507px** 라 그 자리에 못 둔다 —
+     실측: `top -61` 로 화면 위로 삐져나가 헤더를 덮었다.
+     아래에서 올라오게 하고 넘치면 안에서 스크롤한다. 카드 시트를 가리는 건 맞다 —
+     필터를 쓰는 동안은 필터가 앞이다. (SPEC §CH5 "필터 도크 = 하단 시트") */
+  .filterdock:not(.collapsed){position:fixed;left:0;right:0;bottom:0;top:auto;
+   border-radius:16px 16px 0 0;max-height:76vh;overflow-y:auto;z-index:32;
+   box-shadow:0 -10px 34px rgba(20,40,40,.26)}
+  .filterdock:not(.collapsed) .fdtoggle{position:sticky;top:0;background:#fff;z-index:1;padding:14px 15px}
   /* 플로팅/확장 카드 = 하단 시트 */
   .hovercard{position:fixed;left:0;right:0;bottom:0;top:auto!important;width:auto!important;max-width:none;
              transform:translateY(105%);border-radius:16px 16px 0 0;box-shadow:0 -10px 34px rgba(20,40,40,.26);
              max-height:78vh;overflow:auto;z-index:30}
   .hovercard.show{transform:translateY(0)}
+  /* **시트 두 장이 겹치지 않는다**(SPEC §CH4) — 상세가 열려 있는 동안 카드 시트를 내린다. */
+  .detail-open .feed{transform:translateY(100%);pointer-events:none}
+  .feed{transition:height .28s cubic-bezier(.22,.61,.36,1),transform .28s cubic-bezier(.22,.61,.36,1)}
   .hovercard.expanded{width:auto!important}
   .hc-photo{height:130px}
 }

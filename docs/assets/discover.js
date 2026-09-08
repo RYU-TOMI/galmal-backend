@@ -266,6 +266,11 @@
   //    지도를 30% 줄여 피하는 쪽이 대가가 더 크다는 판단이다. 라벨 쪽은 T7에서 닫았다.
   function usableBand() {
     var box = stageEl.getBoundingClientRect(), cw = box.width || W, ch = box.height || H;
+    // 모바일은 **시트 높이와 무관하게 `half` 기준**으로 잰다. 무대가 시트만큼 줄어드는데
+    // 그 무대로 집합까지 정하면 **시트를 키울수록 목록이 줄어든다** — 더 보려고 키웠는데
+    // 줄어드는 건 명백히 거꾸로다(실측: full 에서 21곳 → 9곳).
+    // 고정하면 시트를 끌 때 지도가 재배치되지 않는 이점도 같이 온다.
+    if (isMobile() && layoutEl) ch = Math.max(120, layoutEl.clientHeight - SHEET_HALF);
     var sf = Math.max(cw / W, ch / H);                 // preserveAspectRatio="slice" = cover
     var vbW = cw / sf, vbH = ch / sf;                  // 보이는 viewBox 크기
     return { vbW: vbW, vbH: vbH, half: Math.max(60, vbW / 2 - LABEL_PAD) };
@@ -280,7 +285,16 @@
     var lat = (Math.PI * s < b.vbH) ? 0 : FAR_LAT;
     return { lon: a.lon, lat: lat, scale: s };
   }
-  function viewOf(stage) { return stage === "far" ? farView() : VIEWS[stage]; }
+  // `가까운 곳`·`조금 더 멀리` 는 **고정 배율**인데, 그 값(1500·720)은 **데스크톱 무대 폭을
+  // 전제**한다. 모바일은 가시 viewBox 폭이 1000 → 390 으로 좁아져 같은 배율이면 보이는 경도
+  // 범위가 2.6배 좁다 — 실측: 390px 에서 `가까운 곳` 이 육지만 꽉 차고 핀이 1개만 남았다.
+  // 가시 폭에 비례시켜 **어느 화면에서든 같은 넓이**를 열어 준다. `아주 멀리` 는 원래
+  // 무대에서 계산하므로(farView) 손댈 게 없다.
+  function viewOf(stage) {
+    if (stage === "far") return farView();
+    var v = VIEWS[stage], f = Math.min(1, usableBand().vbW / W);
+    return { lon: v.lon, lat: v.lat, scale: v.scale * f };
+  }
 
   function colorMaker(vis) {
     var vn = vis.map(function (c) { return num(c.price); }), lo = Math.min.apply(null, vn), hi = Math.max.apply(null, vn);
@@ -308,8 +322,15 @@
     for (i = 0; i < tags.length; i++) (TAG_TOP.indexOf(tags[i]) < 0 ? sub : top).push(tags[i]);
     return (sub.length ? sub.concat(top.slice(0, 1)) : top.slice(0, 2)).slice(0, 4);
   }
-  function ovTags(c) {
-    var t = cardTags(c.tags);
+  // 판정은 **사진 폭**이지 카드 종류가 아니다 (DESIGN.md 2026-09-04, B32).
+  // 종류로 가르면 모바일에서 또 갈라진다 — 실측 폭이 규칙을 갈라 준다:
+  //   모바일 히어로 344 · 확장 상세 238·390 → 200 이상, 태그 붙는다
+  //   작은 카드 썸네일 62 · **컴팩트 호버카드 177** → 200 미만, 안 붙는다
+  // 개수는 폭을 따른다 — 히어로·확장 상세 최대 4, **모바일 피드 카드는 최대 2**
+  // (스크롤로 지나가는 자리라 읽을 수 있는 개수만 얹는다).
+  function ovTags(c, max) {
+    if (!max) return "";
+    var t = cardTags(c.tags).slice(0, max);
     return t.length ? '<div class="phtags">' + t.map(function (x) { return '<span class="ovtag">' + x + "</span>"; }).join("") + "</div>" : "";
   }
   var SPARSE_AT = 10;   // 이 미만이면 "딜이 적은 출발지" 안내를 붙인다 (SPEC §CH3 F2)
@@ -398,7 +419,22 @@
     var filtering = anyFilter();
     var cands = vis.filter(function (c) { return c.tier !== "minor" && !(filtering && dimmed(c)); })
                    .sort(function (a, b) { return num(a.price) - num(b.price); });
+    // 🔴 **모바일에서는 상시 라벨을 붙이지 않는다.** (SPEC 미정 — 프론트 판단, 2026-09-05)
+    //
+    // 자리가 **원천적으로** 안 난다. 무대 390×415 를 `slice` 로 맞추면 가시 viewBox 가 639×680
+    // 인데(데스크톱은 963×680) **라벨 폭은 viewBox 단위라 그대로**다 — 상대적으로 1.5배 크다.
+    // 거기에 도크·단계바가 가로 전체로 하단 23%를 막는다.
+    // 실측: major 12개 → **12개 전부 실패**, 상위 6개로 줄여도 **6개 전부 실패**.
+    //
+    // 지도는 모바일에서 **"어디쯤인지" 보여주는 배경**이고 **이름은 카드에 있다.**
+    // 핀을 누르면 그 카드가 시트 맨 위로 오고(B10), 활성 핀의 라벨은 `.pin.act` 로 덮어 그린다 —
+    // **필요한 순간에는 이름이 나온다.** 없는 자리를 억지로 만들어 잘린 글자를 내보내지 않는다.
+    var mobileOnly = isMobile() ? cands : null;
+    if (mobileOnly) cands = [];
     vis.forEach(function (c) { c._lab = null; });
+    // 모바일은 배치를 안 하지만 **자리는 들고 있는다** — 활성 핀은 `.pin.act` 가 덮어 그리므로
+    // `_lab` 이 없으면 `<text>` 자체가 안 만들어져 **눌러도 이름이 안 나온다**(실측).
+    if (mobileOnly) mobileOnly.forEach(function (c) { c._lab = labSpots(c)[0]; c._lab.off = true; });
     cands.forEach(function (c) {
       var spots = labSpots(c), i, s, j, ok;
       for (i = 0; i < spots.length; i++) {
@@ -458,7 +494,7 @@
         (L ? '<text class="plabel' + (L.off ? " off" : "") + '" x="' + L.x + '" y="' + L.y +
              '" text-anchor="' + L.anchor + '">' + c.n + "</text>" : "");
       (function (el, i) { el.addEventListener("mouseenter", function () { highlight(i, true); });
-        el.addEventListener("click", function (e) { e.stopPropagation(); expand(i); }); })(g, c._i);
+        el.addEventListener("click", function (e) { e.stopPropagation(); pinTap(i); }); })(g, c._i);
       pins.appendChild(g);
     });
     // 카드 피드
@@ -484,7 +520,7 @@
       card.innerHTML =
         // 작은 썸네일(62px)엔 태그를 안 넣는다 — 사진이 태그를 담기엔 작다.
         // 히어로(104px 전폭)에만 사진 위로 얹는다. 그래서 작은 카드가 세로를 20% 덜 먹는다.
-        '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c) : "") + "</div>" +
+        '<div class="thumb" style="background:' + c.g + '">' + (hero ? '<span class="pick">진짜 갈래말래?</span>' + ovTags(c, isMobile() ? 2 : 4) : "") + "</div>" +
         '<div class="fbody"><div class="frow"><b class="fcity">' + c.n + '</b>' + stampHTML(c) + "</div>" +
         '<div class="fprice"><span><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + c.trans + "</div>" +
         freshHTML(c) +
@@ -610,7 +646,7 @@
     arc.getBoundingClientRect(); arc.style.transition = "stroke-dashoffset .42s ease"; arc.style.strokeDashoffset = 0;
   }
   function svgToClient(x, y) { var pt = svg.createSVGPoint(); pt.x = x; pt.y = y; return pt.matrixTransform(svg.getScreenCTM()); }
-  function photoHTML(c) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span>' + ovTags(c) + '<span class="cityname">' + c.n + "</span></div>"; }
+  function photoHTML(c, max) { return '<div class="hc-photo" style="background:' + c.g + '"><span class="ph-tag">사진 준비중</span>' + ovTags(c, max) + '<span class="cityname">' + c.n + "</span></div>"; }
   function bodyTop(c) {
     return '<div class="hc-row"><span class="hc-price"><small>₩</small>' + c.price + ' <span class="tilde">~</span></span>' + stampHTML(c) + "</div>" +
       '<div class="hc-date">' + c.date + (c.nights ? " · " + c.nights : "") + "</div>" +
@@ -628,7 +664,7 @@
       '<div class="pc-row now"><span>발견가</span><span>₩' + c.price + " · " + pct + "%↓</span></div>" +
       "</div>";
   }
-  function compactHTML(c) { return photoHTML(c) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
+  function compactHTML(c) { return photoHTML(c, 0) + '<div class="hc-body">' + bodyTop(c) + '<div class="hc-cta">갈래 → 자세히 보기</div></div>'; }
   // 제휴 링크가 실제로 있을 때만 (광고) 설명줄을 띄운다. 없는 날 "(광고) 표시는…"이 뜨면
   // 화면에 없는 표시를 설명하는 꼴이 된다.
   function adLinks(links) {
@@ -650,7 +686,7 @@
     // `×` 로 닫을 수 있어야 한다 (SPEC §CH4 열고닫기). 지금은 지도 배경을 눌러야만 닫혔는데,
     // 카드가 크면 **누를 배경이 안 보인다.**
     return '<button type="button" class="hc-x" aria-label="상세 닫기">×</button>' +
-      photoHTML(c) + '<div class="hc-body">' + bodyTop(c) +
+      photoHTML(c, 4) + '<div class="hc-body">' + bodyTop(c) +
       '<div class="hc-detail">' +
       // **딥링크를 만들어 놓고 공유 수단이 없으면 반쪽이다.** 특히 모바일에서 주소창 복사는 어렵다.
       // 커뮤니티 시딩(`PRODUCT.md` §유입)이 이걸로 비로소 가능해진다. (SPEC §CH4)
@@ -737,7 +773,31 @@
     hc.classList.toggle("expanded", !!expanded);
     hc.innerHTML = expanded ? detailHTML(c) : compactHTML(c);
     hc.classList.add("show"); positionCard(c, expanded ? pinTarget() : null);
+    // **시트 두 장이 겹치지 않는다**(SPEC §CH4). 모바일에서 상세는 하단 시트라, 카드 시트를
+    // 그대로 두면 두 장이 포개진다. 상세가 열려 있는 동안 카드 시트를 내린다.
+    if (isMobile()) document.body.classList.toggle("detail-open", !!expanded);
     if (scroll) { var card = document.querySelector('.fcard[data-i="' + i + '"]'); if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" }); }
+  }
+  // ---- 핀 탭 (SPEC §CH4 열고닫기 · B10 확정 2026-09-05) ----
+  // **모바일에서 핀 탭은 상세를 열지 않는다.** 시트가 peek 으로 내려가고 그 카드가 시트 맨 위로 온다.
+  //
+  // **왜 상세를 안 여나 — 핀은 작고 겹친다.** 홍콩·선전·마카오가 `아주 멀리` 에서 1~2px 안에
+  // 스택된다(B20). **작고 오조작이 쉬운 대상에 되돌리기 비싼 동작을 걸지 않는다** —
+  // 잘못 눌러 전체 화면이 덮이면 되돌리는 데 두 번이 든다.
+  //
+  // 데스크톱은 hover=미리보기 / click=상세인데 **모바일엔 hover 가 없어** 탭이 둘 다를 해야 한다.
+  // 시트가 그 둘을 나눠 푼다 — **핀 탭이 hover 자리, 카드 탭이 click 자리.**
+  //
+  // peek 으로 내리는 이유: 핀을 누를 수 있었다는 건 **지도가 보였다는 뜻**이다.
+  // 지도를 조작한 사람에게 지도를 더 준다. 이미 peek 이면 그대로 둔다.
+  // (§CH4 의 「카드를 누르면 지도가 그 핀으로 미끄러진다」와 **정확히 역방향**이다.)
+  function pinTap(i) {
+    if (!isMobile()) { expand(i); return; }
+    if (sheetH > SHEET_PEEK) setSheet(SHEET_PEEK, true);
+    active = i; expandedI = null; paintActive();
+    var c = cityByI(i); if (c) drawArc(c);
+    var card = feed.querySelector('.fcard[data-i="' + i + '"]');
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function highlight(i, scroll) { if (expandedI !== null) return; showCard(i, scroll, false); }
   function expand(i) {
@@ -765,11 +825,12 @@
     openT = setTimeout(function () { openT = null; if (expandedI === i) showCard(i, true, true); }, 300);
   }
   var openT = null;
-  function clearHi() { if (expandedI !== null) return; active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
+  function clearHi() { if (expandedI !== null) return; document.body.classList.remove("detail-open"); active = null; paintActive(); hc.classList.remove("show"); if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); } }
   // 정렬·필터·단계를 바꾸면 상세가 닫힌다 — 그건 **사용자가 닫은 게 아니라 부수 효과**라
   // 히스토리를 쌓지 않고 `replaceState` 로 URL 만 맞춘다. 안 맞추면 주소는 상세인데 화면은 지도다.
   function collapse() {
     if (openT) { clearTimeout(openT); openT = null; }   // 예약된 카드 등장이 남아 있으면 취소한다
+    document.body.classList.remove("detail-open");     // 카드 시트를 다시 올린다
     expandedI = null; active = null; paintActive(); hc.classList.remove("show", "expanded");
     if (arc.getTotalLength) { arc.style.transition = "stroke-dashoffset .2s ease"; arc.style.strokeDashoffset = arc.getTotalLength(); }
     if (ORIGIN_KEY) writeHash(ORIGIN_KEY, false);
@@ -988,6 +1049,86 @@
       setBudget(a ? +a : BUDGET_MAX);            // `상관없어` = 트랙 최대치 = 필터 꺼짐
     });
   })(budgEls[bi]);
+  // ---- 모바일 3단 시트 (SPEC §CH4 확정) ----
+  // **비중은 우리가 정할 문제가 아니다.** 지도를 볼 때와 훑을 때 필요한 비중이 다르고,
+  // 고정하면 둘 중 하나는 늘 답답하다. peek 160 · half 340 · full(화면 대부분).
+  //
+  // ✅ **자유 줌·팬을 안 넣기로 한 게(§CH1) 여기서 값을 한다** — 지도에 드래그 제스처가 없으므로
+  //    시트 끌기와 안 부딪힌다. 자유 줌을 넣었다면 이 설계가 성립하지 않았다.
+  var SHEET_PEEK = 160, SHEET_HALF = 340;
+  var sheetH = SHEET_HALF;
+  function isMobile() { return window.innerWidth <= 860; }
+  // ⚠️ `full` 을 **무대 높이**로 잡으면 안 된다 — 무대는 시트만큼 줄어드는데, 그 무대로 다시
+  // `full` 을 재면 시트를 키울수록 상한이 내려가 **커지질 않는다**(실측: 위로 300 끌었는데 340 유지).
+  // 시트와 무관한 `.layout` 높이를 기준으로 쓴다.
+  var layoutEl = document.querySelector(".layout");
+  function sheetFull() {
+    var h = layoutEl ? layoutEl.clientHeight : 600;
+    return Math.max(SHEET_HALF + 40, h - 72);      // 지도를 조금은 남긴다
+  }
+  function sheetSnaps() { return [SHEET_PEEK, SHEET_HALF, sheetFull()]; }
+  function setSheet(h, animate) {
+    if (!isMobile()) return;
+    var sn = sheetSnaps();
+    h = Math.max(sn[0], Math.min(sn[2], h));
+    sheetH = h;
+    if (!animate) document.body.classList.add("sheet-drag");
+    feed.style.height = h + "px";
+    // 단계바·도크가 시트 위에 얹혀 따라 올라온다.
+    document.documentElement.style.setProperty("--sheet-h", h + "px");
+    // full 은 "훑고 비교할 때"라 지도 조작이 필요 없다. 무대가 72px 까지 줄면 단계바·도크가
+    // 무대 밖으로 밀려 헤더와 안내 띠를 덮는다(실측) — 그때는 치운다.
+    document.body.classList.toggle("sheet-full", h >= sheetFull() - 20);
+    if (animate) {
+      document.body.classList.remove("sheet-drag");
+      // 무대가 시트만큼 짧아졌다 → 중심·배율·LOD·라벨을 다시 잡는다.
+      // 전환이 끝난 뒤에 한 번만 — 끄는 동안 매 프레임 다시 그리면 굼떠진다.
+      if (ORIGIN) setTimeout(function () { render(); }, 300);
+    }
+  }
+  function snapSheet() {
+    var sn = sheetSnaps(), best = sn[0], d = Infinity, i;
+    for (i = 0; i < sn.length; i++) { var dd = Math.abs(sn[i] - sheetH); if (dd < d) { d = dd; best = sn[i]; } }
+    document.body.classList.remove("sheet-drag");
+    setSheet(best, true);
+  }
+  // 손잡이는 **헤더**다 — 잡는 자리와 스크롤 자리를 나눠야 드래그가 안 부딪힌다.
+  // 시트 안 스크롤은 `.feed` 가 그대로 갖는다.
+  (function sheetDrag() {
+    var startY = 0, startH = 0, dragging = false;
+    // 손잡이는 **헤더**다 — 잡는 자리와 스크롤 자리를 나눠야 드래그가 안 부딪힌다.
+    // 헤더는 `render()` 가 다시 그리므로 **document 위임**으로 잡는다.
+    // (`e.currentTarget` 은 읽기 전용이라 대입해서 넘기려던 앞 판이 조용히 안 먹었다.)
+    function grip(e) {
+      var t = e.target;
+      if (!t || !t.closest) return false;
+      return !!t.closest(".feedhead") && !t.closest(".spill");
+    }
+    function yOf(e) { return e.touches && e.touches[0] ? e.touches[0].clientY : e.clientY; }
+    function onDown(e) {
+      if (!isMobile() || !grip(e)) return;
+      dragging = true; startY = yOf(e); startH = sheetH;
+      document.body.classList.add("sheet-drag");
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      setSheet(startH + (startY - yOf(e)), false);      // 위로 끌면 커진다
+      if (e.cancelable) e.preventDefault();
+    }
+    function onUp() { if (!dragging) return; dragging = false; snapSheet(); }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown, { passive: true });
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchend", onUp);
+  })();
+  if (isMobile()) setSheet(SHEET_HALF, true);
+  window.addEventListener("resize", function () {
+    if (isMobile()) setSheet(sheetH, true);
+    else { feed.style.height = ""; document.documentElement.style.removeProperty("--sheet-h"); }
+  });
+
   var fdock = document.getElementById("fdock"), fdt = document.getElementById("fdtoggle");
   if (fdt) fdt.addEventListener("click", function () { fdock.classList.toggle("collapsed"); });
   if (fdock && window.innerWidth <= 860) fdock.classList.add("collapsed");  // 모바일=접힌 채 시작
