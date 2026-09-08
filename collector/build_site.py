@@ -49,11 +49,25 @@ def daily_min(conn, origin, dest, days=30, direct_only=None):
 
 
 def month_min(conn, origin, dest):
+    """출발월별 최저가 — **오늘 이후 출발만** 센다 (BB29).
+
+    창이 없으면 이미 지나간 달이 버킷으로 남는다. 그 위에서 `route_page()`가
+    "○월 출발이 가장 저렴합니다"를 쓰므로 **살 수 없는 달을 추천하게 된다** —
+    2026-09-08에 실제로 5개 노선이 "8월/7월 출발"을 권하고 있었다.
+
+    **표본 임계로는 못 거른다.** 그날 ICN-NRT의 2026-08 버킷은 915건으로
+    전체에서 가장 튼튼했다. 얇아서 틀린 게 아니라 **지나서** 틀린 것이라
+    거르는 축이 다르다 — 임계가 아니라 창이다.
+
+    `today_kst()`인 이유: 사용자의 '오늘'은 KST다. 새벽 3시 KST(전날 18시 UTC)에
+    UTC 날짜로 거르면 한국 사용자에겐 이미 지난 달이 하루 더 남는다.
+    """
     return conn.execute(
         """SELECT strftime('%Y-%m', depart_date) AS m, MIN(price) FROM offers
            WHERE origin=? AND destination=? AND length(depart_date)=10
+             AND depart_date>=?
            GROUP BY m HAVING COUNT(*)>=3 ORDER BY m LIMIT 10""",
-        (origin, dest)).fetchall()
+        (origin, dest, timeutil.today_kst().isoformat())).fetchall()
 
 
 def weekday_min(conn, origin, dest):
