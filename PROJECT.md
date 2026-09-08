@@ -9,6 +9,12 @@
 목적지를 검색하는 게 아니라, 예산·기분으로 **목적지를 정해준다**. 한국 출발 전용.
 
 ## 작업 체제 — 3세션 분업 (2026-08-06~)
+
+> 🔴 **저장소 구조가 바뀌는 중이다 (2026-09-08~).** 아래 표는 **이전 전** 모습이다.
+> `promo-ticket-site` 하나 → `galmal-api`(백) + `galmal-web`(프) + `galmal-plan`(문서) 셋.
+> 계획·단계·현황은 **`SPLIT.md`**, 결정 근거는 `DECISIONS.md` 2026-09-08 (1)(2)(3).
+> 새 계약은 `CONTRACT.md` §v1 API.
+
 Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·규칙은 **`CLAUDE.md`**, 프론트↔백 인터페이스는 **`CONTRACT.md`**(deals.json 스키마)가 단일 출처.
 
 | 세션 | 폴더 | 브랜치 | 소유 |
@@ -75,9 +81,21 @@ Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·�
 
 | 세션 | 현재 | 다음 | 상태 |
 |---|---|---|---|
-| 기획 | **PH0** 기반 정리(문서 재편) | PH1 지도 무대 스펙 | 진행 중 |
-| 프론트 | CH0 기반 정리 ✅ | **CH1** 지도 무대 — **PH1 대기 중** | 대기 |
-| 백엔드 | **BE0** 검증 기반(테스트·계약 검증기) | BE1 파이프라인 신뢰성 → BE2 데이터 품질(`seen`) | 진행 중 |
+| 기획 | PH0~PH6b ✅ | PH7 시즌 이벤트(10월 착수) | 이전 작업 중 |
+| 프론트 | CH4 로컬(T1~T6) · CH5 | CH4 T7 지도 미끄러짐 | push 승인 대기 |
+| 백엔드 | BE7 ✅ 도메인·HTTPS·검색엔진 | BE8 미개시(노선 페이지 확대 제안) | 승인 대기 |
+
+### 저장소 분리 이전 — `SPLIT.md`
+
+| 단계 | 담당 | 상태 |
+|---|---|---|
+| **M0** 계약 확정 | 기획 | ✅ 2026-09-08 (`CONTRACT.md` §v1 · `DECISIONS.md` (1)(2)(3)) |
+| **M1** 백엔드 JSON 발행 | 백엔드 | 대기 |
+| **M2** 프론트 화면 생성 · **동등성 증명** | 프론트 | 대기 |
+| **M3** 스위치 · 백엔드 HTML 삭제 | 백+프 | 대기 |
+| **M4** 저장소 분할 | 사용자+양쪽 | 대기 |
+| **M5** 도메인 이전 | 사용자 | 대기 |
+| **M6** 정리 · `CLAUDE.md` 재작성 | 사용자+기획 | 대기 |
 
 **규칙: 기획 챕터(PH)는 프론트 챕터(CH)보다 하나 앞선다.** 프론트가 "스펙이 없다"고 멈추면 기획의 실패다.
 
@@ -95,6 +113,7 @@ Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·�
 | `PLAN.md` | 기획 세션 작업 방식 | 기획 |
 | `FRONTEND.md` · `BACKLOG.md` | 프론트 작업 방식 · 미해결 목록 | 프론트 |
 | `BACKEND.md` | 백엔드 작업 방식 · 로드맵 BE0~BE7 · 곁가지 BB | 백엔드 |
+| **`SPLIT.md`** | **저장소 분리 이전 계획 M0~M6 (임시 — M6에서 삭제)** | 기획 |
 | `design/*.html` | 목업 — 글로 합의 안 되는 것만 | 기획 |
 
 ### 미결은 한 곳에서 본다
@@ -143,9 +162,12 @@ PROJECT.md에 열린 결정을 중복해 적지 않는다 — 두 곳에 적으�
   (`data/emails_raw.db` gitignore), `.env` gitignore.
 
 ## 운영 정보
-- 저장소: https://github.com/RYU-TOMI/promo-ticket-site (공개)
-- 사이트: https://ryu-tomi.github.io/promo-ticket-site/
-- GitHub Secrets: `TP_TOKEN`, `MAIL_ADDRESS`, `MAIL_APP_PASSWORD`, `ANTHROPIC_API_KEY`
-  (Trip.com용 `TP_MARKER`/`TP_TRIP_TRS`/`TP_TRIP_P`/`TP_TRIP_CAMPAIGN`는 승인 후 등록 예정)
+- 저장소: https://github.com/RYU-TOMI/promo-ticket-site (공개) — **`SPLIT.md` M4에서 셋으로 나뉜다**
+- 사이트: **https://galmal.kr** (2026-09-05 전환, BE7). `docs/CNAME`이 정본이고 `theme.BASE_URL`과 일치해야 한다
+- 이전 후 예정: `galmal.kr`(프론트 Pages) · `api.galmal.kr`(백엔드 Pages → 나중에 자체 서버)
+- GitHub Secrets 8종: `TP_TOKEN`, `MAIL_ADDRESS`, `MAIL_APP_PASSWORD`, `ANTHROPIC_API_KEY`,
+  `TP_MARKER`, `TP_TRIP_TRS`, `TP_TRIP_P`, `TP_TRIP_CAMPAIGN`
+  → M4에서 **백엔드 저장소에 재등록**해야 한다(사용자만 가능). `SITE_URL`·배포용 PAT도 함께
 - 전용 메일: flightpromokr@gmail.com (항공사 뉴스레터 구독 + 구독 신청 접수)
-- 비용: 도메인 미구매 상태라 현재 $0. 메일 파싱 API ~연 $2(월 지출 한도 설정됨).
+- 비용: 연 25,700원 — 도메인 `galmal.kr` 첫해 16,500원(갱신 23,100원) + 메일 파싱 API ~연 2,600원.
+  호스팅·Actions는 공개 저장소라 $0이고, 분리 후에도 **두 저장소 모두 공개**라 그대로 $0이다.

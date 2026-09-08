@@ -171,8 +171,8 @@ GET /v1/routes/{code}.json  노선 1개 통계 — 현재 route_page()가 conn�
 
 | 태스크 | 내용 |
 |---|---|
-| T1 | `CONTRACT.md`에 v1 4개 엔드포인트 스키마 전문. **차트 블록마다 표본 수 `n`** 자리 포함(§3) |
-| T2 | `DECISIONS.md` 2026-09-08 — 결정·기각안(파일만 가르는 분리, deploy-pages만 하기) |
+| T1 | `CONTRACT.md`에 v1 4개 엔드포인트 스키마 전문 — **완료**(2026-09-08) |
+| T2 | `DECISIONS.md` 2026-09-08 (1)(2)(3) — **완료** |
 | T3 | `PROJECT.md` 목표 구조 반영 |
 | T4 | 양 세션에 전달 |
 
@@ -183,7 +183,7 @@ GET /v1/routes/{code}.json  노선 1개 통계 — 현재 route_page()가 conn�
 | 태스크 | 내용 |
 |---|---|
 | T1 | `docs/v1/deals.json` 발행. **기존 `docs/data/deals.json`은 그대로 둔다** (프론트가 아직 씀) |
-| T2 | `docs/v1/routes/{code}.json` 36개 — `route_page()`가 conn에서 뽑던 값을 **전부** + 차트별 표본 수 `n` |
+| T2 | `docs/v1/routes/{code}.json` 36개 — `route_page()`가 conn에서 뽑던 값을 **전부** + **버킷마다** `n`. `CONTRACT.md` §v1 4)의 「백엔드가 바꿔야 할 것」 5개 포함 |
 | T3 | `docs/v1/routes/index.json`, `docs/v1/meta.json` |
 | T4 | `test_contract.py` 확장 — v1 4종 검증 |
 
