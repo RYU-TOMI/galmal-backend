@@ -49,6 +49,29 @@ def _env(name):
     return None
 
 
+# 🔴 **운영에 반드시 있어야 하는** 시크릿. 없으면 링크가 조용히 빠진다.
+#
+# Trip.com 쪽(`TP_TRIP_*`)은 여기 넣지 않는다 — 아직 제휴 승인 전이라
+# **없는 게 정상**이다. 정상 상태에 경고를 띄우면 사람이 경고를 무시하는 법을
+# 배우고, 정작 진짜일 때 안 읽는다. 승인되면(BE5) 그때 여기 넣는다.
+REQUIRED_SECRETS = ("TP_MARKER",)
+
+
+def missing_secrets():
+    """설정되지 않은 수익 시크릿 목록 (BB30).
+
+    없으면 예외가 나는 게 아니라 **링크가 그냥 빠진다** — 사이트는 멀쩡히 뜨고
+    수수료 경로만 사라진다. 2026-09-08에 프론트가 `index.html` 충돌을
+    `CLAUDE.md`의 「재빌드로 해결」 절차대로 풀다가 딜 125건 전부에서
+    Aviasales 링크를 날릴 뻔했다(커밋 직전 복구).
+
+    **함정은 절차가 아니라 여기다.** 충돌 해결 규칙은 재빌드 환경에 시크릿이
+    있다고 가정하는데, 크론(Actions)은 있고 로컬은 사람마다 다르다.
+    빌드가 조용히 통과하면 아무도 못 알아챈다 → `build_site`가 이걸 보고 외친다.
+    """
+    return [k for k in REQUIRED_SECRETS if not _env(k)]
+
+
 def _trip_configured():
     return all(_env(k) for k in
                ("TP_MARKER", "TP_TRIP_TRS", "TP_TRIP_P", "TP_TRIP_CAMPAIGN"))

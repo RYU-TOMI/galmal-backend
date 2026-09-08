@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import json
 
+import affiliates
 import config
 import db
 import timeutil
@@ -49,11 +50,25 @@ def daily_min(conn, origin, dest, days=30, direct_only=None):
 
 
 def month_min(conn, origin, dest):
+    """출발월별 최저가 — **오늘 이후 출발만** 센다 (BB29).
+
+    창이 없으면 이미 지나간 달이 버킷으로 남는다. 그 위에서 `route_page()`가
+    "○월 출발이 가장 저렴합니다"를 쓰므로 **살 수 없는 달을 추천하게 된다** —
+    2026-09-08에 실제로 5개 노선이 "8월/7월 출발"을 권하고 있었다.
+
+    **표본 임계로는 못 거른다.** 그날 ICN-NRT의 2026-08 버킷은 915건으로
+    전체에서 가장 튼튼했다. 얇아서 틀린 게 아니라 **지나서** 틀린 것이라
+    거르는 축이 다르다 — 임계가 아니라 창이다.
+
+    `today_kst()`인 이유: 사용자의 '오늘'은 KST다. 새벽 3시 KST(전날 18시 UTC)에
+    UTC 날짜로 거르면 한국 사용자에겐 이미 지난 달이 하루 더 남는다.
+    """
     return conn.execute(
         """SELECT strftime('%Y-%m', depart_date) AS m, MIN(price) FROM offers
            WHERE origin=? AND destination=? AND length(depart_date)=10
+             AND depart_date>=?
            GROUP BY m HAVING COUNT(*)>=3 ORDER BY m LIMIT 10""",
-        (origin, dest)).fetchall()
+        (origin, dest, timeutil.today_kst().isoformat())).fetchall()
 
 
 def weekday_min(conn, origin, dest):
@@ -401,7 +416,27 @@ def build_seo(route_index):
         f"User-agent: *\nAllow: /\n\nSitemap: {BASE_URL}/sitemap.xml\n", encoding="utf-8")
 
 
+def warn_if_unpaid():
+    """수익 시크릿이 없으면 **크게** 알린다 (BB30).
+
+    산출물은 바꾸지 않는다 — 경고만이다. 없는 채로 빌드하는 건 정당한 경우가
+    있고(프론트가 화면만 볼 때), 막아야 할 건 그 결과물을 **모르고 커밋하는 것**이다.
+    그 마지막 방어선은 `tests/test_affiliates.py`의 커밋본 검사다.
+    """
+    missing = affiliates.missing_secrets()
+    if not missing:
+        return False
+    print("\n" + "!" * 68, file=sys.stderr)
+    print("!! 제휴 시크릿이 없습니다: " + ", ".join(missing), file=sys.stderr)
+    print("!! 이 빌드의 예약 링크에는 수수료 마커가 빠집니다 —", file=sys.stderr)
+    print("!! 사이트는 멀쩡해 보이고 수익 경로만 사라집니다.", file=sys.stderr)
+    print("!! docs/ 를 커밋하지 마십시오. (BACKEND.md BB30)", file=sys.stderr)
+    print("!" * 68 + "\n", file=sys.stderr)
+    return True
+
+
 def main():
+    unpaid = warn_if_unpaid()
     conn = db.connect()
     route_index = []
     for origin, dest in config.ROUTES:
@@ -418,6 +453,10 @@ def main():
     disc = "유지(하한선 미달)" if n_disc < 0 else f"{n_disc}건"
     print(f"생성 완료: 발견 홈({n_deals}딜) + deals.json({disc}) "
           f"+ 노선 페이지 {len(route_index)}개 + sitemap/robots")
+    if unpaid:
+        # 사람은 출력의 **끝**을 읽는다. 시작에서 외친 걸 여기서 한 번 더 말한다.
+        print("  ⚠️ 수수료 마커 없이 만들어졌습니다 — docs/ 를 커밋하지 마십시오.",
+              file=sys.stderr)
     _report_preserved(n_disc < 0)
 
 
