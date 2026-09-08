@@ -292,7 +292,36 @@ GET /v1/routes/{code}.json  노선 1개 통계 — 현재 route_page()가 conn�
 | R3 | **M2 동등성 증명 실패** — JSON에 값이 빠져 있다 | M1 DoD를 엄격히. 빠지면 M1로 되돌아간다. 이게 M1/M2를 **같은 레포 안에서** 하는 이유다 |
 | R4 | 도메인 이전 다운타임 · BE7 재실행 | M5를 마지막에 몰아서 한 번에. M4까지는 무중단 |
 | R5 | worktree 3개 → clone 2개 + worktree 1개로 바뀐다 | M6에서 `CLAUDE.md` 재작성. 폴더는 형제로 유지해야 `../galmal-plan/` 참조가 산다 |
-| R6 | `prices.db` 33MB | 파일만 옮긴다. DB 자체가 이력이라 git 이력은 안 가져가도 된다 |
+| R6 | `prices.db` 34.4MB | 파일만 옮긴다. DB 자체가 이력이라 git 이력은 안 가져가도 된다 |
+| **R7** | 🔴 **시크릿 없이 재빌드하면 제휴 링크가 조용히 사라진다.** `affiliates.py:154`가 `if _env("TP_MARKER"):`라 마커가 없으면 **예외가 아니라 그냥 빠진다** — 사이트는 멀쩡히 뜨고 수익 링크 **125건**만 없어진다. 이전 중 M2·M3에서 재빌드를 반복하므로 **이 이전에서 가장 만나기 쉬운 함정**이다 (프론트가 실제로 겪음 → 백엔드 BB30) | ① 백엔드가 `build_site.py`에 **경고**를 넣는다(산출물 불변 → diff 0 안 건드림, 이전 전 가능) ② `CLAUDE.md`의 충돌 해결 절차를 고친다(아래) ③ 재빌드 후 `grep -c '"ad":true' docs/data/deals.json`으로 **125건을 눈으로 확인**한다 |
+
+---
+
+## 5b. 🔴 `CLAUDE.md` 충돌 해결 절차의 결함 (공용 파일 — 사용자 승인 필요)
+
+`CLAUDE.md:85-86`이 이렇게 적혀 있다.
+
+```
+충돌 시: 생성물은 재빌드로 해결한다.
+  git checkout --theirs data/prices.db → python collector/build_site.py → git add -A && git commit
+```
+
+**이 절차는 「재빌드하는 환경에 시크릿이 있다」를 가정한다.** 크론(Actions)은 있지만
+`.env`는 gitignore라 **백엔드 worktree에만** 있다(`PROJECT.md` §작업 체제).
+→ 프론트·기획 세션이 이 절차를 그대로 따르면 **제휴 링크 125건이 빠진 파일을 커밋한다.**
+실제로 2026-09-08 프론트가 겪었고 커밋 직전에 잡았다.
+
+**제안하는 수정** (사용자 승인 후 반영):
+
+```diff
+  - 충돌 시: 생성물은 **재빌드로 해결**한다.
+    `git checkout --theirs data/prices.db` → `python collector/build_site.py` → `git add -A && git commit`
++   - 🔴 **재빌드는 `.env`가 있는 환경에서만 한다.** 시크릿 없이 돌리면 `affiliates.py`가
++     제휴 링크를 **경고 없이 빼고**(`ad:true` 125건 → 0건) 사이트는 멀쩡히 뜬다.
++   - `.env`가 없으면 재빌드하지 말고 **생성물은 `--theirs`로 원격 것을 취한 뒤**
++     그 구역 담당 세션에 재빌드를 요청한다.
++   - 재빌드했으면 커밋 전에 확인: `grep -c '"ad":true' docs/data/deals.json` → **125건**
+```
 
 ---
 
