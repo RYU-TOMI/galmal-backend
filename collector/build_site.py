@@ -30,6 +30,9 @@ from labels import (SQL_WEEKDAY, airline_name, city, fmt_date, fmt_month,
                     region_of)
 from theme import BASE_URL, SITE_NAME, SUBSCRIBE_ADDR, page
 
+# 화면은 월요일부터 보여준다. **표시 관례이지 데이터의 성질이 아니다.**
+WEEK_ORDER = (1, 2, 3, 4, 5, 6, 0)
+
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 
 
@@ -49,8 +52,8 @@ def daily_min(conn, origin, dest, days=30, direct_only=None):
         (origin, dest, since)).fetchall()
 
 
-def month_min(conn, origin, dest):
-    """출발월별 최저가 — **오늘 이후 출발만** 센다 (BB29).
+def month_min(conn, origin, dest, min_samples=3, limit=10):
+    """출발월별 (월, 최저가, **표본수**) — **오늘 이후 출발만** 센다 (BB29).
 
     창이 없으면 이미 지나간 달이 버킷으로 남는다. 그 위에서 `route_page()`가
     "○월 출발이 가장 저렴합니다"를 쓰므로 **살 수 없는 달을 추천하게 된다** —
@@ -62,35 +65,56 @@ def month_min(conn, origin, dest):
 
     `today_kst()`인 이유: 사용자의 '오늘'은 KST다. 새벽 3시 KST(전날 18시 UTC)에
     UTC 날짜로 거르면 한국 사용자에겐 이미 지난 달이 하루 더 남는다.
+
+    `min_samples`·`limit`은 **임계**라서 계약상 프론트 몫이다(v1은 `None`으로 끈다).
+    기본값이 현행 화면 동작인 이유: 이전이 끝날 때까지 `route_page()`가 이 함수를
+    **같이 쓰기 때문이다.** 기본값이 바뀌면 라이브 화면이 움직이고 M2 기준선이 무효가 된다.
     """
-    return conn.execute(
-        """SELECT strftime('%Y-%m', depart_date) AS m, MIN(price) FROM offers
-           WHERE origin=? AND destination=? AND length(depart_date)=10
-             AND depart_date>=?
-           GROUP BY m HAVING COUNT(*)>=3 ORDER BY m LIMIT 10""",
-        (origin, dest, timeutil.today_kst().isoformat())).fetchall()
+    sql = """SELECT strftime('%Y-%m', depart_date) AS m, MIN(price), COUNT(*)
+             FROM offers
+             WHERE origin=? AND destination=? AND length(depart_date)=10
+               AND depart_date>=?
+             GROUP BY m HAVING COUNT(*)>=? ORDER BY m"""
+    args = [origin, dest, timeutil.today_kst().isoformat(), min_samples]
+    if limit is not None:
+        sql, args = sql + " LIMIT ?", args + [limit]
+    return conn.execute(sql, args).fetchall()
 
 
-def weekday_min(conn, origin, dest):
-    rows = dict(conn.execute(
-        """SELECT CAST(strftime('%w', depart_date) AS INTEGER) AS wd, MIN(price)
+def weekday_min(conn, origin, dest, min_samples=1):
+    """출발요일별 (**정수 wd**, 최저가, 표본수). 월요일부터 정렬해 돌려준다.
+
+    🔴 **표시명이 아니라 정수를 낸다.** `'화'`로 바꾸는 건 표시 결정이고,
+    그건 소비하는 쪽 몫이다(계약 §「배열 순서를 믿지 말고 `wd`를 읽어라」).
+    월요일부터 정렬하는 것도 표시 관례라 순서에 의미를 두면 안 된다.
+
+    **창을 걸지 않는다** — 요일은 순환하므로 지난 화요일의 가격도
+    "화요일은 싼가"에 대한 유효한 증거다. `month_min`과 다른 이유가 여기 있다.
+
+    `min_samples=1`은 필터가 없는 것과 같다(`GROUP BY`의 모든 묶음이 1건 이상).
+    현행 화면 동작을 그대로 두려는 기본값이다.
+    """
+    rows = {wd: (p, n) for wd, p, n in conn.execute(
+        """SELECT CAST(strftime('%w', depart_date) AS INTEGER) AS wd,
+                  MIN(price), COUNT(*)
            FROM offers WHERE origin=? AND destination=? AND length(depart_date)=10
-           GROUP BY wd""", (origin, dest)).fetchall())
-    # 월요일부터 표시
-    out = []
-    for wd in (1, 2, 3, 4, 5, 6, 0):
-        if wd in rows:
-            out.append((SQL_WEEKDAY[wd], rows[wd]))
-    return out
+           GROUP BY wd HAVING COUNT(*)>=?""", (origin, dest, min_samples))}
+    return [(wd, *rows[wd]) for wd in WEEK_ORDER if wd in rows]
 
 
-def airline_min(conn, origin, dest):
-    return conn.execute(
-        """SELECT airline, MIN(price), COUNT(*) FROM offers
-           WHERE origin=? AND destination=? AND fetched_date>=?
-           GROUP BY airline ORDER BY MIN(price) LIMIT 8""",
-        (origin, dest,
-         (timeutil.today_utc() - timedelta(days=30)).isoformat())).fetchall()
+def airline_min(conn, origin, dest, limit=8):
+    """항공사별 (코드, 최저가, 표본수) — 최근 30일. 싼 순.
+
+    30일은 **창**이라 유지한다. `limit`은 "상위 몇 개를 보여주나"라 **임계**다.
+    """
+    sql = """SELECT airline, MIN(price), COUNT(*) FROM offers
+             WHERE origin=? AND destination=? AND fetched_date>=?
+             GROUP BY airline ORDER BY MIN(price)"""
+    args = [origin, dest,
+            (timeutil.today_utc() - timedelta(days=30)).isoformat()]
+    if limit is not None:
+        sql, args = sql + " LIMIT ?", args + [limit]
+    return conn.execute(sql, args).fetchall()
 
 
 def route_summary(conn, origin, dest):
@@ -223,7 +247,8 @@ def route_page(conn, origin, dest):
     if best_month:
         tips.append(f"<b>{fmt_month(best_month[0])} 출발</b>이 가장 저렴합니다 ({best_month[1]:,}원)")
     if best_wd:
-        tips.append(f"출발 요일은 <b>{best_wd[0]}요일</b>이 가장 쌉니다 ({best_wd[1]:,}원)")
+        tips.append(f"출발 요일은 <b>{SQL_WEEKDAY[best_wd[0]]}요일</b>이 가장 쌉니다 "
+                    f"({best_wd[1]:,}원)")
     tip_html = " · ".join(tips) or "데이터가 쌓이면 저렴한 시기를 분석해 보여드립니다."
 
     airline_rows = "\n".join(
@@ -278,13 +303,13 @@ def route_page(conn, origin, dest):
   <section>
     <h2>출발 월별 최저가</h2>
     <p class="lead">출발 시기에 따라 {label} 항공권 가격이 얼마나 달라지는지 비교했습니다.</p>
-    <div class="chart">{bar_chart([(fmt_month(m), p) for m, p in months])}</div>
+    <div class="chart">{bar_chart([(fmt_month(m), p) for m, p, _ in months])}</div>
   </section>
 
   <section>
     <h2>출발 요일별 최저가</h2>
     <p class="lead">같은 노선도 무슨 요일에 떠나느냐로 가격이 달라집니다.</p>
-    <div class="chart">{bar_chart(weekdays)}</div>
+    <div class="chart">{bar_chart([(SQL_WEEKDAY[wd], p) for wd, p, _ in weekdays])}</div>
   </section>
 
   <section>
