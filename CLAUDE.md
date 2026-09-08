@@ -84,6 +84,13 @@
 - `main`에는 **크론(github-actions)이 매일 `data/`·`docs/`를 커밋**한다 → push 전 반드시 pull.
   - 충돌 시: 생성물(`docs/index.html`, `docs/data/deals.json`, `docs/routes/`, `data/prices.db`)은 **재빌드로 해결**한다.
     `git checkout --theirs data/prices.db` → `python collector/build_site.py` → `git add -A && git commit`
+  - 🔴 **재빌드는 `.env`가 있는 환경에서만 한다.** `.env`는 gitignore라 **백엔드 worktree에만** 있다.
+    시크릿 없이 돌리면 `affiliates.py`가 제휴 링크를 **경고 없이 뺀다**(`ad:true` 125건 → 0건).
+    예외가 안 나고 사이트도 멀쩡히 뜨기 때문에 **커밋하고 나서야, 또는 영영 모른다.**
+    (2026-09-08 프론트가 실제로 겪었고 커밋 직전에 잡았다. 백엔드 BB30)
+  - `.env`가 없으면 **재빌드하지 말 것.** 생성물은 `git checkout --theirs`로 원격 것을 취하고,
+    그 구역 담당 세션(백엔드)에 재빌드를 요청한다. 크론이 다음 날 어차피 다시 만든다.
+  - 재빌드했으면 **커밋 전에 확인한다**: `grep -c '"ad":true' docs/data/deals.json` → **125건**
 - 커밋 메시지는 한국어로 무엇을 왜 바꿨는지. `Co-Authored-By: Claude` 라인 포함.
 
 ## 세션 간 소통 — 사용자를 전달책으로 쓰지 말 것
