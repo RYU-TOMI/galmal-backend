@@ -23,6 +23,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import home   # noqa: E402
 import route  # noqa: E402  (위 sys.path 설정 뒤여야 한다)
 import seo    # noqa: E402
 
@@ -35,6 +36,9 @@ def main():
                     help="산출물 폴더 (기본 docs)")
     ap.add_argument("--only", default=None,
                     help="노선 코드 하나만 굽는다 (예: ICN-FUK). 대조할 때 쓴다")
+    ap.add_argument("--world", default="docs/data/world.geojson",
+                    help="지도 윤곽. 정적 자산이라 API 가 아니라 파일이다 — d3 와 같은 부류로, "
+                         "커밋 2회짜리이고 크론이 만들지 않는다. M4 에서 assets/ 로 옮긴다")
     a = ap.parse_args()
 
     pages = route.build_all(a.api)
@@ -59,6 +63,16 @@ def main():
     meta = route.fetch(a.api, "meta.json")
     index = route.fetch(a.api, "routes/index.json")
     os.makedirs(a.out, exist_ok=True)
+
+    # 발견 홈. deals 와 지도 윤곽을 HTML 에 인라인하므로 file:// 로도 열린다
+    # (fetch() 는 file:// 에서 막힌다).
+    payload = route.fetch(a.api, "deals.json")
+    with open(a.world, encoding="utf-8") as f:
+        world = f.read()
+    with open(os.path.join(a.out, "index.html"), "w", encoding="utf-8", newline="") as f:
+        f.write(home.render_home(payload, home.inline_deals(payload), world, index))
+    print("  index.html")
+
     for name, text in seo.build_all(index, meta["generated"][:10]).items():
         with open(os.path.join(a.out, name), "w", encoding="utf-8", newline="") as f:
             f.write(text)
