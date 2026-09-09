@@ -421,7 +421,7 @@ enough(bucket)  = bucket.n >= 3            // months 에만. weekdays 에는 걸
 
 | 필드 | 정본 | 파서 |
 |---|---|---|
-| `address` | 구독 메일함 주소 | `subscriptions.py`가 IMAP으로 로그인해 읽는 바로 그 메일함 |
+| `address` | 🔴 **`subscriptions.py`** (아래 BB32 참조 — `theme.py`가 아니다) | IMAP으로 로그인해 읽는 바로 그 메일함 |
 | `subject_subscribe` | `"구독신청"` | `:23` `SUBSCRIBE` — 제목에 이 문자열이 있어야 구독으로 판정 |
 | `subject_unsubscribe` | `"구독취소"` | `:24` `UNSUBSCRIBE` |
 | `route_token` | 본문에 넣을 노선 코드 | `:25` `ROUTE_RE = ([A-Z]{3})\s*[-→~]\s*([A-Z]{3})` |
@@ -442,6 +442,25 @@ enough(bucket)  = bucket.n >= 3            // months 에만. weekdays 에는 걸
 
 공개 연락처라 PII가 아니고 이미 전 페이지에 노출돼 있다.
 문구(「아래 버튼을 누르면…」·해지 안내)는 `COPY.md`가 정본이다 — **규약만** 백엔드가 낸다.
+
+#### 🔴 `address`의 출처 — `theme.py`가 아니다 (백엔드 BB32, 2026-09-08)
+
+지금 `SUBSCRIBE_ADDR`이 `theme.py`에 있는데 **거기 있을 물건이 아니다.**
+사이트 정체성이 아니라 **우리 파서가 로그인하는 메일함**이다.
+
+⚠️ **M3에서 `theme.py`는 프론트로 간다.** 주소가 딸려가면 **출처가 갈린다** —
+사이트는 A로 보내라 하고 우리는 B를 읽는다. **반송도 안 온다**(A도 실재하는 주소라).
+사용자는 신청했다고 믿고 우리는 신청이 없다고 믿는다.
+
+→ **M3에서 `subscriptions.py`로 옮긴다**(`SUBSCRIBE`·`UNSUBSCRIBE` 상수 옆).
+그러면 `subscribe` 넷이 **전부 파서 한 모듈에서** 나온다. 프론트는 `meta.json`으로 받으므로
+화면 쪽 의존은 저절로 끊긴다.
+
+**`BASE_URL`/`SITE_URL`(R1b)과 글자 그대로 같은 유형이고 이번이 두 번째다.**
+그래서 대책도 같은 자리에 둔다 — 크론의 「상태 점검」이 `$SITE_URL/v1/meta.json`을
+받을 때 **`subscribe.address`가 실제 로그인 메일함(`MAIL_ADDRESS`)과 같은지도 본다.**
+시크릿이 있는 유일한 자리가 거기다(`test.yml`에는 시크릿이 없어 테스트로는 못 잡는다).
+R1(PAT 만료)·R1b(도메인 갈림)에 이어 **한 점검이 셋을 막는다.**
 
 **이 응답이 감시 지점이다.** 백엔드 크론 마지막 「상태 점검」이 `$SITE_URL/v1/meta.json`을
 받아 `generated`가 오늘 것인지 본다 — 주소가 틀리면 404, 배포가 멈췄으면 어제 날짜다
