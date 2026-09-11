@@ -981,6 +981,23 @@ CH6 는 이미 중단(§8-3)이므로 새로 지킬 것은 없다. 잠긴 상태
 3. **대조는 `git show <SHA>:<경로>` 로 한다.** 작업 트리와 비교하면 줄바꿈 때문에
    **전부 다르게 나온다**(§8-11 CRLF 항목). 세 세션이 전부 한 번씩 걸렸다.
 
+#### ✅ M4 T0 — `galmal-frontend` 보안 설정 끝남 (2026-09-11, 사용자 승인)
+
+빈 저장소 상태에서 `SPLIT.md` §M4 T0 기준으로 걸었다. `gh api` 재조회 20/20 일치.
+
+| 설정 | 값 |
+|---|---|
+| Actions | **GitHub 이 만든 것만**(`selected` · `github_owned_allowed`) — M4 배포 액션 5종이 전부 해당 |
+| 외부 기여자 PR 워크플로 | `all_external_contributors` 승인 필요 |
+| `main` | ruleset `main-protection`(id `22933079`) — **삭제 금지 · 강제 push 금지**, 우회 0명 |
+| Dependabot 경보 · 비공개 취약점 신고 | 켬 |
+| 위키 · 프로젝트 | 끔 (이슈는 둠) |
+| 기본값으로 이미 켜져 있던 것 | 비밀 스캐닝 · 푸시 차단 · 토큰 `read` · Actions PR 승인 불가 |
+
+`main` 보호를 branch protection 이 아니라 **ruleset** 으로 건 이유: 빈 저장소엔 `main` 이 없어
+branch protection 을 못 건다. ruleset 은 이름에 걸려서 첫 push 부터 적용된다.
+**M4 첫 push 는 일반 push 라 안 막힌다**(`creation` 규칙은 안 걸었다). 강제 push 는 소유자도 막힌다.
+
 #### 재개 절차 (`SPLIT.md` 맨 앞)
 
 ```
