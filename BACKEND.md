@@ -1251,3 +1251,37 @@ KST 날짜 == UTC 날짜라 **두 경로가 같은 날짜를 낼 수밖에 없�
 그대로 둔다. `docs/assets/`는 크론이 안 바꾸므로 거기서 충돌이 생길 수 없다.
 (사람의 충돌 해결 절차는 다르다 — 기획이 T7에서 생성물만 이름으로 집는 형태로 쓴다.
 사람은 `assets/`를 고치다 충돌할 수 있기 때문이다.)
+
+### M4 T0 — `galmal-backend` 기본 보안 설정 ✅ (2026-09-12, 사용자 지시)
+
+기준은 `SPLIT.md` §M4 T0(두 저장소 공통). 적용 후 `gh api`로 **다시 읽어 21항목 대조 — 전부 일치.**
+
+```
+이미 켜져 있던 것   1 비밀 스캐닝·푸시 차단 · 2 GITHUB_TOKEN 읽기 전용·PR 승인 불가
+바꾼 것            3 Actions: GitHub 제작 액션만 (all → selected)
+                   4 외부 기여자 PR 워크플로: 전원 승인 (first_time → all_external)
+                   5 main ruleset: 삭제 금지 · 강제 push 금지 (우회 주체 0, PR·상태체크 규칙 0)
+                   6 Dependabot 경보 + 보안 업데이트 PR
+                   7 비공개 취약점 신고
+                   8 위키·프로젝트 끔 (이슈 유지)
+```
+
+**3번 전에 확인한 것**: 우리 워크플로의 `uses:`는 `actions/checkout`·`actions/setup-python`뿐 — 전부 GitHub 제작.
+
+**5번 — 크론이 이 규칙 아래서 사는지 재현했다.** 기획 요청이 「PR 필수를 걸면 크론 push가 막혀
+그날 수집분이 버려진다(BB20)」였다. 강제 push 금지는 거는데, 크론의 **거부 → fetch → rebase → push**가
+정말 fast-forward인지 추론만으로 두지 않았다. 로컬 bare 저장소에 `receive.denyNonFastForwards`·
+`denyDeletes`(같은 규칙의 git 쪽)를 걸고 `collect.yml:158-168` 절차를 그대로 돌렸다:
+
+```
+다른 세션이 먼저 push → 크론 push 거부(1회) → rebase → push 성공(2회)  → 수집분 생존 ✅
+대조군: 강제 push → rejected · 브랜치 삭제 → rejected                  → 규칙은 실제로 막는다 ✅
+```
+
+⚠️ **M4에서 알아야 할 것 둘 — 이 설정 때문에 생긴다**
+- **T4 첫 이력 push는 빈 저장소에 `main`을 새로 만드는 것**이라 규칙에 안 걸린다. 하지만
+  **잘못 올려 다시 올려야 하면** 강제 push도 삭제도 막혀 있다 → **사용자가 ruleset을 잠시 끄고**
+  다시 올린 뒤 켠다. 우회 주체를 미리 넣지 않은 건 의도다 — 세 세션이 main에 push하므로
+  사람도 실수로 강제 push할 수 있고, 그걸 막는 게 이 규칙의 목적이다.
+- **T6 `repository_dispatch`는 `gh api`를 `run:` 스텝에서 부른다.** 마켓플레이스 액션
+  (`peter-evans/repository-dispatch` 등)은 3번 설정에 막힌다.
