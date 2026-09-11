@@ -457,12 +457,16 @@ enough(bucket)  = bucket.n >= 3            // months 에만. weekdays 에는 걸
 화면 쪽 의존은 저절로 끊긴다.
 
 **`BASE_URL`/`SITE_URL`(R1b)과 글자 그대로 같은 유형이고 이번이 두 번째다.**
-그래서 대책도 같은 자리에 둔다 — 크론의 「상태 점검」이 `$SITE_URL/v1/meta.json`을
+그래서 대책도 같은 자리에 둔다 — 크론의 「상태 점검」이 `$API_URL/v1/meta.json`을
 받을 때 **`subscribe.address`가 실제 로그인 메일함(`MAIL_ADDRESS`)과 같은지도 본다.**
 시크릿이 있는 유일한 자리가 거기다(`test.yml`에는 시크릿이 없어 테스트로는 못 잡는다).
 R1(PAT 만료)·R1b(도메인 갈림)에 이어 **한 점검이 셋을 막는다.**
 
-**이 응답이 감시 지점이다.** 백엔드 크론 마지막 「상태 점검」이 `$SITE_URL/v1/meta.json`을
+> ⚠️ 2026-09-11 정정: 원래 `$SITE_URL/v1/meta.json`이라 적었는데 분리 후 사이트(`galmal.kr`)는 `/v1/`을
+> 서빙하지 않는다. API 주소는 별도 변수 `API_URL`이다(M3·M4 동안 `https://galmal.kr`, M5부터 `https://api.galmal.kr`).
+> 사이트 쪽 신선도는 사이트의 `build.json`으로 따로 본다 — `SPLIT.md` R1c.
+
+**이 응답이 감시 지점이다.** 백엔드 크론 마지막 「상태 점검」이 `$API_URL/v1/meta.json`을
 받아 `generated`가 오늘 것인지 본다 — 주소가 틀리면 404, 배포가 멈췄으면 어제 날짜다
 (`SPLIT.md` R1·R1b).
 

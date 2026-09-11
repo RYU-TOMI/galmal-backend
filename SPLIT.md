@@ -204,7 +204,7 @@ galmal-plan  (비공개)  ← promo-ticket-site를 rename
 분리 후 `BASE_URL`은 프론트 레포, `SITE_URL`은 백엔드 env — **아무도 대조하지 않는다.**
 
 **대책(R1과 합침)**: 백엔드 크론 마지막 「상태 점검」이 `$SITE_URL/v1/meta.json`을 실제로 받아
-`generated`가 오늘 것인지 본다. 주소가 틀리면 404로 실패하고, PAT가 죽어 배포가 멈춰도
+`generated`가 오늘 것인지 본다. ⚠️ **이 주소는 분리 후 404가 난다 — §5 R1c에서 두 점검으로 고쳤다.** 주소가 틀리면 404로 실패하고, PAT가 죽어 배포가 멈춰도
 같은 스텝이 잡는다. **한 점검이 두 가지를 다 막는다.**
 
 **P2의 다른 예외**: 제휴 예약 링크. `TP_MARKER` 등 시크릿이 필요해 백엔드만 만들 수 있다.
@@ -561,7 +561,7 @@ M6 후 `discover.js`가 `generated`를 읽게 되면 지운다.
 
 | 태스크 | 담당 | 내용 |
 |---|---|---|
-| T1 | **사용자** | `galmal-api`·`galmal-web` 생성 (**둘 다 public**) |
+| T1 | ~~사용자~~ 기획 | `galmal-api`·`galmal-web` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
 | T2 | **사용자** | secrets 8종을 `galmal-api`에 등록 |
 | T3 | **사용자** | PAT 발급(fine-grained, `galmal-web`의 dispatch 권한만, **만료는 설정 가능한 최대로**) → `galmal-api`의 secret. **`SITE_URL` 변수도 같이**. 만료돼도 R1 점검(`meta.json`의 `generated` 확인)이 다음 날 잡는다 |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
@@ -605,6 +605,7 @@ M6 후 `discover.js`가 `generated`를 읽게 되면 지운다.
 |---|---|---|
 | R1 | **PAT가 조용히 만료** → 수집은 초록불인데 배포만 멈춘다. `BACKEND.md` BB18(몇 주째 죽어 있어도 아무도 몰랐던 건)의 재발 조건 | 무기한 fine-grained PAT + 백엔드 크론 끝 「상태 점검」이 `$SITE_URL/v1/meta.json`을 받아 `generated`가 오늘 것인지 본다. 아니면 잡을 실패로 |
 | R1b | **도메인이 조용히 갈라진다.** 지금은 `test_site_url.py:53`이 `send_alerts.SITE_URL`과 `theme.BASE_URL`을 대조하는데, 분리 후엔 각각 다른 레포/설정이라 **아무도 안 본다** | R1과 같은 점검이 막는다 — `$SITE_URL`이 틀리면 404로 실패한다. 별도 대책 불필요 |
+| **R1c** | 🔴 **R1 점검 자체가 분리 후에 조용히 깨진다** (기획 발견, 2026-09-11). 위 R1·R1b·M3 T6이 전부 `$SITE_URL/v1/meta.json`을 읽는데, **분리 후 `galmal.kr`은 `/v1/`을 서빙하지 않는다** — v1은 `api.galmal.kr`에 있다. 지금은 한 저장소라 같은 주소에서 둘 다 나와서 **테스트하면 통과하고 M5 날부터 매일 404**가 난다. 매일 실패하는 점검은 사람이 무시하게 되고(BB30 늑대 소년), 누가 주소를 API로 「고치면」 이번엔 **사이트 배포가 멈춘 걸 못 본다** | **점검을 둘로 나눈다.** ① API: `$API_URL/v1/meta.json` — `generated`가 오늘인가 · `subscribe.address == MAIL_ADDRESS`(T6). ② 사이트: 프론트 빌드가 **`build.json`에 「어느 v1으로 구웠나」(`api_generated`)를 적어 같이 배포**하고, 점검은 **사이트의 `api_generated` == API의 `generated`**를 본다. 절대값이 아니라 **두 값의 일치**다(`PLAN.md` 함정 6 규칙) — PAT가 죽으면 사이트가 뒤처져 불일치, `SITE_URL`이 틀리면 404. **`API_URL`은 M3·M4 동안 `https://galmal.kr`**(지금은 거기서 v1이 나온다), **M5에서 `https://api.galmal.kr`로 바꾼다** — 변수라서 코드는 안 바뀐다. `build.json`은 M4에서 `deploy.yml`과 같이 넣는다(M2 동등성 대상 39개에 없는 새 파일이라 기준선을 안 건드린다) |
 | R2 | 백엔드는 성공, 프론트 빌드 실패 → **사이트가 어제 것** | 안전한 실패다(반쯤 쓰인 페이지가 안 나감). 다만 두 레포로 알림이 갈라지니 R1의 점검 스텝이 양쪽을 다 본다 |
 | R3 | **M2 동등성 증명 실패** — JSON에 값이 빠져 있다 | M1 DoD를 엄격히. 빠지면 M1로 되돌아간다. 이게 M1/M2를 **같은 레포 안에서** 하는 이유다 |
 | R4 | 도메인 이전 다운타임 · BE7 재실행 | M5를 마지막에 몰아서 한 번에. M4까지는 무중단 |
