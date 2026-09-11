@@ -27,7 +27,7 @@ import config
 import publish_v1
 import subscriptions
 import theme
-from build_site import WINDOW_DAYS, airline_min, month_min, weekday_min
+from route_stats import WINDOW_DAYS, airline_min, month_min, weekday_min
 
 V1 = Path(__file__).resolve().parent.parent / "docs" / "v1"
 
@@ -243,7 +243,7 @@ class ReproducesTheCurrentScreenTest(unittest.TestCase):
 
     def test_summary_matches_the_page_headline(self):
         """히어로의 최저가·중앙값·「가격 N건」이 그대로 나오는가."""
-        from build_site import route_summary
+        from route_stats import route_summary
         for origin, dest in config.ROUTES:
             path = V1 / "routes" / f"{origin}-{dest}.json"
             if not path.exists():

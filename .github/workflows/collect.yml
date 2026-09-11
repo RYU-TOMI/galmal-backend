@@ -82,6 +82,49 @@ jobs:
           TP_TRIP_CAMPAIGN: ${{ secrets.TP_TRIP_CAMPAIGN }}
         run: python collector/build_site.py
 
+      # M3 T1 — 화면을 프론트 경로(site/build.py)가 그리게 한다.
+      #
+      # 옛 경로(build_site.py)는 아직 HTML도 쓴다(T3에서 걷어낸다). 그래서 새 경로를
+      # 그냥 docs/ 에 덮어쓰면 **새 경로가 빠뜨린 파일을 옛 파일이 가려준다** — 스위치가
+      # 된 것처럼 보이지만 검증이 안 된다. 그래서 새 경로는 임시 폴더에 그리고,
+      # **운영 러너에서 매일** 두 경로를 대조한 뒤에만 docs/ 로 옮긴다(T2 관찰 기간).
+      #
+      # 다르면: 새 경로 산출물은 버리고 옛 경로가 쓴 docs/ 를 그대로 배포한다(사이트는
+      # 신선하게 유지) + 상태 점검이 잡을 실패로 표시해 메일이 온다. 되돌릴 게 없다.
+      #
+      # ⚠️ 프론트가 알려둔 **잠복 변경** 셋(BB28 임계를 문장에도 · dateModified 를
+      # generated 로 · inline_deals 어댑터)은 새 노선이 들어오거나 크론 시각이 UTC 자정을
+      # 넘기면 여기서 차이로 드러난다. 그건 새 경로가 **더 맞는** 경우라 버그가 아니다 —
+      # 차이 목록을 보고 판단한다.
+      #
+      # T3에서 옛 HTML이 사라지면 대조할 상대가 없어지므로 이 스텝은 한 줄로 줄어든다.
+      - name: 화면 생성 (프론트 경로 · 옛 경로와 대조)
+        id: site
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          out="$(mktemp -d)"
+          python site/build.py --api docs/v1 --out "$out"
+
+          # 파일 집합부터 — 새 경로가 노선을 빠뜨리면 여기서 걸린다
+          if ! diff <(cd docs/routes && ls) <(cd "$out/routes" && ls) >/dev/null; then
+            echo "::error::노선 파일 목록이 다르다"
+            diff <(cd docs/routes && ls) <(cd "$out/routes" && ls) | head -20
+            exit 1
+          fi
+          bad=""
+          for f in index.html sitemap.xml robots.txt $(cd "$out" && ls routes/*.html); do
+            cmp -s "docs/$f" "$out/$f" || bad="$bad $f"
+          done
+          if [ -n "$bad" ]; then
+            echo "::error::옛 경로와 새 경로의 화면이 다르다:$bad"
+            echo "옛 경로 산출물을 그대로 배포한다. 차이가 잠복 변경(위 주석)인지 확인할 것."
+            exit 1
+          fi
+          cp "$out/index.html" "$out/sitemap.xml" "$out/robots.txt" docs/
+          cp "$out"/routes/*.html docs/routes/
+          echo "새 경로 화면 $(ls "$out"/routes/*.html | wc -l)+3개 — 옛 경로와 동일, 배포"
+
       - name: 데이터·사이트 커밋
         if: always()
         run: |
@@ -134,7 +177,7 @@ jobs:
           note "## 수집 결과 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') KST)"
           # 수집·판정·빌드까지 전부 continue-on-error가 됐으므로, 여기서 안 보면
           # 무엇이 죽어도 잡이 초록불로 끝난다 — BB18을 되돌리는 셈이다.
-          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "사이트 생성:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"; do
+          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "사이트 생성:${{ steps.build.outcome }}"                    "화면 생성(새 경로):${{ steps.site.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"; do
             name="${s%%:*}"; outcome="${s##*:}"
             if [ "$outcome" = "failure" ]; then
               note "- ❌ $name 실패"; fail=1

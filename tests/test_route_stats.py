@@ -25,7 +25,7 @@ from datetime import timedelta
 
 import db
 import timeutil
-from build_site import month_min, weekday_min
+from route_stats import month_min, weekday_min
 
 
 def seed(conn, rows):
