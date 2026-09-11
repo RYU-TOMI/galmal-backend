@@ -34,8 +34,11 @@ import config
 import subscriptions
 import theme
 import timeutil
-from build_site import (DOCS, WINDOW_DAYS, airline_min, daily_min, month_min,
-                        route_summary, weekday_min)
+# 🔴 `build_site`를 import하지 않는다 — 옛 HTML 쪽이고 M3에서 사라진다.
+# 통계는 `route_stats`, 경로는 `discover_data`(둘 다 이전 후에도 남는 모듈)에서 온다.
+from discover_data import DOCS
+from route_stats import (WINDOW_DAYS, airline_min, daily_min, month_min,
+                         route_summary, weekday_min)
 from labels import airline_name, city, region_of
 
 SCHEMA = "v1"
