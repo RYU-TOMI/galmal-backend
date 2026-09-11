@@ -11,7 +11,7 @@
 ## 작업 체제 — 3세션 분업 (2026-08-06~)
 
 > 🔴 **저장소 구조가 바뀌는 중이다 (2026-09-08~).** 아래 표는 **이전 전** 모습이다.
-> `promo-ticket-site` 하나 → `galmal-api`(백) + `galmal-web`(프) + `galmal-plan`(문서) 셋.
+> `promo-ticket-site` 하나 → `galmal-backend`(백) + `galmal-frontend`(프) + `galmal-plan`(문서) 셋.
 > 계획·단계·현황은 **`SPLIT.md`**, 결정 근거는 `DECISIONS.md` 2026-09-08 (1)(2)(3).
 > 새 계약은 `CONTRACT.md` §v1 API.
 

@@ -133,7 +133,7 @@ M6 정리            ⬜  사용자 손 필요
 ## 1. 목표 구조
 
 ```
-galmal-api  (공개)                         galmal-web  (공개)
+galmal-backend  (공개)                         galmal-frontend  (공개)
 ├ collector/         수집·판정·메일·알림    ├ site/
 │  └ publish.py      ← 진입점              │   ├ shell.py   <head>·CSS·도메인·OG
 ├ data/prices.db                           │   ├ home.py    index.html
@@ -561,9 +561,9 @@ M6 후 `discover.js`가 `generated`를 읽게 되면 지운다.
 
 | 태스크 | 담당 | 내용 |
 |---|---|---|
-| T1 | ~~사용자~~ 기획 | `galmal-api`·`galmal-web` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
-| T2 | **사용자** | secrets 8종을 `galmal-api`에 등록 |
-| T3 | **사용자** | PAT 발급(fine-grained, `galmal-web`의 dispatch 권한만, **만료는 설정 가능한 최대로**) → `galmal-api`의 secret. **`SITE_URL` 변수도 같이**. 만료돼도 R1 점검(`meta.json`의 `generated` 확인)이 다음 날 잡는다 |
+| T1 | ~~사용자~~ 기획 | `galmal-backend`·`galmal-frontend` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). **이름은 사용자 결정으로 `galmal-frontend`·`galmal-backend`** — 처음 `galmal-web`·`galmal-api`로 만들었다가 같은 날 바꿨다(비어 있어 비용 0, 옛 이름은 GitHub이 새 이름으로 넘겨준다). 세션 이름과 똑같이 읽히고, M6의 `galmal-plan`과 짝이 맞는다. 도메인 `api.galmal.kr`은 저장소 이름과 무관하므로 그대로다. `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
+| T2 | **사용자** | secrets 8종을 `galmal-backend`에 등록 |
+| T3 | **사용자** | PAT 발급(fine-grained, `galmal-frontend`의 dispatch 권한만, **만료는 설정 가능한 최대로**) → `galmal-backend`의 secret. **`SITE_URL` 변수도 같이**. 만료돼도 R1 점검(`meta.json`의 `generated` 확인)이 다음 날 잡는다 |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
 | T5 | 프 | `site/` `assets/` `fixtures/` `deploy.yml` 이동 |
 
@@ -574,17 +574,17 @@ M6 후 `discover.js`가 `generated`를 읽게 되면 지운다.
 >   `CNAME`이 날아가면 **커스텀 도메인이 풀린다**(`test_site_url.py`가 잠그는 그 파일).
 | T6 | 양쪽 | 배선: 백엔드 크론 끝 → `repository_dispatch` → 프론트 빌드·배포 |
 
-**DoD**: `ryu-tomi.github.io/galmal-web`이 현 사이트와 동일하게 뜬다.
+**DoD**: `ryu-tomi.github.io/galmal-frontend`이 현 사이트와 동일하게 뜬다.
 **도메인은 아직 안 건드렸다** — 이 시점에 galmal.kr은 구형이 계속 서빙한다.
 
 ### M5 — 도메인 이전 · 사용자
 
 | 순서 | 내용 |
 |---|---|
-| 1 | `api.galmal.kr` CNAME → `ryu-tomi.github.io`, `galmal-api`에 커스텀 도메인 등록 |
+| 1 | `api.galmal.kr` CNAME → `ryu-tomi.github.io`, `galmal-backend`에 커스텀 도메인 등록 |
 | 2 | 프론트 빌드가 `https://api.galmal.kr/v1/…`을 보게 전환 |
 | 3 | 구형 레포에서 커스텀 도메인 해제 |
-| 4 | `galmal-web`에 `galmal.kr` 등록 → **HTTPS 인증서 발급 대기** (몇 분~수 시간) |
+| 4 | `galmal-frontend`에 `galmal.kr` 등록 → **HTTPS 인증서 발급 대기** (몇 분~수 시간) |
 | 5 | 서치콘솔·서치어드바이저 소유확인 유지 확인 + 사이트맵 재제출 |
 
 **DoD**: galmal.kr 정상 + https + 소유확인 유지. **다운타임이 있는 유일한 단계다.**
