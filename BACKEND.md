@@ -1260,11 +1260,19 @@ KST 날짜 == UTC 날짜라 **두 경로가 같은 날짜를 낼 수밖에 없�
 이미 켜져 있던 것   1 비밀 스캐닝·푸시 차단 · 2 GITHUB_TOKEN 읽기 전용·PR 승인 불가
 바꾼 것            3 Actions: GitHub 제작 액션만 (all → selected)
                    4 외부 기여자 PR 워크플로: 전원 승인 (first_time → all_external)
-                   5 main ruleset: 삭제 금지 · 강제 push 금지 (우회 주체 0, PR·상태체크 규칙 0)
+                   5 main ruleset `main-protection`: 대상 `refs/heads/main` · 삭제·강제 push 금지
+                     (우회 주체 0, PR·상태체크 규칙 0)
                    6 Dependabot 경보 + 보안 업데이트 PR
                    7 비공개 취약점 신고
                    8 위키·프로젝트 끔 (이슈 유지)
 ```
+
+**두 저장소 정합 (기획 결정 반영 후 재조회)**: 처음엔 ruleset 대상이 backend `~DEFAULT_BRANCH` /
+frontend `refs/heads/main`으로 갈려 있었다. 기획이 **`refs/heads/main`**으로 정했다 — 우리가 의존하는 건
+**이름** `main`이다(`collect.yml:160-161`·`CLAUDE.md`가 박아 쓴다). 기본 브랜치가 실수로 바뀌면
+`~DEFAULT_BRANCH`는 보호를 딴 브랜치로 옮기는데 크론은 계속 `main`에 쓴다 — **보호가 빠진 자리에
+매일 쓰는 셈**이다. 바꾼 뒤 두 저장소 전 항목을 나란히 읽었다: **다른 건 6번 보안 업데이트 PR 하나뿐이고
+그건 기준표대로(백엔드만)다.**
 
 **3번 전에 확인한 것**: 우리 워크플로의 `uses:`는 `actions/checkout`·`actions/setup-python`뿐 — 전부 GitHub 제작.
 
