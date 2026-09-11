@@ -654,6 +654,21 @@ git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml
 
 **완료 판정**: 두 저장소의 설정을 `gh api`로 읽어 **위 표와 한 줄씩 대조한 결과**를 보고한다(한 저장소만 보고 끝내지 않는다).
 
+**구현 기준 둘 (프론트가 정함, 두 저장소 공통으로 확정)**
+
+- **5번은 branch protection이 아니라 ruleset**(`main-protection`, `refs/heads/main`)으로 건다. 빈 저장소엔
+  `main` 브랜치가 아직 없어 branch protection을 걸 수 없고, ruleset은 **이름으로 걸려 브랜치가 생기는 순간부터** 적용된다.
+- **우회 권한자(`bypass_actors`) 0명.** 소유자도 `main`을 지우거나 강제 push할 수 없다.
+  막힌 게 아니라 **한 단계 더 거치게 한 것**이다 — 정말 강제 push가 필요한 날(예: BB3 저장소 크기 때문에
+  이력을 다시 쓰는 날)엔 관리자가 ruleset을 **잠깐 끄고 → 하고 → 다시 켠다.** 실수로는 못 하고 일부러는 할 수 있다.
+
+**진행**
+
+| 저장소 | 담당 | 상태 |
+|---|---|---|
+| `galmal-frontend` | 프론트 | ✅ 2026-09-11 — 8개 항목 일치 (**기획이 `gh api`로 독립 재조회**) |
+| `galmal-backend` | 백엔드 | ⏳ |
+
 
 | 태스크 | 담당 | 내용 |
 |---|---|---|
