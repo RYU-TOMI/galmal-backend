@@ -744,7 +744,8 @@ docs/CNAME   GitHub Pages 설정이 만든다. 우리가 쓰지 않는다.
 
 ## 11. 저장소 분리 직전 기록 (2026-09-08)
 
-> 사용자가 `promo-ticket-site`를 `galmal-api`(백엔드)·`galmal-web`(프론트)로 나누기로
+> 사용자가 `promo-ticket-site`를 `galmal-backend`(백엔드)·`galmal-frontend`(프론트)로 나누기로
+> (처음 이름은 `galmal-api`·`galmal-web`이었고 2026-09-11 사용자가 바꿨다. 도메인 `api.galmal.kr`은 무관)
 > 정했다(기획 `SPLIT.md`). **이전이 시작되면 챕터 진행이 멈춘다.** 재개할 때 기억이
 > 남아 있지 않을 것이므로, 지금 손에 쥐고 있는 것을 여기 적는다.
 >
