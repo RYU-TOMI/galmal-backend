@@ -73,7 +73,7 @@ def main():
         f.write(home.render_home(payload, home.inline_deals(payload), world, index))
     print("  index.html")
 
-    for name, text in seo.build_all(index, meta["generated"][:10]).items():
+    for name, text in seo.build_all(index, route.machine_date(meta["generated"])).items():
         with open(os.path.join(a.out, name), "w", encoding="utf-8", newline="") as f:
             f.write(text)
         print("  %s" % name)

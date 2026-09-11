@@ -39,6 +39,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 from charts import bar_chart, line_chart
 from fmt import fmt_date, fmt_month, weekday_name
@@ -70,6 +71,24 @@ def months_shown(months):
 def airlines_shown(airlines):
     """최저가 오름차순 상위 8개 — 현행 `ORDER BY MIN(price) LIMIT 8` 재현."""
     return sorted(airlines, key=lambda a: a["min"])[:AIRLINE_CAP]
+
+
+def machine_date(generated):
+    """크롤러가 읽는 기계용 날짜(`dateModified`·sitemap `lastmod`) — **UTC 날짜**다.
+
+    `generated` 는 `now_kst()` 로 찍힌 **KST 시각**이다(`2026-09-07T08:46:00+09:00`).
+    앞 10글자를 자르면 **KST 날짜**가 나오는데, 이 프로젝트는 기계용 날짜를 **UTC** 로
+    쓴다(`fetched_date` 와 같은 기준, BB17). 그래서 시각을 UTC 로 바꾼 뒤 날짜를 뽑는다.
+
+    🔴 **실제로 틀렸었다**(2026-09-11 발견, M2 T5 의 `generated[:10]`).
+    크론은 22:10 UTC 예약이지만 GitHub 지연으로 **UTC 자정 앞뒤로 반반** 돈다
+    (최근 8회: 23:46 · 23:47 · 23:57 · 23:58 / 00:01 · 00:05 · 00:06 · 00:13).
+    자정 **전**에 돌면 KST 날짜는 UTC 날짜보다 하루 앞선다 → 옛 경로(`today_utc()`)와
+    노선 36장 + sitemap 이 전부 갈린다. v1 이 생긴 뒤 4회가 우연히 전부 자정 **후**라 안 보였다.
+
+    `timeutil.py` 머리말이 경고한 UTC/KST 혼동의 네 번째 사례다.
+    """
+    return datetime.fromisoformat(generated).astimezone(timezone.utc).date().isoformat()
 
 
 def fetch(api, path):
@@ -257,8 +276,8 @@ def build_all(api):
     """36장을 만들어 {파일명: HTML} 로 돌려준다. 파일 쓰기는 `build.py` 가 한다."""
     meta = fetch(api, "meta.json")
     index = fetch(api, "routes/index.json")
-    # `generated` 는 오프셋이 붙은 ISO 8601 이다. 날짜만 쓴다.
-    generated_date = meta["generated"][:10]
+    # `generated` 는 KST 시각이다. 기계용 날짜는 UTC 로 바꿔서 뽑는다 — machine_date() 참고.
+    generated_date = machine_date(meta["generated"])
 
     out = {}
     for r in index["routes"]:
