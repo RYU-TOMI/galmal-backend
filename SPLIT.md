@@ -654,6 +654,47 @@ git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml
 
 **완료 판정**: 두 저장소의 설정을 `gh api`로 읽어 **위 표와 한 줄씩 대조한 결과**를 보고한다(한 저장소만 보고 끝내지 않는다).
 
+**구현 기준 둘 (프론트가 정함, 두 저장소 공통으로 확정)**
+
+- **5번은 branch protection이 아니라 ruleset**(`main-protection`, `refs/heads/main`)으로 건다. 빈 저장소엔
+  `main` 브랜치가 아직 없어 branch protection을 걸 수 없고, ruleset은 **이름으로 걸려 브랜치가 생기는 순간부터** 적용된다.
+- **우회 권한자(`bypass_actors`) 0명.** 소유자도 `main`을 지우거나 강제 push할 수 없다.
+  막힌 게 아니라 **한 단계 더 거치게 한 것**이다 — 정말 강제 push가 필요한 날(예: BB3 저장소 크기 때문에
+  이력을 다시 쓰는 날)엔 관리자가 ruleset을 **잠깐 끄고 → 하고 → 다시 켠다.** 실수로는 못 하고 일부러는 할 수 있다.
+
+**진행**
+
+| 저장소 | 담당 | 상태 |
+|---|---|---|
+| `galmal-frontend` | 프론트 | ✅ 2026-09-11 — 8개 항목 일치 (**기획이 `gh api`로 독립 재조회**) |
+| `galmal-backend` | 백엔드 | ✅ 2026-09-11 — 8개 항목 일치 (**기획 독립 재조회**) · 보안 업데이트 PR 켜짐(설계대로 백엔드만) |
+
+**두 저장소 사이에서 갈린 것 하나 — 기획이 정했다 (2026-09-11)**
+
+| | backend | frontend | 결정 |
+|---|---|---|---|
+| ruleset 대상 | `~DEFAULT_BRANCH` | `refs/heads/main` | ✅ **`refs/heads/main`** |
+| ruleset 이름 | `main 보호 — 삭제·강제 push 금지` | `main-protection` | ✅ **`main-protection`** |
+
+**이유**: 지금은 둘 다 기본 브랜치가 `main`이라 효과가 같지만, 기본 브랜치가 바뀌는 날 갈린다.
+우리가 실제로 의존하는 건 **이름 `main`**이다 — 크론(`collect.yml`의 `git fetch origin main`·`git rebase origin/main`)과
+`CLAUDE.md`의 모든 절차가 `main`을 박아 쓴다. 누가 실수로 기본 브랜치를 바꾸면 `~DEFAULT_BRANCH`는 **보호를 다른 브랜치로
+옮기는데** 크론은 계속 `main`에 push한다 — 보호가 사라진 자리에 쓰는 셈이다. **보호할 것은 이름 `main`이다.**
+이름은 ASCII·짧은 쪽으로 — 로그·API 응답에서 읽기 쉽다.
+
+크론이 이 규칙 아래서 사는지는 백엔드가 **재현으로** 확인했다 — 로컬 bare 저장소에 같은 규칙(`denyNonFastForwards`·
+`denyDeletes`)을 걸고 `collect.yml:158-168`을 그대로 돌려, **거부 → fetch → rebase → push 성공**(수집분 생존) ·
+대조군 강제 push·삭제는 거부됨. rebase 후 push는 fast-forward다.
+
+**이 설정 때문에 M4에 딸려오는 것 둘 (백엔드 지적)**
+
+- 🔴 **재업로드 예외 절차.** M4 첫 이력 push는 빈 저장소에 `main`을 **새로 만드는** 것이라 안 걸린다. 그런데
+  **잘못 올려 다시 올려야 하면** 강제 push·삭제가 막혀 있다 → **사용자가 ruleset을 잠시 끄고(`enforcement: disabled`)
+  → 다시 올리고 → 켠다.** 우회 주체 0은 의도다(세 세션이 `main`에 push하니 사람의 실수를 막는 게 목적).
+  §6 사용자 할 일에 예외 절차로 적는다.
+- **M4 T6 `repository_dispatch`는 `run:` 스텝의 `gh api`로 부른다.** `peter-evans/repository-dispatch` 같은
+  마켓플레이스 액션은 3번 설정(GitHub 제작만 허용)에 막힌다.
+
 
 | 태스크 | 담당 | 내용 |
 |---|---|---|
@@ -802,6 +843,8 @@ build_site.py:101   CAST(strftime('%w', …) AS INTEGER)    →  EXTRACT(DOW FRO
 - M4 T1 레포 2개 생성 (둘 다 **public** — private이면 Pages가 안 뜬다)
 - M4 T2 secrets 8종 (`TP_TOKEN` `MAIL_ADDRESS` `MAIL_APP_PASSWORD` `ANTHROPIC_API_KEY` `TP_MARKER` `TP_TRIP_TRS` `TP_TRIP_P` `TP_TRIP_CAMPAIGN`)
 - M4 T3 PAT 발급
+- **예외 절차 — M4에서 이력을 잘못 올려 다시 올려야 할 때만**: 해당 저장소 Settings → Rules → `main-protection`을
+  **잠깐 끄고** 다시 올린 뒤 **바로 켠다.** 우회 권한자를 일부러 0명으로 둬서 소유자도 이 절차 없이는 못 한다
 - M5 전부 (DNS 레코드, Pages 커스텀 도메인, 검색엔진 재확인)
 - M6 T1 rename + private 전환
 
