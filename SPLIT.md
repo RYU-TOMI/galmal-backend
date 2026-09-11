@@ -676,6 +676,11 @@ git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml
 | ruleset 대상 | `~DEFAULT_BRANCH` | `refs/heads/main` | ✅ **`refs/heads/main`** |
 | ruleset 이름 | `main 보호 — 삭제·강제 push 금지` | `main-protection` | ✅ **`main-protection`** |
 
+> ✅ **통일 완료 (2026-09-11)** — 백엔드가 PUT으로 갱신(중복 생성 없음). 기획 재조회:
+> 두 저장소 모두 `main-protection · active · refs/heads/main · deletion,non_fast_forward · 우회 0 · ruleset 1개`.
+> 백엔드가 **바꾼 한 줄만이 아니라 전 항목을 나란히** 대조했다 — 다른 건 기준표대로 「보안 업데이트 PR(백엔드만)」 하나뿐.
+> **M4 T0 완료.**
+
 **이유**: 지금은 둘 다 기본 브랜치가 `main`이라 효과가 같지만, 기본 브랜치가 바뀌는 날 갈린다.
 우리가 실제로 의존하는 건 **이름 `main`**이다 — 크론(`collect.yml`의 `git fetch origin main`·`git rebase origin/main`)과
 `CLAUDE.md`의 모든 절차가 `main`을 박아 쓴다. 누가 실수로 기본 브랜치를 바꾸면 `~DEFAULT_BRANCH`는 **보호를 다른 브랜치로
