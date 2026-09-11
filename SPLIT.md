@@ -555,8 +555,39 @@ import하지 않는다. **sqlite 전용 SQL 두 줄이 `route_stats.py`에만 �
 
 > **관찰 — 재빌드는 시각에 따라 결과가 다르다.** 오후에 재빌드하니 딜이 138 → 129가 됐다.
 > `build_deals_json`이 `now_kst()` 기준 신선도 컷을 쓰기 때문이다(T0과 무관, 딜 코드 무변경).
-> → **T7에서 `CLAUDE.md` 충돌 해결 절차를 고칠 때 「재빌드」보다 「`--theirs`로 크론 산출물을 취한다」를
+> → **T7에서 `CLAUDE.md` 충돌 해결 절차를 고칠 때 「재빌드」보다 「원격(크론) 산출물을 취한다」를
 > 기본으로 둔다.** 낮에 재빌드하면 아침 크론과 다른 딜 목록이 커밋된다.
+
+#### T7 충돌 해결 절차 초안 — 함정 둘을 피한 형태 (2026-09-11)
+
+**함정 ① `--theirs`는 merge와 rebase에서 뜻이 반대다** (백엔드 지적).
+
+```
+git merge origin/main     --theirs = origin/main = 크론 산출물   ✅
+git pull --rebase         --theirs = 내 커밋     = 내 재빌드     ❌ 정반대
+```
+
+`collect.yml:157-160`이 이미 이 반전을 겪고 주석으로 남겼다. 지금 저장소는 `pull.rebase = false`(merge)라
+맞게 돌지만, 누가 rebase로 당기면 **절차대로 했는데 에러 없이 자기 낮 재빌드를 취한다.**
+→ `--theirs`를 쓰지 않고 **방향을 안 타는 `git checkout origin/main -- <경로>`**로 쓴다.
+
+**함정 ② `docs/` 전체를 원격 것으로 덮으면 프론트 소스가 날아간다** (기획 확인).
+`docs/`에는 생성물만 있는 게 아니다 — 실측(`git ls-files docs/`):
+
+```
+사람이 쓴 것   docs/assets/discover.js · discover.css · d3-*.min.js · og.png
+               docs/CNAME · docs/.nojekyll · docs/data/world.geojson
+```
+
+→ **생성물만 이름으로 집는다:**
+
+```bash
+# 충돌 난 생성물은 원격(크론) 것을 취한다 — merge/rebase 방향과 무관
+git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml docs/robots.txt data/prices.db
+# (T3 전까지는 docs/data/deals.json 도 목록에 넣는다)
+```
+
+사람이 쓴 파일에서 충돌이 나면 그건 **생성물 충돌이 아니라 진짜 충돌**이다 — 원격으로 덮지 말고 그 구역 담당이 푼다.
 
 #### 🔴 T3의 함정 둘 (기획 발견, 2026-09-11 재개 점검)
 
