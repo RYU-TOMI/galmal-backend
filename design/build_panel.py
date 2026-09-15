@@ -14,7 +14,7 @@ sys.path.insert(0, BASE)
 from _app import CSS
 from _fmt import tier, direct, money, daterange, datesub
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 deals = D["deals"]
 SEL = sorted([d for d in deals if d["o"] == "SEL"], key=lambda x: x["price"])
 
@@ -267,7 +267,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "한글 1.0em · 숫자 0.58em(tabular) 같은 어림으로 쟀다. "
         "<b>순위를 가리는 데는 충분하지만 경계값 근처는 브라우저로 봐야 한다.</b> "
         "이 세션엔 브라우저가 없다.</p>"
-        "<p class=foot>생성 <b>design/build_panel.py</b> &middot; 데이터 <b>docs/data/deals.json</b> "
+        "<p class=foot>생성 <b>design/build_panel.py</b> &middot; 데이터 <b>docs/v1/deals.json</b> "
         "&middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b> &sect;CH1</p>"
         "</div></body></html>")
 

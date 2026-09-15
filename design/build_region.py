@@ -19,7 +19,7 @@ sys.path.insert(0, BASE)
 from _app import CSS
 from _fmt import tier, money
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 W = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "world.geojson"), encoding="utf-8"))
 SEL = sorted([d for d in D["deals"] if d["o"] == "SEL"], key=lambda x: x["price"])
 ORG = D["origins"]["SEL"]

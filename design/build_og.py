@@ -21,7 +21,7 @@ import json, io, os, sys, math, subprocess, shutil
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 W = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "world.geojson"), encoding="utf-8"))
 SEL = [d for d in D["deals"] if d["o"] == "SEL"]
 ORG = D["origins"]["SEL"]

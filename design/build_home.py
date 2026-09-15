@@ -14,7 +14,7 @@ from _app import CSS, BOXES, OBS_FLOOR, DROP_FLOOR, record
 from _fmt import tier, TIERS
 from _scene import make_scene, covered, app
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 ctx = make_scene(D)
 ALL, STAGE, OPEN, HERO = ctx["ALL"], ctx["STAGE"], ctx["OPEN"], ctx["HERO"]
 
@@ -122,7 +122,7 @@ html = (
     "<p class=note>&#9888; <b>이 세션엔 브라우저가 없어 실제 렌더를 못 본다.</b> "
     "겹치거나 어색한 곳이 있으면 알려주면 고친다.</p>"
     "<p class=foot>생성 <b>design/build_home.py</b> &middot; 셸 <b>design/_scene.py</b> &middot; "
-    "데이터 <b>docs/data/deals.json</b> (<code>updated " + D.get("updated", "") + "</code>) &middot; "
+    "데이터 <b>docs/v1/deals.json</b> (<code>updated " + D.get("updated", "") + "</code>) &middot; "
     "확정 스펙 <b>../SPEC.md</b> &middot; 근거 <b>../DECISIONS.md</b><br>"
     "곁 목업 &mdash; 전환 <b>open.html</b> · 도크 <b>dock.html</b> · 밀도 <b>density.html</b></p>"
     "</div></body></html>")

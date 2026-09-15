@@ -13,7 +13,7 @@ from _app import CSS, BOXES, DOCK_NAME, OBS_FLOOR, DROP_FLOOR, record
 from _fmt import tier
 from _scene import make_scene, covered, app
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 ctx = make_scene(D)
 ALL, STAGE = ctx["ALL"], ctx["STAGE"]
 
@@ -88,7 +88,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "<p class=note>&#9888; <b>펼쳤을 때는 F1도 가린다.</b> 위 F1 그림은 <code>분위기</code>를 펼친 상태다. "
         "다만 <b>쓰는 순간에만</b>이고 닫으면 " + str(covered(ctx, BOXES["F1"])) + "곳으로 돌아온다.</p>"
         "<p class=foot>생성 <b>design/build_dock.py</b> &middot; 셸 <b>design/_app.py</b> &middot; "
-        "데이터 <b>docs/data/deals.json</b> &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b></p>"
+        "데이터 <b>docs/v1/deals.json</b> &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b></p>"
         "</div></body></html>")
 
 io.open(os.path.join(BASE, "dock.html"), "w", encoding="utf-8").write(html)
