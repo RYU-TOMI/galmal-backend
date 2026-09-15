@@ -34,11 +34,12 @@
 - **소유**: `docs/assets/discover.js` · `docs/assets/discover.css` · `collector/discover_home.py`(HTML 셸 템플릿) · `docs/assets/`의 벤더 라이브러리
 - **소유(문서)**: `FRONTEND.md`(작업 방식·챕터 로드맵) · `BACKLOG.md`(곁가지 적재소) — 다른 세션은 읽기만.
 - **역할**: 지도·카드 피드·필터 도크·확장 상세·반응형·인터랙션.
-- **개발 방식**: 커밋된 `docs/data/deals.json`을 **픽스처**로 사용 → 백엔드를 기다리지 않는다.
-- **금지**: `collector/`의 데이터 로직(`discover_data.py`, `affiliates.py`, `dests.py`, 수집기), `build_site.py`.
+- **개발 방식**: `fixtures/v1/`(기준선에서 받아 적은 v1 응답 사본)을 **픽스처**로 사용 → 백엔드를 기다리지 않는다.
+  커밋된 실물은 `docs/v1/`이다. **픽스처는 손으로 고치지 않는다** — 받아 적기만 한다(`SPLIT.md`).
+- **금지**: `collector/`의 데이터 로직(`discover_data.py`, `affiliates.py`, `dests.py`, `route_stats.py`, 수집기), `publish.py`.
 
 ### 3) 백엔드 (backend) — deals.json **생산자**
-- **소유**: `collector/*.py` 전부(단 `discover_home.py` 제외) · `build_site.py` · `.github/workflows/` · `data/` · `tests/`
+- **소유**: `collector/*.py` 전부(단 `discover_home.py` 제외) · `publish.py` · `.github/workflows/` · `data/` · `tests/`
 - **소유(문서)**: `BACKEND.md`(작업 방식·챕터 로드맵·곁가지 백로그) — 다른 세션은 읽기만.
 - **역할**: 수집(가격·광역·메일)·특가 판정·`deals.json` 생성·예약/비교 링크·크론·SEO 페이지.
 - **금지**: `docs/assets/discover.js|css`, `discover_home.py`.
@@ -82,17 +83,29 @@
 - **작업 시작 전** `git fetch && git merge origin/main` (또는 `git pull`)로 main을 당긴다.
 - **작게 자주 커밋**하고, 화면/기능 단위가 끝나면 **main에 병합**한다. 브랜치를 오래 끌지 않는다.
 - `main`에는 **크론(github-actions)이 매일 `data/`·`docs/`를 커밋**한다 → push 전 반드시 pull.
-  - 충돌 시: 생성물(`docs/index.html`, `docs/data/deals.json`, `docs/routes/`, `data/prices.db`)은 **재빌드로 해결**한다.
-    `git checkout --theirs data/prices.db` → `python collector/build_site.py` → `git add -A && git commit`
+  - **충돌 시 기본은 「원격(크론) 것을 취한다」**다. 생성물만 이름으로 집는다 — 방향(merge/rebase)을 안 탄다:
+    ```bash
+    git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml docs/robots.txt data/prices.db
+    ```
+    > ⚠️ `--theirs`를 쓰지 말 것. **merge와 rebase에서 가리키는 대상이 반대**다(merge=원격 / rebase=내 커밋).
+    > 이 저장소는 `pull.rebase=false`지만 누가 rebase로 당기면 **에러 없이 자기 재빌드를 취한다.**
+    > `collect.yml`이 이미 이 반전을 겪고 주석으로 남겼다.
+    > ⚠️ **`docs/` 전체를 덮지 말 것.** `docs/assets/`(프론트 소스)·`docs/CNAME`·`docs/data/world.geojson`이
+    > 같이 날아간다. 사람이 쓴 파일의 충돌은 생성물 충돌이 아니라 **진짜 충돌**이다 — 그 구역 담당이 푼다.
+  - **재빌드가 필요하면** 두 단계다(2026-09-15 M3 T3부터 진입점이 둘이다):
+    ```bash
+    python collector/publish.py                    # v1 JSON
+    python site/build.py --api docs/v1 --out docs  # 화면
+    ```
   - 🔴 **재빌드는 `.env`가 있는 환경에서만 한다.** `.env`는 gitignore라 **백엔드 worktree에만** 있다.
     시크릿 없이 돌리면 `affiliates.py`가 제휴 링크를 **경고 없이 뺀다**(딜 전건 → 0건).
     예외가 안 나고 사이트도 멀쩡히 뜨기 때문에 **커밋하고 나서야, 또는 영영 모른다.**
     (2026-09-08 프론트가 실제로 겪었고 커밋 직전에 잡았다. 백엔드 BB30)
-  - `.env`가 없으면 **재빌드하지 말 것.** 생성물은 `git checkout --theirs`로 원격 것을 취하고,
+  - `.env`가 없으면 **재빌드하지 말 것.** 위의 `git checkout origin/main -- …`로 원격 것을 취하고,
     그 구역 담당 세션(백엔드)에 재빌드를 요청한다. 크론이 다음 날 어차피 다시 만든다.
   - 재빌드했으면 **커밋 전에 확인한다** — **딜 수와 제휴 링크 수가 같아야 한다**:
     ```bash
-    python -c "import json; d=json.load(open('docs/data/deals.json',encoding='utf-8')); print(len(d['deals']), sum(any(l.get('ad') for l in x['links']) for x in d['deals']))"
+    python -c "import json; d=json.load(open('docs/v1/deals.json',encoding='utf-8')); print(len(d['deals']), sum(any(l.get('ad') for l in x['links']) for x in d['deals']))"
     # 두 숫자가 같으면 정상. 다르면 시크릿 없이 빌드된 것이다.
     ```
     > ⚠️ **절대 건수를 기대값으로 적지 말 것.** 딜 수는 매일 바뀐다 —
@@ -147,11 +160,13 @@ SendMessage { to: "<이름>", ... }   → 그 세션에 직접 전달
 ## 기술 스택 (고정 — 바꾸지 말 것)
 - Python 정적 생성 + **순수 JS**(프레임워크 없음) + 지도만 `d3-geo`(벤더링, `docs/assets/`).
 - **Node/npm 빌드 도입 금지.** 런타임 CDN 의존 0(폰트 제외).
-- 빌드 진입점은 **`python collector/build_site.py` 하나**. 크론도 이것만 호출한다.
+- 빌드 진입점은 **둘**이다(M3 T3, 2026-09-15~) — `collector/publish.py`(데이터→v1 JSON)와
+  `site/build.py`(v1→화면). 크론도 이 순서로 부르고 **둘 다 성공해야 `docs/`를 커밋**한다.
 - 호스팅 GitHub Pages(`docs/`), 비용 $0 유지.
 
 ## 로컬 확인
-- `python collector/build_site.py` 로 재생성 후 `docs/index.html` 확인.
+- `python collector/publish.py && python site/build.py --api docs/v1 --out docs` 로 재생성 후 `docs/index.html` 확인.
+  화면만 다시 그릴 땐 뒤엣것만: `python site/build.py --api docs/v1 --out docs`(또는 `--api fixtures/v1`로 네트워크·DB 없이).
 - `fetch()`는 `file://`에서 막히지만 **deals.json·world.geojson은 HTML에 인라인**되므로 파일 열기로도 동작한다.
 - 폰/실서버 확인: `python -m http.server 8000 --bind 0.0.0.0 --directory docs`
 

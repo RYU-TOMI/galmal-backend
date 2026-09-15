@@ -544,7 +544,7 @@ M6 후 `discover.js`가 `generated`를 읽게 되면 지운다.
 | **T5** | 백 | 🔴 **`SUBSCRIBE_ADDR`을 `theme.py` → `subscriptions.py`로 옮긴다** (BB32). `theme.py`와 같이 프론트로 딸려가면 **출처가 갈린다** — 자세한 근거는 `CONTRACT.md` §`address`의 출처 |
 | **T6** | 백 | 크론 「상태 점검」에 **`subscribe.address` == `MAIL_ADDRESS` 대조** 추가. 시크릿이 있는 유일한 자리다(`test.yml`엔 없다) → R1·R1b와 **한 점검이 셋을 막는다** |
 
-| **T7** | **기획** | **T3과 같은 창에서** 옛 경로를 가리키는 문서·도구를 고친다 — `CLAUDE.md` 5곳(:37 픽스처 경로 · :85-86 충돌 해결 절차 · :95 건강 확인 명령 · :150 빌드 진입점 · :154 로컬 확인), `design/` 목업 빌더 20개(`docs/data/deals.json` → `docs/v1/deals.json`), `CONTRACT.md` 「분리 전 현행」 절 |
+| **T7** | **기획** | ✅ **2026-09-15 완료.** T3과 같은 창에서 옛 경로를 가리키는 문서·도구를 고쳤다 — `CLAUDE.md` 5곳(:37 픽스처 경로 · :85-86 충돌 해결 절차 · :95 건강 확인 명령 · :150 빌드 진입점 · :154 로컬 확인), `design/` 목업 빌더 20개(`docs/data/deals.json` → `docs/v1/deals.json`), `CONTRACT.md` 「분리 전 현행」 절 |
 
 #### ✅ T1은 「덮어쓰기」가 아니라 「대조 후 교체」로 했다 (백엔드 설계, 2026-09-11)
 
