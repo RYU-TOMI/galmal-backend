@@ -238,7 +238,7 @@ class CommittedArtifactTest(unittest.TestCase):
     링크가 빠진 파일**이 나왔다. 커밋 직전에 알아채 복구했다.
 
     **눈으로는 못 잡는다** — 지도도 카드도 멀쩡히 뜨고 수익 링크만 없다.
-    `build_site`가 stderr로 외치지만 **사람은 경고를 넘긴다.** 그래서 여기서
+    `publish.py`가 stderr로 외치지만 **사람은 경고를 넘긴다.** 그래서 여기서
     막는다. 배포되는 건 파일이고, 이 테스트는 그 파일을 본다.
 
     (`test_site_url.DeployedArtifactTest`와 같은 부류 — 코드가 아니라 산출물을 본다.)
@@ -247,7 +247,7 @@ class CommittedArtifactTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import json
-        path = Path(__file__).resolve().parent.parent / "docs" / "data" / "deals.json"
+        path = Path(__file__).resolve().parent.parent / "docs" / "v1" / "deals.json"
         if not path.exists():
             raise unittest.SkipTest("deals.json이 아직 생성되지 않았다")
         cls.deals = json.loads(path.read_text(encoding="utf-8"))["deals"]

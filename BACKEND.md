@@ -64,8 +64,13 @@ python -m http.server 8000 --directory docs         # 실서버와 동일 확인
 ```
 
 ### 산출물을 커밋할 때 주의
-`build_site.py`를 돌리면 `docs/data/deals.json`·`docs/index.html`·`docs/routes/*`·`sitemap.xml`이
-그날 DB 기준으로 **전부 다시 써진다.** 이건 백엔드 산출물이지만 **프론트의 개발 픽스처이기도 하다.**
+`python collector/publish.py`(v1 JSON) → `python site/build.py --api docs/v1 --out docs`(화면)를
+돌리면 `docs/v1/*`·`docs/index.html`·`docs/routes/*`·`sitemap.xml`이 그날 DB 기준으로
+**전부 다시 써진다.** 이건 백엔드 산출물이지만 **프론트의 개발 픽스처이기도 하다.**
+
+⚠️ **딜 목록은 시각에 따라 달라진다** — `build_deals_json()`이 `now_kst()` 기준으로 신선도를
+자르므로 오후에 재빌드하면 아침 크론과 다른 건수가 나온다(2026-09-11 실측 138 → 129).
+**검증 목적의 재빌드는 커밋하지 않는다.**
 
 - 코드 변경 검증 목적으로만 돌렸다면 → `git checkout -- docs/` 로 되돌린다.
 - 산출물을 의도적으로 갱신했다면 → **딜 건수 변화를 보고에 적는다**(예: 103건 → 94건).
@@ -494,13 +499,11 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - `tests/test_labels.py`의 `test_known_taxonomy_divergence_is_only_these_two`가
     **새로 갈라지는 것만** 실패로 잡는다. 기획이 정하면 그 테스트를 지우면 된다.
 
-- **BB27. `build_site.py`에 죽은 코드가 있다.** (2026-09-02, BE4 T3에서 발견)
-  발견 홈으로 갈아타기 전 옛 사이트의 잔재다. **안 고쳤다** — 지우는 것 자체는
-  쉽지만 BE4 스코프 밖이고, 잘못 지우면 조용히 페이지가 비므로 따로 다룬다.
-  - `deal_card()` — 호출처 없음. 여기서만 쓰는 `sparkline()`도 사실상 죽었다.
-  - `mail_deal_rows()` · `mail_rows()` — 호출처 없음.
-  - `REGION_CHIPS` — import만 하고 안 쓴다.
-  - 지울 때 `charts.py`·`mail_deals` 테이블 사용처가 같이 비는지 확인할 것.
+- ~~**BB27. `build_site.py`에 죽은 코드가 있다.**~~ → **해결(2026-09-15, M3 T3)**:
+  `build_site.py`를 통째로 지우면서 `deal_card`·`sparkline`·`mail_deal_rows`·`mail_rows`가
+  같이 사라졌다. **따로 지우는 작업을 한 번도 안 했다** — 2026-09-08에 「이전이 곧 해결이라
+  따로 챕터를 열 이유가 없어졌다」고 판단한 그대로다. 죽은 코드를 급히 지웠으면
+  그 시간만 쓰고 결과는 같았을 것이다.
 
 - **BB28. 차트는 표본 임계를 지키는데 그 위의 문장은 안 지킨다.** (2026-09-08, 기획의 P7 질의를 확인하다 발견)
   BE4에서 두 차트를 `len(rows) < 2`로 통일했는데(`charts.NOT_ENOUGH`), **정작 2026-09-03
@@ -1126,7 +1129,7 @@ cmp -s <(tr -d '\r' < a) <(tr -d '\r' < b)     # 줄바꿈 정규화 후 비교
 ```bash
 # 1. 건강 확인 — 이 셋이 통과하면 방치 기간 동안 아무 일도 없었다는 뜻이다
 python -m unittest discover -s tests -t .          # 199건
-python -c "import json; d=json.load(open('docs/data/deals.json',encoding='utf-8')); print(len(d['deals']), sum(any(l.get('ad') for l in x['links']) for x in d['deals']))"
+python -c "import json; d=json.load(open('docs/v1/deals.json',encoding='utf-8')); print(len(d['deals']), sum(any(l.get('ad') for l in x['links']) for x in d['deals']))"
                                                     # 두 숫자가 같아야 한다
 find docs/v1 -type f | wc -l                        # 39
 ```
@@ -1293,3 +1296,61 @@ frontend `refs/heads/main`으로 갈려 있었다. 기획이 **`refs/heads/main`
   사람도 실수로 강제 push할 수 있고, 그걸 막는 게 이 규칙의 목적이다.
 - **T6 `repository_dispatch`는 `gh api`를 `run:` 스텝에서 부른다.** 마켓플레이스 액션
   (`peter-evans/repository-dispatch` 등)은 3번 설정에 막힌다.
+
+### M3 T3 — 백엔드가 HTML을 그만 만든다 ✅ (2026-09-15)
+
+```
+삭제   collector/build_site.py            (HTML 생성 전부 + BB27 죽은 코드)
+       docs/data/deals.json               (중간 재료였고, 이제 아무도 안 읽는다)
+개명   collector/publish_v1.py → publish.py   백엔드의 유일한 출구
+크론   publish.py(JSON) → site/build.py(화면)  두 스텝 다 성공해야 docs/ 를 커밋
+```
+
+**DoD**: **백엔드가 만드는 산출물에 HTML이 없다.** `publish.py`가 내는 건 JSON 4종뿐이다.
+
+⚠️ `collector/`에 HTML 문자열이 **아직 남아 있다** — DoD를 「태그 0건」으로 적으면 거짓이 된다.
+남은 자리와 각각의 예정:
+
+| 파일 | HTML | 어떻게 되나 |
+|---|---|---|
+| `theme.py` | 57줄 | **T4에서 삭제** (`send_alerts`의 `BASE_URL`만 env로 남긴다) |
+| `discover_home.py` | 134줄 | 원래 **프론트 소유**. 프론트가 `site/home.py`로 인수함 → M4 T5에서 사라진다 |
+| `charts.py` | 24줄 | 프론트가 `site/charts.py`로 인수함. **`site/route.py`는 자기 폴더 것을 쓴다**(실측) — 여기 남은 건 `tests/test_charts.py`만 쓰는 짝이고 **M4 T4에서 둘이 같이 간다** |
+| `send_alerts.py` | 16줄 | **남는다.** 메일 본문은 사이트 산출물이 아니다 — P1 개정(「백엔드는 **사이트에 올라가는 것**을 만들지 않는다」)이 정확히 이 자리를 위한 것이다 |
+
+즉 T3의 DoD는 **「생성 경로에서 HTML이 빠졌다」**이고, 파일 단위 청소는 T4·M4에서 끝난다.
+
+#### 🔴 함정 ① — 순서를 지켰고, 지킨 걸 확인했다
+
+`docs/data/deals.json`은 옛 산출물이 아니라 **v1의 중간 재료**였다(기획 발견).
+그냥 지웠으면 `deals_payload()`가 `if not src.exists(): return None`으로 **예외 없이**
+v1 딜 발행을 멈춘다. 게다가 **하한선 방어(BB1)의 기준**도 그 파일이었다 —
+안 옮겼으면 `prev=None`이 되어 **수집이 무너진 날 빈 산출물이 그대로 나간다.**
+
+옮긴 뒤 **보존 경로를 실제로 돌려** 확인했다(`build_deals_json`이 `None`을 주게 해서):
+
+```
+preserved 반환값        True
+deals.json 내용 유지    True      다시 쓰이지도 않았다(mtime 불변)
+meta.preserved          true
+meta.counts.deals       140       ← 어제 것을 그대로 센다. **나가는 것**을 세야 사실이다
+노선 발행               36개      딜이 보존돼도 노선은 계속 나간다
+```
+
+`_previous_deal_count()`도 `docs/v1/deals.json`을 본다 — 하한선이 꺼지지 않았다.
+
+#### 확인한 것
+
+- 테스트 **199건 통과**. 옛 파일을 지운 상태로도 통과
+- 옛 파일 없이 전체 파이프라인: v1 발행(노선 36 + 딜 140) → 화면 36장 생성
+- **BB30 두 겹 다 살아남음** — `.env`를 치우니 경고가 뜨고, 그 산출물을 커밋본 검사가 잡았다
+- `docs/data/world.geojson`은 **남긴다**(프론트 지도가 쓴다). 지운 건 `deals.json`뿐
+- 산출물 검증용 재빌드는 전부 `git checkout -- docs/`로 되돌렸다
+
+#### 딸려온 것
+
+- **BB27 해결** — 죽은 코드가 `build_site.py`와 함께 사라졌다
+- 계약 검증기의 봉투 검사를 뺐다. v1의 `schema`·`generated`는 `test_publish.py`의
+  `EnvelopeTest`가 `docs/v1/*.json` 전부에 대해 본다 — **두 곳에서 보면 갈린다**
+- 크론 커밋 게이트가 **발행·화면 둘 다 성공**을 요구하게 됐다. T3 전에는 옛 경로가
+  HTML을 먼저 써서 화면 실패 시에도 배포할 것이 남아 있었다

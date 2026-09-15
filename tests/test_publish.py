@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v1 API 계약 검증기 (`CONTRACT.md` §v1, `SPLIT.md` M1 T3).
+"""v1 API 계약 검증기 (`CONTRACT.md` §v1).
 
 계약은 **두 세션 사이의 약속**이라 한쪽이 조용히 어기면 반대편이 M2에서 발견한다.
 그때는 이미 프론트가 그 응답을 전제로 코드를 짜 놓은 뒤다. 여기서 먼저 잡는다.
@@ -14,8 +14,9 @@
 
 **③ 🔴 창은 백엔드, 임계는 프론트 — 그리고 이 응답으로 현행 화면이 재현되는가.**
 M1의 DoD가 「계약이 현행 노선 페이지의 모든 숫자를 덮는가」다. 계약에 적힌
-프론트 규칙(`n>=3`·앞에서 10개·상위 8개)을 실제로 적용해 **현행 `route_page()`가
-쓰는 값과 대조**한다. 하나라도 어긋나면 M2에서 프론트가 막힌다.
+프론트 규칙(`n>=3`·앞에서 10개·상위 8개)을 실제로 적용해 **현행 화면이
+쓰는 값과 대조**했다. M3 T3에서 옛 HTML이 사라져 그 대조는 끝났고,
+남은 것은 **발행값이 계약을 지키는가**다.
 """
 import json
 import re
@@ -24,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 
 import config
-import publish_v1
+import publish
 import subscriptions
 import theme
 from route_stats import WINDOW_DAYS, airline_min, month_min, weekday_min
@@ -104,7 +105,7 @@ class MetaTest(unittest.TestCase):
         real = subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE
         subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE = "구독요청", "구독해지"
         try:
-            sub = publish_v1.meta_payload({}, False)["subscribe"]
+            sub = publish.meta_payload({}, False)["subscribe"]
             self.assertEqual(sub["subject_subscribe"], "구독요청")
             self.assertEqual(sub["subject_unsubscribe"], "구독해지")
         finally:

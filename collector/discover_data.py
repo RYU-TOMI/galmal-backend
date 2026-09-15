@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""발견 지도 데이터 계약 — broad_offers + dests 메타를 조인해 docs/data/deals.json 생성.
+"""발견 지도 데이터 계약 — broad_offers + dests 메타를 조인해 딜 목록 생성.
 
 프론트(지도+피드)는 오직 이 JSON에만 의존한다. 스키마:
 {
@@ -93,8 +93,13 @@ def _route_code(origin_airport, dest, available):
 
 
 def _previous_deal_count():
-    """커밋돼 있는 `deals.json`의 딜 수. 없거나 못 읽으면 None."""
-    path = DOCS / "data" / "deals.json"
+    """커밋돼 있는 `docs/v1/deals.json`의 딜 수. 없거나 못 읽으면 None.
+
+    M3 T3까지는 `docs/data/deals.json`을 봤다. 그 파일이 사라지면서 **하한선의
+    기준도 v1으로 옮겼다** — 안 옮겼으면 비교 대상이 없어 `prev=None`이 되고
+    **하한선 방어(BB1)가 조용히 꺼진다.** 수집이 무너진 날 빈 산출물이 그대로 나간다.
+    """
+    path = DOCS / "v1" / "deals.json"
     try:
         return len(json.loads(path.read_text(encoding="utf-8"))["deals"])
     except (OSError, ValueError, KeyError, TypeError):
@@ -184,7 +189,10 @@ def _when_label(dep, today):
 
 def build_deals_json(conn, routes=None):
     """`routes` — 이번 빌드가 실제로 만든 노선 페이지 코드 집합(`{"ICN-FUK", ...}`).
-    `build_site`가 넘긴다. 생략하면 `route`는 전부 `None`이 된다."""
+    `publish.py`가 넘긴다. 생략하면 `route`는 전부 `None`이 된다.
+
+    반환: `{"origins": …, "deals": [...]}`.
+    **하한선 미달이면 `None`** — 그날은 발행 쪽이 어제 것을 그대로 둔다(BB1)."""
     routes = routes or set()
     now = timeutil.now_kst()
     today = now.date()          # 제품용 '오늘'은 KST — 사용자 기준이다(BB17)
@@ -279,21 +287,21 @@ def build_deals_json(conn, routes=None):
                   f"(이전 {prev}건 · 하한 {MIN_DEALS}건 또는 이전의 {MIN_RATIO:.0%})")
             print("    수집 실패·목적지 코드 변경·신선도 컷을 의심할 것. "
                   "이전 산출물을 그대로 둔다.")
-            return -1
+            return None
 
     origins = {k: {"name": v[0], "lat": v[1], "lon": v[2]}
                for k, v in ORIGIN_HUBS.items() if any(dl["o"] == k for dl in deals)}
-    out = {"updated": now.strftime("%Y-%m-%d %H:%M"),
-           "origins": origins, "deals": deals}
-    (DOCS / "data").mkdir(parents=True, exist_ok=True)
-    (DOCS / "data" / "deals.json").write_text(
-        json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return len(deals)
+    # 파일을 쓰지 않는다 — **발행은 `publish.py`가 한다.** 여기는 내용만 만든다.
+    # `updated`(완성된 문장)는 v1에서 `generated`(ISO 8601)가 됐고 봉투는 발행 쪽 몫이다.
+    return {"origins": origins, "deals": deals}
 
 
 if __name__ == "__main__":
     import db
     conn = db.connect()
-    n = build_deals_json(conn)          # 단독 실행 시 route는 전부 None
+    built = build_deals_json(conn)      # 단독 실행 시 route는 전부 None
     conn.close()
-    print("deals.json 유지(하한선 미달)" if n < 0 else f"deals.json 생성: {n}건")
+    if built is None:
+        print('갱신 안 함 (하한선 미달)')
+    else:
+        print(f'딜 {len(built["deals"])}건 — 파일은 publish.py가 쓴다')

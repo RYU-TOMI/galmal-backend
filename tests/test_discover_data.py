@@ -181,7 +181,7 @@ class SeenConversionTest(unittest.TestCase):
 class BuildDealsSeenTest(unittest.TestCase):
     """`build_deals_json`이 `seen`을 실제로 채우고 유령 가격을 거르는가.
 
-    `DOCS`를 임시 폴더로 갈아끼운다 — 안 그러면 커밋된 `docs/data/deals.json`
+    `DOCS`를 임시 폴더로 갈아끼운다 — 안 그러면 커밋된 `docs/v1/deals.json`
     (프론트 픽스처)을 테스트가 덮어쓴다.
     """
 
@@ -209,11 +209,11 @@ class BuildDealsSeenTest(unittest.TestCase):
              found.replace(tzinfo=None).isoformat()))
 
     def build(self):
+        # DOCS를 빈 임시 폴더로 돌린다 — 안 그러면 하한선(BB1)이 **진짜 산출물**의
+        # 딜 수와 비교해 테스트 데이터를 미달로 보고 None을 준다.
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(discover_data, "DOCS", Path(tmp)):
-                discover_data.build_deals_json(self.conn)
-                written = (Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8")
-        return json.loads(written)
+                return discover_data.build_deals_json(self.conn)
 
     def test_seen_is_emitted_with_kst_offset(self):
         self.add("FUK", 100000, seen_days_ago=1)
@@ -252,7 +252,9 @@ class BuildDealsSeenTest(unittest.TestCase):
         out = self.build()
         self.assertEqual(out["deals"], [])
         self.assertEqual(out["origins"], {})
-        self.assertIn("updated", out)
+        # 봉투(`schema`·`generated`)는 여기 없다 — 발행 쪽이 씌운다.
+        # `tests/test_publish.py`의 `EnvelopeTest`가 그걸 본다(M3 T3).
+        self.assertEqual(set(out), {"origins", "deals"})
 
 
 class RouteCodeTest(unittest.TestCase):
@@ -327,42 +329,51 @@ class ArtifactGuardTest(unittest.TestCase):
             return discover_data.build_deals_json(self.conn)
 
     def seed_previous(self, tmp, count):
-        """이전 산출물을 흉내 낸다."""
-        d = Path(tmp) / "data"
+        """어제 발행된 v1 응답을 흉내 낸다.
+
+        M3 T3에서 하한선의 기준이 `docs/data/deals.json` → `docs/v1/deals.json`으로
+        옮겨졌다. 여기를 안 옮기면 **비교 대상이 없어 하한선이 조용히 꺼진다.**
+        """
+        d = Path(tmp) / "v1"
         d.mkdir(parents=True, exist_ok=True)
         (d / "deals.json").write_text(json.dumps(
-            {"updated": "2026-09-01 07:10", "origins": {},
+            {"schema": "v1", "generated": "2026-09-01T07:10:00+09:00", "origins": {},
              "deals": [{"price": i} for i in range(count)]}), encoding="utf-8")
 
-    def test_empty_day_preserves_the_previous_artifact(self):
-        """딜 0건이어도 기존 파일을 덮지 않는다 — 이게 F1의 생성 쪽 방어다."""
+    def test_empty_day_yields_nothing_to_publish(self):
+        """딜 0건이면 `None`을 준다 — 이게 F1의 생성 쪽 방어다.
+
+        T3 전에는 이 함수가 파일을 직접 썼고 "안 덮는다"가 방어였다. 이제는
+        **아무것도 돌려주지 않는 것**이 방어이고, `publish.py`가 그걸 받아
+        `deals.json`을 건드리지 않는다. 어제 파일이 그대로 남는 결과는 같다.
+        """
         with tempfile.TemporaryDirectory() as tmp:
             self.seed_previous(tmp, 100)
-            self.assertEqual(self.build_into(tmp), -1)
-            kept = json.loads((Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8"))
+            self.assertIsNone(self.build_into(tmp))
+            kept = json.loads((Path(tmp) / "v1" / "deals.json").read_text(encoding="utf-8"))
             self.assertEqual(len(kept["deals"]), 100, "이전 산출물이 남아 있어야 한다")
-            self.assertEqual(kept["updated"], "2026-09-01 07:10",
-                             "updated도 예전 시각 그대로 — 어제 데이터에 오늘 도장을 찍지 않는다")
+            self.assertEqual(kept["generated"], "2026-09-01T07:10:00+09:00",
+                             "시각도 예전 그대로 — 어제 데이터에 오늘 도장을 찍지 않는다")
 
     def test_a_sharp_drop_is_treated_as_an_accident(self):
         """절반 이하로 떨어지면 사고로 본다(실측 평소 변동은 최대 -12.5%)."""
         n = self.add(MIN_DEALS + 5)
         with tempfile.TemporaryDirectory() as tmp:
             self.seed_previous(tmp, int(n / MIN_RATIO) + 10)
-            self.assertEqual(self.build_into(tmp), -1)
+            self.assertIsNone(self.build_into(tmp))
 
     def test_a_normal_day_writes_through(self):
         """평소 변동 범위면 그대로 쓴다."""
         n = self.add(MIN_DEALS + 20)
         with tempfile.TemporaryDirectory() as tmp:
             self.seed_previous(tmp, n + 3)
-            self.assertEqual(self.build_into(tmp), n)
+            self.assertEqual(len(self.build_into(tmp)["deals"]), n)
 
     def test_no_previous_artifact_always_writes(self):
-        """지킬 이전 산출물이 없으면 적은 건수라도 쓴다 — 그게 최선이다."""
+        """지킬 이전 산출물이 없으면 적은 건수라도 낸다 — 그게 최선이다."""
         self.add(2)
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(self.build_into(tmp), 2)
+            self.assertEqual(len(self.build_into(tmp)["deals"]), 2)
 
     def test_a_degraded_previous_does_not_lock_us_out(self):
         """이전 파일이 이미 하한선 미만이면 검사를 걸지 않는다.
@@ -372,7 +383,7 @@ class ArtifactGuardTest(unittest.TestCase):
         self.add(3)
         with tempfile.TemporaryDirectory() as tmp:
             self.seed_previous(tmp, 5)          # 이전도 하한선 미만
-            self.assertEqual(self.build_into(tmp), 3)
+            self.assertEqual(len(self.build_into(tmp)["deals"]), 3)
 
 
 class PriorHistoryTest(unittest.TestCase):
@@ -402,9 +413,7 @@ class PriorHistoryTest(unittest.TestCase):
     def build(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(discover_data, "DOCS", Path(tmp)),                     contextlib.redirect_stdout(io.StringIO()):
-                discover_data.build_deals_json(self.conn)
-                raw = (Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8")
-        return json.loads(raw)["deals"][0]
+                return discover_data.build_deals_json(self.conn)["deals"][0]
 
     def test_today_is_excluded_from_low(self):
         """오늘 값이 제일 싸도 `low`에 들어가지 않는다 — 그래야 비교가 성립한다."""
