@@ -706,6 +706,24 @@ git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml
   막힌 게 아니라 **한 단계 더 거치게 한 것**이다 — 정말 강제 push가 필요한 날(예: BB3 저장소 크기 때문에
   이력을 다시 쓰는 날)엔 관리자가 ruleset을 **잠깐 끄고 → 하고 → 다시 켠다.** 실수로는 못 하고 일부러는 할 수 있다.
 
+#### 🔴 변수 값에 `
+`이 들어가 있었다 (기획 확인, 2026-09-15)
+
+사용자가 변수 둘을 등록한 뒤 **값의 길이**를 재보니:
+
+```
+API_URL   "https://galmal.kr
+"   19자   🔴 복붙하다 줄바꿈이 딸려 들어감
+SITE_URL  "https://galmal.kr"        17자   ✅
+```
+
+그대로 뒀으면 점검이 `https://galmal.kr⏎/v1/meta.json`을 불러 **M4부터 매일 실패**한다.
+기획이 `gh variable set`으로 고쳤고 둘 다 17자임을 재확인했다.
+
+> **설정값은 「이름이 맞나」가 아니라 「값이 정확히 그것인가」를 본다.** 화면으로는 똑같이 보인다 —
+> `gh api …/actions/variables --jq '.value|length'` 처럼 **길이나 원본 표현**으로 재야 보인다.
+> 이 저장소가 반복해 만난 유형(함정 6·8·9)의 설정값 판이다.
+
 **진행**
 
 | 저장소 | 담당 | 상태 |
@@ -750,7 +768,7 @@ git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml
 | T1 | ~~사용자~~ 기획 | `galmal-backend`·`galmal-frontend` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). **이름은 사용자 결정으로 `galmal-frontend`·`galmal-backend`** — 처음 `galmal-web`·`galmal-api`로 만들었다가 같은 날 바꿨다(비어 있어 비용 0, 옛 이름은 GitHub이 새 이름으로 넘겨준다). 세션 이름과 똑같이 읽히고, M6의 `galmal-plan`과 짝이 맞는다. 도메인 `api.galmal.kr`은 저장소 이름과 무관하므로 그대로다. `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
 | T2 | **사용자** | **secrets 5종**을 `galmal-backend`의 **`production` 환경**에 등록 — ✅ **2026-09-11 완료** |
 | T3 | **사용자** | PAT 발급(fine-grained, `galmal-frontend`의 dispatch 권한만, **만료는 설정 가능한 최대로**) → `galmal-backend`의 **secret**. 만료돼도 R1c 점검이 다음 날 잡는다 |
-| T3b | **사용자** | `galmal-backend`에 **변수(vars) 둘** — 🔴 **secrets가 아니다**(secrets에 넣으면 로그에서 `***`로 가려져 점검 실패 메시지를 못 읽는다). `SITE_URL` = `https://galmal.kr` · `API_URL` = `https://galmal.kr` (**M5에서 `https://api.galmal.kr`로 이것 하나만 바꾼다**). 워크플로는 변수가 없으면 기본값을 쓰므로 M3 동안은 지금 저장소에 만들 필요 없다(백엔드 확정) |
+| T3b | **사용자** | ✅ **2026-09-15 완료.** `galmal-backend`에 **변수(vars) 둘** — 🔴 **secrets가 아니다**(secrets에 넣으면 로그에서 `***`로 가려져 점검 실패 메시지를 못 읽는다). `SITE_URL` = `https://galmal.kr` · `API_URL` = `https://galmal.kr` (**M5에서 `https://api.galmal.kr`로 이것 하나만 바꾼다**). 워크플로는 변수가 없으면 기본값을 쓰므로 M3 동안은 지금 저장소에 만들 필요 없다(백엔드 확정) |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
 | T5 | 프 | `site/` `assets/` `fixtures/` `deploy.yml` 이동 |
 
