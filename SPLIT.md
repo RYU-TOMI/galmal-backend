@@ -88,7 +88,7 @@ M6 정리            ⬜  사용자 손 필요
 ## 🔴 사용자만 할 수 있는 일 (재개 후)
 
 - **M3 승인** — 챕터라 스코프 잠금이 필요하다
-- **M4**: 레포 2개 생성(**둘 다 public**) · secrets 8종 재등록 · PAT 발급
+- **M4**: 레포 2개 생성(**둘 다 public**) · **secrets 5종** 재등록 · 변수 2종 · PAT 발급
 - **M5**: DNS(`api.galmal.kr` CNAME) · Pages 커스텀 도메인 · 검색엔진 재확인
 - **M6**: 구형 레포 rename 후 **private** ← ⚠️ **M5 끝나기 전에 누르면 galmal.kr이 404**
 
@@ -748,7 +748,7 @@ git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml
 | 태스크 | 담당 | 내용 |
 |---|---|---|
 | T1 | ~~사용자~~ 기획 | `galmal-backend`·`galmal-frontend` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). **이름은 사용자 결정으로 `galmal-frontend`·`galmal-backend`** — 처음 `galmal-web`·`galmal-api`로 만들었다가 같은 날 바꿨다(비어 있어 비용 0, 옛 이름은 GitHub이 새 이름으로 넘겨준다). 세션 이름과 똑같이 읽히고, M6의 `galmal-plan`과 짝이 맞는다. 도메인 `api.galmal.kr`은 저장소 이름과 무관하므로 그대로다. `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
-| T2 | **사용자** | secrets 8종을 `galmal-backend`에 등록 |
+| T2 | **사용자** | **secrets 5종**을 `galmal-backend`의 **`production` 환경**에 등록 — ✅ **2026-09-11 완료** |
 | T3 | **사용자** | PAT 발급(fine-grained, `galmal-frontend`의 dispatch 권한만, **만료는 설정 가능한 최대로**) → `galmal-backend`의 **secret**. 만료돼도 R1c 점검이 다음 날 잡는다 |
 | T3b | **사용자** | `galmal-backend`에 **변수(vars) 둘** — 🔴 **secrets가 아니다**(secrets에 넣으면 로그에서 `***`로 가려져 점검 실패 메시지를 못 읽는다). `SITE_URL` = `https://galmal.kr` · `API_URL` = `https://galmal.kr` (**M5에서 `https://api.galmal.kr`로 이것 하나만 바꾼다**). 워크플로는 변수가 없으면 기본값을 쓰므로 M3 동안은 지금 저장소에 만들 필요 없다(백엔드 확정) |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
@@ -890,7 +890,13 @@ build_site.py:101   CAST(strftime('%w', …) AS INTEGER)    →  EXTRACT(DOW FRO
 ## 6. 사용자만 할 수 있는 일 (세션이 대신 못 함)
 
 - M4 T1 레포 2개 생성 (둘 다 **public** — private이면 Pages가 안 뜬다)
-- M4 T2 secrets 8종 (`TP_TOKEN` `MAIL_ADDRESS` `MAIL_APP_PASSWORD` `ANTHROPIC_API_KEY` `TP_MARKER` `TP_TRIP_TRS` `TP_TRIP_P` `TP_TRIP_CAMPAIGN`)
+- M4 T2 **secrets 5종** — `TP_TOKEN` `MAIL_ADDRESS` `MAIL_APP_PASSWORD` `ANTHROPIC_API_KEY` `TP_MARKER`
+  > 🔴 **「8종」이 아니다** (기획 정정, 2026-09-15). 워크플로가 **참조하는 이름**은 8개지만
+  > **실제로 등록된 적이 있는 건 5개**다(예전 저장소 실측 — `gh api …/actions/secrets`).
+  > `TP_TRIP_TRS`·`TP_TRIP_P`·`TP_TRIP_CAMPAIGN`은 **Trip.com 제휴 파라미터**이고 한 번도 등록된 적이 없다.
+  > 없으면 `affiliates._trip_configured()`가 False라 Trip.com 링크가 **수수료 없는 일반 링크**로 나간다
+  > — 사용자 화면은 같고 아무것도 안 깨진다. **M4에 필요 없다.**
+  > (기획이 「참조하는 이름」을 세고 「등록된 것」으로 전달한 실수다 — 함정 9번과 같은 유형.)
 - M4 T3 PAT 발급
 - **예외 절차 — M4에서 이력을 잘못 올려 다시 올려야 할 때만**: 해당 저장소 Settings → Rules → `main-protection`을
   **잠깐 끄고** 다시 올린 뒤 **바로 켠다.** 우회 권한자를 일부러 0명으로 둬서 소유자도 이 절차 없이는 못 한다

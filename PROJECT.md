@@ -169,9 +169,11 @@ PROJECT.md에 열린 결정을 중복해 적지 않는다 — 두 곳에 적으�
 - 저장소: https://github.com/RYU-TOMI/promo-ticket-site (공개) — **`SPLIT.md` M4에서 셋으로 나뉜다**
 - 사이트: **https://galmal.kr** (2026-09-05 전환, BE7). `docs/CNAME`이 정본이고 `theme.BASE_URL`과 일치해야 한다
 - 이전 후 예정: `galmal.kr`(프론트 Pages) · `api.galmal.kr`(백엔드 Pages → 나중에 자체 서버)
-- GitHub Secrets 8종: `TP_TOKEN`, `MAIL_ADDRESS`, `MAIL_APP_PASSWORD`, `ANTHROPIC_API_KEY`,
-  `TP_MARKER`, `TP_TRIP_TRS`, `TP_TRIP_P`, `TP_TRIP_CAMPAIGN`
-  → M4에서 **백엔드 저장소에 재등록**해야 한다(사용자만 가능). `SITE_URL`·배포용 PAT도 함께
+- GitHub Secrets **5종(등록됨)**: `TP_TOKEN`, `MAIL_ADDRESS`, `MAIL_APP_PASSWORD`, `ANTHROPIC_API_KEY`, `TP_MARKER`
+- 🔴 **미등록 3종**: `TP_TRIP_TRS`, `TP_TRIP_P`, `TP_TRIP_CAMPAIGN` — Trip.com 제휴 파라미터.
+  없으면 Trip.com 링크가 수수료 없이 나간다(화면은 동일). **Travelpayouts에서 Trip.com 프로그램 승인 후** 등록한다.
+- **M4 재등록** — ✅ 5종은 `galmal-backend`의 **`production` 환경 시크릿**으로 옮겼다(2026-09-11).
+  변수 `SITE_URL`·`API_URL`은 **저장소 레벨**(공개값이라 환경에 넣으면 점검이 못 읽는다). 배포용 PAT는 M4 직전에 발급.
 - 전용 메일: flightpromokr@gmail.com (항공사 뉴스레터 구독 + 구독 신청 접수)
 - 비용: 연 25,700원 — 도메인 `galmal.kr` 첫해 16,500원(갱신 23,100원) + 메일 파싱 API ~연 2,600원.
   호스팅·Actions는 공개 저장소라 $0이고, 분리 후에도 **두 저장소 모두 공개**라 그대로 $0이다.
