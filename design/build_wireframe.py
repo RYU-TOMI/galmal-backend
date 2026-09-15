@@ -15,7 +15,7 @@ OUT = ROOT / "design" / "wireframe.html"
 d3a = (ROOT / "docs/assets/d3-array.min.js").read_text(encoding="utf-8")
 d3g = (ROOT / "docs/assets/d3-geo.min.js").read_text(encoding="utf-8")
 world = (ROOT / "docs/data/world.geojson").read_text(encoding="utf-8")
-D = json.loads((ROOT / "docs/data/deals.json").read_text(encoding="utf-8"))
+D = json.loads((ROOT / "docs/v1/deals.json").read_text(encoding="utf-8"))
 
 sel = [x for x in D["deals"] if x["o"] == "SEL"]
 n_sel = len(sel)

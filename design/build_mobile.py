@@ -12,7 +12,7 @@ sys.path.insert(0, BASE)
 from _app import CSS
 from _fmt import tier, direct, card_tags, money, daterange, datesub
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 SEL = sorted([d for d in D["deals"] if d["o"] == "SEL"], key=lambda x: x["price"])
 N = len(SEL)
 
@@ -295,7 +295,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "자유 줌을 넣었다면 이 설계가 성립하지 않았다.</p>"
         "<p class=note>&#9888; 이 세션엔 브라우저가 없어 실제 렌더를 못 본다. "
         "특히 <b>시트 드래그 감각</b>은 손으로 만져봐야 안다.</p>"
-        "<p class=foot>생성 <b>design/build_mobile.py</b> &middot; 데이터 <b>docs/data/deals.json</b>"
+        "<p class=foot>생성 <b>design/build_mobile.py</b> &middot; 데이터 <b>docs/v1/deals.json</b>"
         "(서울 " + str(N) + "건) &middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b></p>"
         "</div></body></html>")
 

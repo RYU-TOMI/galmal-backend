@@ -9,7 +9,7 @@ import sys, os as _os
 sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 
 TOP = ["해변", "도시", "미식", "자연", "문화", "온천"]
 SUB = {"리조트", "스노클링", "서핑", "섬", "야경", "쇼핑", "마천루", "골목",
@@ -304,7 +304,7 @@ html = (
     "날짜 두 단은 <b>그대로 남긴다</b>(가독성 때문에 바꾼 것이라).<br>"
     "<b>잃는 것</b> &mdash; 작은 카드에선 &lsquo;태그 개수 = 즐길 거리&rsquo; 신호를 못 읽는다. "
     "그 신호는 히어로와 상세에 남는다. 상세 설계는 <b>detail.html</b>.</div>"
-    "<p class=foot>생성 <b>design/build_density.py</b> &middot; 데이터 <b>docs/data/deals.json</b>"
+    "<p class=foot>생성 <b>design/build_density.py</b> &middot; 데이터 <b>docs/v1/deals.json</b>"
     "(서울 " + str(len(deals)) + "건) &middot; 확정 스펙 <b>../SPEC.md</b> &sect;CH3</p>"
     "</div></body></html>")
 

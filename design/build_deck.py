@@ -13,7 +13,7 @@ from _app import CSS as APP_CSS, OBS_FLOOR, DROP_FLOOR, record
 from _fmt import TIERS, TOP, SUB, tier, direct, card_tags, money
 from _scene import make_scene, app
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 deals = D["deals"]
 N = len(deals)
 ctx = make_scene(D)
@@ -271,7 +271,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "상세가 핀에서 피어난다. 아래 검색 한 줄에서 <b>분위기와 도시 이름을 같이</b> 찾고, "
         "날짜·예산은 값이 범위라 알약으로 뺐다.</p>"
         "<div class=files>" + files_html + "</div>"
-        "<p class=cap>목업 " + str(len(FILES)) + "개. 전부 <code>docs/data/deals.json</code>으로 그렸고 "
+        "<p class=cap>목업 " + str(len(FILES)) + "개. 전부 <code>docs/v1/deals.json</code>으로 그렸고 "
         "<code>open.html</code>은 <b>눌러볼 수 있다</b>.</p></div>"
 
         "<div class=sec><div class=num>03 &nbsp;결정</div>"

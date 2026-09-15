@@ -14,7 +14,7 @@ sys.path.insert(0, BASE)
 from _app import CSS
 from _fmt import tier, money
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 SEL = sorted([d for d in D["deals"] if d["o"] == "SEL"], key=lambda x: x["price"])
 ORG = D["origins"]["SEL"]
 
@@ -255,7 +255,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         " · ".join(d["ko"] for d in rest) + ")은 서로 멀어 한 화면에 안 담긴다. "
         "<b>대륙이 아니라 &lsquo;나머지 전부&rsquo;</b>라 far 뷰와 같게 보일 수 있다 &mdash; "
         "칩을 아예 안 두는 것도 방법이다. 사용자 판단.</p>"
-        "<p class=foot>생성 <b>design/build_far.py</b> &middot; 데이터 <b>docs/data/deals.json</b>"
+        "<p class=foot>생성 <b>design/build_far.py</b> &middot; 데이터 <b>docs/v1/deals.json</b>"
         "(서울 " + str(len(SEL)) + "건, 장거리 " + str(len(LONG)) + "건) &middot; "
         "핀 밀도 <b>pins.html</b> &middot; 단계 <b>stages.html</b></p>"
         "</div></body></html>")

@@ -10,7 +10,7 @@ import sys, os as _os
 sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 
 TOP = ["해변", "도시", "미식", "자연", "문화", "온천"]
 SUB = {"리조트", "스노클링", "서핑", "섬", "야경", "쇼핑", "마천루", "골목",
@@ -384,7 +384,7 @@ html = (
     "<tr><td>그 딜이 오늘 사라졌다</td><td>출발지만 적용하고 안내 문구 &mdash; <b>F5</b>, "
     "다른 허브에 같은 목적지가 있으면 제안한다</td></tr></table>"
 
-    "<p class=foot>생성 <b>design/build_detail.py</b> &middot; 데이터 <b>docs/data/deals.json</b>"
+    "<p class=foot>생성 <b>design/build_detail.py</b> &middot; 데이터 <b>docs/v1/deals.json</b>"
     "(서울 " + str(len(deals)) + "건) &middot; 확정 스펙 <b>../SPEC.md</b> &sect;CH4 &middot; "
     "현행 구현 <b>docs/assets/discover.js</b></p>"
     "</div></body></html>")

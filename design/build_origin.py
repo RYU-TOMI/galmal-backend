@@ -12,7 +12,7 @@ sys.path.insert(0, BASE)
 from _app import CSS
 from _fmt import money, tier, direct, daterange, datesub
 
-D = json.load(io.open(os.path.join(BASE, "..", "docs", "data", "deals.json"), encoding="utf-8"))
+D = json.load(io.open(os.path.join(BASE, "..", "docs", "v1", "deals.json"), encoding="utf-8"))
 deals = D["deals"]
 N = len(deals)
 
@@ -339,7 +339,7 @@ html = ("<!doctype html><html lang=ko><head><meta charset=utf-8>"
         "<p class=note>&#9888; 이 세션엔 브라우저가 없어 실제 렌더를 못 본다. "
         "특히 <b>뒤 배경 흐림(<code>backdrop-filter</code>)</b>이 저사양 기기에서 어떤지는 봐야 안다 &mdash; "
         "안 되면 <b>불투명 배경으로 폴백</b>한다.</p>"
-        "<p class=foot>생성 <b>design/build_origin.py</b> &middot; 데이터 <b>docs/data/deals.json</b> "
+        "<p class=foot>생성 <b>design/build_origin.py</b> &middot; 데이터 <b>docs/v1/deals.json</b> "
         "&middot; 확정 홈 <b>home.html</b> &middot; 스펙 <b>../SPEC.md</b> &sect;CH2</p>"
         "</div></body></html>")
 
