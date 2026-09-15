@@ -1354,3 +1354,49 @@ meta.counts.deals       140       ← 어제 것을 그대로 센다. **나가�
   `EnvelopeTest`가 `docs/v1/*.json` 전부에 대해 본다 — **두 곳에서 보면 갈린다**
 - 크론 커밋 게이트가 **발행·화면 둘 다 성공**을 요구하게 됐다. T3 전에는 옛 경로가
   HTML을 먼저 써서 화면 실패 시에도 배포할 것이 남아 있었다
+
+### M4 T4 준비 — `collect.yml`을 옮길 때 빠뜨리면 조용히 죽는 것 (2026-09-15 실측)
+
+사용자가 `galmal-backend`에 **`production` 환경**을 만들고 시크릿을 **환경에** 넣었다.
+레포 시크릿이 아니다 — `test.yml`이 `on: push`라 어느 브랜치에서든 돌고, 레포 시크릿이면
+그 워크플로도 전부 읽는다. 브랜치가 셋이고 세션 셋이 각자 push하므로 `main`으로 묶는 이득이 있다.
+
+```yaml
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    environment: production     # 🔴 이 줄이 없으면 시크릿이 주입되지 않는다
+```
+
+⚠️ **없으면 에러가 아니라 빈손이다.** `_env()`가 전부 `None`이 되고 수집 스텝은
+`continue-on-error`라 **초록불로 끝난다.** BB30 경고와 마지막 상태 점검이 잡긴 하지만
+**M4 체크리스트에 넣어 둔다** — 이 줄 하나가 하루치 수집을 날린다.
+
+**크론이 멈출 설정이 없는지 직접 봤다**(승인자·대기시간이 있으면 매일 멈춘다):
+
+```
+protection_rules   branch_policy 하나뿐 — Required reviewers 없음 · Wait timer 없음 ✅
+배포 브랜치        main (스케줄 실행은 항상 기본 브랜치라 안 걸린다)
+환경 시크릿 5종    ANTHROPIC_API_KEY · MAIL_ADDRESS · MAIL_APP_PASSWORD · TP_MARKER · TP_TOKEN
+저장소 시크릿 0종 · 저장소 변수 2종   API_URL=https://galmal.kr · SITE_URL=https://galmal.kr
+```
+
+**변수는 환경이 아니라 저장소 레벨이다** — 공개값이고, 환경에 넣으면 환경을 안 쓰는 잡에서
+못 읽어 T6 점검이 꼬인다. `API_URL`은 **M5에서 `https://api.galmal.kr`로 이것 하나만** 바꾼다.
+
+#### 🔴 시크릿은 5종이다 — `TP_TRIP_*` 셋은 등록된 적이 없다
+
+기획이 「8종」으로 세어 전달했다가 정정했다(워크플로가 **참조하는 이름**을 세고 **등록된 것**으로
+전한 것). 그래서 **Trip.com 링크는 한 번도 수수료 링크였던 적이 없다.** 오늘 산출물 실측:
+
+```
+Aviasales   141건  ad=true   marker 붙음     ← 유일한 수익 경로
+Trip.com    141건  ad=false  민짜 URL
+스카이스캐너·네이버·구글  ad=false  민짜 URL
+```
+
+**고지는 정확하다** — 수수료가 안 붙는 링크에 「(광고)」를 달지 않았다.
+`test_ad_is_true_exactly_when_the_url_earns`가 지키는 불변식이 그대로 성립한 것이다.
+`_trip_configured()`가 넷 중 하나만 없어도 민짜로 폴백하도록 처음부터 짜여 있었고,
+**Trip.com 제휴 승인 자체가 아직 안 났으므로 지금 상태가 맞다**(BE5 · BB24).
+승인이 나면 그때 셋을 등록한다 — M4에는 필요 없다.
