@@ -13,7 +13,7 @@ import json
 # 어떤 화면은 옛 주소를, 어떤 화면은 새 주소를 가리키게 된다.
 #
 # 2026-09-05 `galmal.kr`로 전환. 커스텀 도메인 파일은 `docs/CNAME`에 있고 GitHub이
-# Pages 설정에서 만든다. `build_site.py`는 `docs/`를 지우지 않으므로(덮어쓰기만)
+# Pages 설정에서 만든다. 발행·빌드 어느 쪽도 `docs/`를 지우지 않으므로(덮어쓰기만)
 # 크론 재빌드가 그 파일을 날리지 않는다 — 날아가면 사이트가 죽는 게 아니라 404가 된다.
 BASE_URL = "https://galmal.kr"
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
@@ -26,7 +26,7 @@ SITE_NAME = "갈래말래"
 # 노선별로 다르게 굽지 않는다. OG는 래스터(PNG)여야 하는데 Pillow도 Node도 없고,
 # 넣으면 "런타임 의존 0 / Node 금지"와 부딪힌다(`CLAUDE.md`). 정적 1장으로 간다.
 # 원본과 재생성 스크립트는 기획 구역이다 — `design/og.png` · `python design/build_og.py`.
-# 크론은 `build_site.py`만 부르므로 이 파일은 빌드 의존이 아니다.
+# 크론은 `design/build_og.py`를 부르지 않으므로 이 파일은 빌드 의존이 아니다.
 OG_IMAGE = BASE_URL + "/assets/og.png"
 
 

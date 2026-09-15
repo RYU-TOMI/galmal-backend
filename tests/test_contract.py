@@ -7,7 +7,7 @@
 
 두 방향으로 검사한다:
   1. **생산 로직** — 인메모리 DB로 `build_deals_json()`을 돌린 결과가 계약에 맞나
-  2. **커밋된 산출물** — 실제로 배포된 `docs/data/deals.json`이 계약에 맞나
+  2. **커밋된 산출물** — 실제로 발행된 `docs/v1/deals.json`이 계약에 맞나
 
 둘은 성격이 다르다. 1은 코드가 옳은지, 2는 배포된 것이 옳은지 본다.
 
@@ -30,7 +30,7 @@ import discover_data
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT = ROOT / "CONTRACT.md"
-ARTIFACT = ROOT / "docs" / "data" / "deals.json"
+ARTIFACT = ROOT / "docs" / "v1" / "deals.json"
 
 REGIONS = {"jp", "cn", "sea", "island", "oc", "eu", "am", "etc", "dom"}
 HAULS = {"short", "mid", "long"}
@@ -138,14 +138,14 @@ def validate(payload, vocab, parent=None, fields=None):
     fields = fields if fields is not None else contract_fields()
     errs = []
 
-    for key in ("updated", "origins", "deals"):
+    # 🔴 **봉투는 여기서 안 본다.** v1의 `schema`·`generated`는 `test_publish.py`의
+    # `EnvelopeTest`가 `docs/v1/*.json` 전부에 대해 검사한다. 두 곳에서 보면 갈린다.
+    # (M3 T3 전에는 여기서 `updated`를 봤다 — 그 필드는 v1에 없다.)
+    for key in ("origins", "deals"):
         if key not in payload:
             errs.append(f"최상위 키 누락: {key}")
     if errs:
         return errs
-
-    if not UPDATED_RE.match(str(payload["updated"])):
-        errs.append(f"updated 형식이 'YYYY-MM-DD HH:MM'이 아니다: {payload['updated']!r}")
 
     origins, deals = payload["origins"], payload["deals"]
     if not isinstance(origins, dict):
@@ -407,11 +407,11 @@ class GeneratedOutputTest(unittest.TestCase):
              fresh.replace(tzinfo=None).isoformat()))
 
     def build(self):
+        # DOCS를 빈 임시 폴더로 돌린다 — 안 그러면 하한선(BB1)이 **진짜 산출물**의
+        # 딜 수와 비교해 테스트 데이터를 미달로 보고 None을 준다.
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.object(discover_data, "DOCS", Path(tmp)):
-                discover_data.build_deals_json(self.conn)
-                raw = (Path(tmp) / "data" / "deals.json").read_text(encoding="utf-8")
-        return json.loads(raw)
+                return discover_data.build_deals_json(self.conn)
 
     def assertValid(self, payload):
         errs = validate(payload, self.vocab, self.parent)
@@ -451,7 +451,7 @@ class GeneratedOutputTest(unittest.TestCase):
 
 
 class CommittedArtifactTest(unittest.TestCase):
-    """배포된 `docs/data/deals.json`이 계약에 맞는가.
+    """배포된 `docs/v1/deals.json`이 계약에 맞는가.
 
     생산 로직이 옳아도 커밋된 산출물이 옛 스키마로 남아 있으면, 그걸 픽스처로
     쓰는 프론트가 어긋난다. 그래서 파일 자체도 검사한다.
@@ -459,7 +459,7 @@ class CommittedArtifactTest(unittest.TestCase):
 
     def test_artifact_satisfies_the_contract(self):
         if not ARTIFACT.exists():
-            self.skipTest("docs/data/deals.json이 없다 (아직 생성 전)")
+            self.skipTest("docs/v1/deals.json이 없다 (아직 생성 전)")
         payload = json.loads(ARTIFACT.read_text(encoding="utf-8"))
         errs = validate(payload, *contract_vocab())
         self.assertEqual(errs, [], "커밋된 산출물의 계약 위반:\n  " + "\n  ".join(errs))

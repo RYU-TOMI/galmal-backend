@@ -2,13 +2,13 @@
 """노선 통계 — `offers`에서 창(window)을 잘라 집계한다.
 
 **이 모듈은 커넥션만 받는다.** 파일 경로도, 화면도, 발행 형식도 모른다.
-`publish_v1`(v1 JSON)과 `build_site.route_page()`(옛 HTML)가 **같은 함수**를 부르므로
-두 경로가 갈릴 수 없다. 이전(M3)이 끝나면 옛 HTML 쪽이 사라지고 여기와 `publish_v1`만 남는다.
+`publish.py`(v1 JSON)만 부른다. M3 T3까지는 `build_site.route_page()`(옛 HTML)도 같이 불렀고,
+**같은 함수를 썼기에 두 경로가 갈릴 수 없었다** — 그 덕에 이전 내내 동등성이 유지됐다.
 
 왜 따로 떼었나 (M3 T0, 2026-09-11):
-  원래 `build_site.py` 안에 있었고 `publish_v1`이 그걸 import했다. **살아남을 쪽이
-  사라질 쪽에 얹혀 있던 것**이다(BACKEND.md §11.11). T3에서 `build_site`의 HTML을
-  걷어낼 때 통계까지 딸려 흔들리지 않게, 먼저 떼어 둔다.
+  원래 `build_site.py` 안에 있었고 발행 쪽이 그걸 import했다. **살아남을 쪽이
+  사라질 쪽에 얹혀 있던 것**이다(BACKEND.md §11.11). T3에서 `build_site`를 지울 때
+  통계까지 딸려 흔들리지 않게 먼저 떼어 뒀다.
 
 🔴 **sqlite 전용 SQL은 이 파일에만 있다** — `strftime` 두 곳(`month_min`·`weekday_min`).
 나중에 Postgres로 갈 때 고칠 곳이 여기 두 줄이다(`SPLIT.md` §5c 이식 표면).

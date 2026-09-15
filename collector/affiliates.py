@@ -67,7 +67,7 @@ def missing_secrets():
 
     **함정은 절차가 아니라 여기다.** 충돌 해결 규칙은 재빌드 환경에 시크릿이
     있다고 가정하는데, 크론(Actions)은 있고 로컬은 사람마다 다르다.
-    빌드가 조용히 통과하면 아무도 못 알아챈다 → `build_site`가 이걸 보고 외친다.
+    발행이 조용히 통과하면 아무도 못 알아챈다 → `publish.py`가 이걸 보고 외친다.
     """
     return [k for k in REQUIRED_SECRETS if not _env(k)]
 

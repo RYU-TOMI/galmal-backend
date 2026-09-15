@@ -3,7 +3,7 @@
 
 판정 기준: 같은 노선·같은 유형(직항/경유)의 최근 BASELINE_DAYS일
 가격 중앙값 대비 DEAL_RATIO 이하. 직항과 경유는 시세가 다르므로 분리 계산.
-사용: python collector/detect_deals.py  (build_site.py에서도 import)
+사용: python collector/detect_deals.py  (send_alerts.py에서도 import)
 """
 import statistics
 import sys
