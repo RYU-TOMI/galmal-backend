@@ -17,12 +17,17 @@
 
 Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·규칙은 **`CLAUDE.md`**, 프론트↔백 인터페이스는 **`CONTRACT.md`**(deals.json 스키마)가 단일 출처.
 
-| 세션 | 폴더 | 브랜치 | 소유 |
-|---|---|---|---|
-| 기획 | `../galmal-plan` | `plan` | PRODUCT·IA·FLOWS·**SPEC**·COPY·DESIGN·DECISIONS·CONTRACT·PLAN·PROJECT.md, `design/` |
-| 프론트 | `../galmal-frontend` | `frontend` | `site/`(화면 생성), `docs/assets/discover.js|css`, `fixtures/`, **FRONTEND·BACKLOG.md** |
-| 백엔드 | `../galmal-backend` | `backend` | `collector/*.py`, `.github/workflows/`, `data/`, `tests/` |
-| (통합) | `promo-ticket-site` | `main` | 크론이 매일 `data/`·`docs/` 커밋 → **배포 원본** |
+| 세션 | 폴더 | 브랜치 |
+|---|---|---|
+| 기획 | `../galmal-plan` | `plan` |
+| 프론트 | `../galmal-frontend` | `frontend` |
+| 백엔드 | `../galmal-backend` | `backend` |
+| (통합) | `promo-ticket-site` | `main` — 크론이 매일 `data/`·`docs/`를 커밋한다. **배포 원본** |
+
+> 🔴 **누가 무엇을 소유하는지는 여기 안 적는다.** `CLAUDE.md` §「세션 3개와 담당 구역」이 단일 출처다.
+> 2026-09-16까지 이 표에 소유 열이 **복사본으로** 있었고, 같은 날 기획과 프론트가 각자 한쪽만
+> 고쳐 **이미 갈려 있었다.** 바로 윗줄이 「단일 출처는 `CLAUDE.md`」라고 말하는데도 그랬다 —
+> **출처를 선언하는 것만으로는 복사본이 안 사라진다. 복사본을 지워야 사라진다.**
 
 - 작업 전 `git merge origin/main`, 기능 단위로 main 병합(트렁크 기반, 브랜치 오래 끌지 않기).
 - `.env`는 gitignore라 worktree에 자동 복사되지 않음 → **백엔드 worktree에만 복사해 둠**(수집·빌드용).
