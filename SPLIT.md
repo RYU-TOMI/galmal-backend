@@ -794,6 +794,7 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 | T3b | **사용자** | ✅ **2026-09-15 완료.** `galmal-backend`에 **변수(vars) 둘** — 🔴 **secrets가 아니다**(secrets에 넣으면 로그에서 `***`로 가려져 점검 실패 메시지를 못 읽는다). `SITE_URL` = `https://galmal.kr` · `API_URL` = `https://galmal.kr` (**M5에서 `https://api.galmal.kr`로 이것 하나만 바꾼다**). 워크플로는 변수가 없으면 기본값을 쓰므로 M3 동안은 지금 저장소에 만들 필요 없다(백엔드 확정) |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
 | T5 | 프 | `site/` `assets/` `fixtures/` `deploy.yml` 이동 |
+| **T5b** | 프 | 🔴 **`build.json` 발행** — `site/build.py`가 `{"api_generated": <meta.generated>, "built": <빌드 시각>}`을 `docs/build.json`에 쓴다. **R1c 점검의 사이트 쪽 절반이다** — 이게 없으면 M3 T6은 백엔드 자기 배포만 보게 되고 **R1(PAT 만료)을 아무도 안 본다** |
 
 > 🔴 **M4에서 조심할 것 둘** (프론트가 M2 중 발견):
 > - **`site/build.py`는 `assets/`를 내보내지 않는다.** 정적 자산이라 빌드 산출물이 아니다 —
@@ -801,6 +802,16 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 > - **`docs/`를 비우고 다시 만들지 말 것.** `assets/`·`data/world.geojson`·`CNAME`이 같이 날아간다.
 >   `CNAME`이 날아가면 **커스텀 도메인이 풀린다**(`test_site_url.py`가 잠그는 그 파일).
 | T6 | 양쪽 | 배선: 백엔드 크론 끝 → `repository_dispatch` → 프론트 빌드·배포 |
+| **T6b** | 백 | 🔴 **상태 점검에 사이트 절반 추가** — `$SITE_URL/build.json`의 `api_generated` **==** `$API_URL/v1/meta.json`의 `generated`. **절대값이 아니라 두 값의 일치다.** PAT가 죽으면 사이트가 뒤처져 불일치, `SITE_URL`이 틀리면 404. `SITE_URL` 변수는 T3b에서 이미 등록돼 있다 |
+
+> 🔴 **T5b·T6b를 M4에서 빼먹으면 R1이 조용히 무방비가 된다.**
+> M3 T6(2026-09-16 완료)은 `$API_URL/v1/meta.json`만 본다. **지금은 그걸로 충분하다** —
+> 한 저장소가 v1과 화면을 같은 커밋으로 배포하니 API가 신선하면 화면도 신선하다.
+> **M4에서 그 등식이 깨진다.** 백엔드 Pages와 프론트 Pages가 따로 배포되므로,
+> PAT가 죽어 프론트가 몇 주째 안 구워져도 **API 점검은 매일 초록불**이다. BB18 그대로다.
+> R1c 대책은 §5 위험표에 적혀 있었지만 **태스크 행에는 없었다** — 위험표에만 있는 대책은
+> 실행되지 않는다(`PLAN.md` 함정 10과 같은 뿌리). 2026-09-16에 행으로 못 박았다.
+
 
 **DoD**: `ryu-tomi.github.io/galmal-frontend`이 현 사이트와 동일하게 뜬다.
 **도메인은 아직 안 건드렸다** — 이 시점에 galmal.kr은 구형이 계속 서빙한다.
