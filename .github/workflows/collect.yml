@@ -141,6 +141,13 @@ jobs:
       # 아무도 몰랐다(BB18). 잡을 실패로 만들면 GitHub가 저장소 소유자에게 메일을 보낸다.
       - name: 상태 점검
         if: always()
+        env:
+          # 🔴 secrets 가 아니라 vars 다. secrets 면 로그에서 ***로 가려져
+          # 「주소가 틀렸다」와 「배포가 멈췄다」를 구분할 수 없다.
+          # 변수가 없으면 기본값 — M3 동안은 지금 저장소에 안 만들어도 된다.
+          # M5에서 api.galmal.kr 로 **이 변수 하나만** 바꾼다.
+          API_URL: ${{ vars.API_URL || 'https://galmal.kr' }}
+          MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
         run: |
           fail=0
           note() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
@@ -159,6 +166,51 @@ jobs:
             note "- ⚠️ deals.json 갱신 안 함 (하한선 미달) — 사이트는 이전 딜을 계속 보여준다"
             fail=1
           fi
+          # ── API 점검 (R1·R1b·R1c) ─────────────────────────────────────────
+          # 무엇을 잡나: **배포가 멈춘 것**과 **주소가 틀린 것**.
+          # 수집은 초록불인데 배포만 죽으면 아무도 모른다 — BB18이 그랬다.
+          #
+          # ⚠️ 「오늘 것인가」로 짜면 매일 헛실패한다. 이 스텝은 push 직후에 도는데
+          #    Pages 배포가 ~25초 더 걸린다(실측) — 그 순간 라이브는 대개 **어제 것**이다.
+          #    그래서 **어제까지는 통과**시키고 **그보다 오래되면 실패**한다.
+          #    배포가 진짜 멈추면 다음 날 걸린다. 몇 주를 모르던 것보다 훨씬 낫다.
+          url="$API_URL/v1/meta.json"
+          meta=""
+          for wait in 0 30 45; do
+            [ "$wait" = 0 ] || sleep "$wait"
+            meta=$(curl -fsS --max-time 20 "$url" 2>/dev/null) && break
+          done
+          if [ -z "$meta" ]; then
+            # 🔴 부른 URL을 그대로 찍는다. 값에 \r 이 섞여 있어도 여기서 보인다 —
+            #    2026-09-15에 API_URL 값 끝에 \r\n 이 붙어 있던 적이 있다.
+            note "- ❌ API 점검: 못 받음 — $url"
+            echo "::error::$url 을 받지 못했다. 주소가 틀렸거나 배포가 죽었다."
+            fail=1
+          else
+            served=$(printf '%s' "$meta" | python -c "import sys,json; print(json.load(sys.stdin)['generated'][:10])")
+            addr=$(printf '%s' "$meta" | python -c "import sys,json; print(json.load(sys.stdin)['subscribe']['address'])")
+            today=$(TZ=Asia/Seoul date '+%Y-%m-%d')
+            yday=$(TZ=Asia/Seoul date -d 'yesterday' '+%Y-%m-%d')
+            if [ "$served" = "$today" ]; then
+              note "- ✅ API 점검: 오늘 것이 서빙 중 ($served)"
+            elif [ "$served" = "$yday" ]; then
+              note "- ✅ API 점검: 어제 것 ($served) — 배포 반영 대기로 본다"
+            else
+              note "- ❌ API 점검: **$served** 로 멈춰 있다 — $url"
+              echo "::error::배포가 멈췄다. $url 이 $served 를 서빙한다(오늘 $today)."
+              fail=1
+            fi
+            # 구독 메일함 대조 (BB32) — 시크릿이 있는 유일한 자리라 여기서만 볼 수 있다.
+            # 갈리면 사용자가 보낸 구독 메일을 **아무도 읽지 않는다.** 반송조차 안 온다.
+            if [ -n "$MAIL_ADDRESS" ] && [ "$addr" != "$MAIL_ADDRESS" ]; then
+              note "- ❌ 구독 주소 불일치: 화면은 **$addr** 인데 우리가 읽는 메일함은 다르다"
+              echo "::error::meta.subscribe.address($addr) != MAIL_ADDRESS. 구독 메일을 아무도 안 읽는다."
+              fail=1
+            elif [ -n "$MAIL_ADDRESS" ]; then
+              note "- ✅ 구독 주소: 우리가 읽는 메일함과 같다"
+            fi
+          fi
+
           [ "$fail" = "0" ] || {
             echo "::error::수집은 끝났고 데이터도 커밋됐지만 위 항목이 실패했다. 요약을 볼 것."
             exit 1
