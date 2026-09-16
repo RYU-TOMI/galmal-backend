@@ -20,8 +20,8 @@ Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·�
 | 세션 | 폴더 | 브랜치 | 소유 |
 |---|---|---|---|
 | 기획 | `../galmal-plan` | `plan` | PRODUCT·IA·FLOWS·**SPEC**·COPY·DESIGN·DECISIONS·CONTRACT·PLAN·PROJECT.md, `design/` |
-| 프론트 | `../galmal-frontend` | `frontend` | `docs/assets/discover.js|css`, `collector/discover_home.py`, **FRONTEND·BACKLOG.md** |
-| 백엔드 | `../galmal-backend` | `backend` | `collector/*.py`(discover_home 제외), `build_site.py`, `.github/workflows/` |
+| 프론트 | `../galmal-frontend` | `frontend` | `site/`(화면 생성), `docs/assets/discover.js|css`, `fixtures/`, **FRONTEND·BACKLOG.md** |
+| 백엔드 | `../galmal-backend` | `backend` | `collector/*.py`, `.github/workflows/`, `data/`, `tests/` |
 | (통합) | `promo-ticket-site` | `main` | 크론이 매일 `data/`·`docs/` 커밋 → **배포 원본** |
 
 - 작업 전 `git merge origin/main`, 기능 단위로 main 병합(트렁크 기반, 브랜치 오래 끌지 않기).
@@ -62,7 +62,8 @@ Claude 세션 3개가 **git worktree**로 나눠 작업한다. 담당 구역·�
 | `subscriptions.py` / `send_alerts.py` | 구독자 계산 / 알림 발송 |
 | `affiliates.py` | 예약 링크 빌더 (Trip.com 미승인 → 현재 Aviasales 폴백) |
 | `labels.py` / `theme.py` / `charts.py` | 라벨·도시명 / CSS·페이지셸 / 의존성 없는 SVG 차트 |
-| `build_site.py` | **단일 진입점**. index + 노선26페이지 + sitemap/robots 생성 |
+| `publish.py` | **백엔드 진입점**. `docs/v1/` JSON 4종 발행 (`meta`·`deals`·`routes/index`·`routes/{code}`) |
+| `site/build.py` | **프론트 진입점**(프론트 구역). v1 JSON → index + 노선 페이지 + sitemap/robots |
 
 ## 완료된 것 ✅
 - 데이터 수집·특가 판정·메일 파싱·구독 알림 파이프라인 (크론 매일 무결점 가동 중)
@@ -147,15 +148,20 @@ PROJECT.md에 열린 결정을 중복해 적지 않는다 — 두 곳에 적으�
    작업 중 발견한 곁가지는 **고치지 말고** 적재소에 한 줄 남긴다(기획 `SPEC.md` 미결 / 프론트 `BACKLOG.md`).
    → 상세는 `PLAN.md`·`FRONTEND.md`.
 2. **push 전 반드시 `git pull`.** 크론이 매일 `data/prices.db`·`docs/`를 커밋해 충돌 잦음.
-   충돌 시: `git checkout --theirs data/prices.db` 후 `python collector/build_site.py` 재실행 → add/commit.
+   충돌 시: 생성물은 **이름으로 집어 원격 것을 취한다** —
+   `git checkout origin/main -- docs/index.html docs/routes docs/v1 docs/sitemap.xml docs/robots.txt data/prices.db`.
+   🔴 `--theirs`를 쓰지 않는다(merge/rebase에서 가리키는 쪽이 반대다). 재빌드는 `.env`가 있는
+   **백엔드 worktree에서만** 하고, 커밋 전 「딜 수 == 제휴 링크 수」를 확인한다. 상세는 `CLAUDE.md`.
 3. **로컬 점검 방법** (서버 없이 가능):
    - 개발 중: `docs/index.html` 브라우저로 열기. 단 `fetch()`는 `file://`서 CORS 막힘
      → 개발 중엔 **JSON을 HTML에 인라인**하면 파일 열기로도 지도 확인 가능.
    - 실배포 동일 확인: `python -m http.server 8000` → localhost:8000.
    - 최종: GitHub Pages(반영 1~2분).
 4. **스택 고정**: Python 정적생성 + 순수 JS + 지도만 d3-geo(벤더링). Node/프레임워크 도입 금지.
-5. **빌드 진입점은 `build_site.py` 하나.** 크론이 이것만 호출 → 새 페이지도 여기에 붙임.
-6. **커밋 메시지 Co-Authored-By 라인 포함**(Claude Opus 4.8).
+5. **빌드 진입점은 둘이다**(M3 T3, 2026-09-15~) — `collector/publish.py`(데이터→v1 JSON) →
+   `site/build.py --api docs/v1 --out docs`(v1→화면). 크론이 이 순서로 부르고 **둘 다 성공해야** `docs/`를 커밋한다.
+   새 페이지는 `site/` 쪽에 붙인다.
+6. **커밋 메시지에 `Co-Authored-By: Claude` 라인 포함.** 모델명은 세션이 받는 지시를 따른다(여기 박아두지 않는다).
 
 ## 법적·보안 가드레일
 - 타 비교사이트(네이버/스카이스캐너/플레이윙즈) **DB 크롤링 금지** (여기어때 판례, 민사 10억).
