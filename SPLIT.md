@@ -806,7 +806,7 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 |---|---|---|
 | T1 | ~~사용자~~ 기획 | `galmal-backend`·`galmal-frontend` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). **이름은 사용자 결정으로 `galmal-frontend`·`galmal-backend`** — 처음 `galmal-web`·`galmal-api`로 만들었다가 같은 날 바꿨다(비어 있어 비용 0, 옛 이름은 GitHub이 새 이름으로 넘겨준다). 세션 이름과 똑같이 읽히고, M6의 `galmal-plan`과 짝이 맞는다. 도메인 `api.galmal.kr`은 저장소 이름과 무관하므로 그대로다. `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
 | T2 | **사용자** | **secrets 5종**을 `galmal-backend`의 **`production` 환경**에 등록 — ✅ **2026-09-11 완료** |
-| T3 | **사용자** | PAT 발급 → `galmal-backend`의 **secret**. 절차는 아래 박스. 만료돼도 R1c 점검(T6b)이 다음 날 잡는다 |
+| T3 | **사용자** | ✅ **2026-09-16 완료.** `DISPATCH_TOKEN`이 `galmal-backend`의 `production` 환경 시크릿으로 등록됨(기획 확인). **사용자가 만료 없음(No expiration)으로 발급했다** — 아래 박스 참조 |
 
 #### M4 T3 — PAT 발급 절차 (사용자 몫, 2026-09-16 확인)
 
@@ -816,7 +816,7 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 |---|---|
 | Token name | `galmal-backend → frontend dispatch` |
 | Resource owner | `RYU-TOMI` |
-| Expiration | **고를 수 있는 최대** (fine-grained는 보통 1년이 상한) |
+| Expiration | **No expiration** — 사용자가 실제로 이걸 골랐다(2026-09-16). 「보통 1년이 상한」이라고 적어뒀던 건 **내가 틀린 것**이다 |
 | Repository access | **Only select repositories** → **`galmal-frontend` 하나만** |
 | Repository permissions | **Contents: Read and write** — 이것 하나. 나머지는 전부 No access |
 
@@ -828,14 +828,61 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 **`production` 환경**의 secret으로 `DISPATCH_TOKEN` 이름으로 등록.
 **변수(vars)가 아니라 secret이다** — 토큰은 로그에서 가려져야 한다(`API_URL`과 반대 이유).
 
-> **만료가 1년이면 2027-09에 조용히 죽는다.** 그게 R1이고, 대책이 T6b다 —
-> 사이트의 `api_generated`가 API의 `generated`와 어긋나면 **다음 날 잡힌다.**
-> 달력에 적어둘 필요가 없게 만드는 것이 이 설계의 요점이다.
+##### 만료 없음으로 발급됐다 — 무엇이 바뀌고 무엇이 안 바뀌나 (2026-09-16)
+
+**바뀐 것**: R1의 원래 얼굴(**조용한 만료**)은 사실상 사라졌다. 2027-09에 죽을 일이 없다.
+
+**안 바뀐 것**: **T6b는 그대로 필요하다.** 같은 증상(「수집은 초록불인데 프론트만 안 구워진다」)이
+만료 말고도 온다 — 권한 오설정(`Actions`를 줬을 때의 403), 토큰 폐기, 저장소 rename,
+Pages 배포 실패, 프론트 워크플로 자체의 실패. **T6b는 원인이 아니라 증상을 본다** —
+「사이트가 API보다 뒤처졌나」. 그래서 원인 목록이 바뀌어도 계속 유효하다.
+
+**대신 생긴 것**: 만료 없는 자격증명이 하나 상시 존재한다. 범위는 **`galmal-frontend`의
+`Contents: Read and write` 하나**이므로, 새면 그 저장소에 push할 수 있고 → **galmal.kr에
+임의 내용이 배포될 수 있다.** 작지 않지만 한정적이다. 지금 걸려 있는 완화:
+환경 시크릿이라 로그에서 가려지고, 저장소에 ruleset이 걸려 있고, 저장소가 둘뿐이다.
+
+→ **교환은 합리적이다.** 「조용히 죽는 것」이 「상시 존재하는 것」보다 이 프로젝트에서 더 비쌌다
+(BB18이 그 증거다). 다만 **M6 이후 언젠가 재발급 주기를 정하는 것**은 남겨둔다 — 지금 할 일은 아니다.
 | T3b | **사용자** | ✅ **2026-09-15 완료.** `galmal-backend`에 **변수(vars) 둘** — 🔴 **secrets가 아니다**(secrets에 넣으면 로그에서 `***`로 가려져 점검 실패 메시지를 못 읽는다). `SITE_URL` = `https://galmal.kr` · `API_URL` = `https://galmal.kr` (**M5에서 `https://api.galmal.kr`로 이것 하나만 바꾼다**). 워크플로는 변수가 없으면 기본값을 쓰므로 M3 동안은 지금 저장소에 만들 필요 없다(백엔드 확정) |
 | **T4a** | 양쪽 | 🔴 **새 저장소의 첫 커밋에 `.gitattributes`** — `* text=auto eol=lf` (+`*.png *.db binary`). **지금 이 저장소에 넣지 않는다** — 아래 이유 |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
+| **T4b** | 백 | 🔴 **새 저장소의 `collect.yml`에서 `schedule:` 트리거를 뺀다** — M4 동안은 `workflow_dispatch`(손으로 돌리기)만. **구형 크론이 아직 돌고 있다.** 아래 이유. M5에서 맞바꾼다 |
 | T5 | 프 | `site/` `assets/` `fixtures/` `deploy.yml` 이동 |
 | **T5b** | 프 | 🔴 **`build.json` 발행** — `site/build.py`가 `{"api_generated": <meta.generated>, "built": <빌드 시각>}`을 `docs/build.json`에 쓴다. **R1c 점검의 사이트 쪽 절반이다** — 이게 없으면 M3 T6은 백엔드 자기 배포만 보게 되고 **R1(PAT 만료)을 아무도 안 본다** |
+
+#### 🔴 크론이 두 군데서 돌면 안 된다 — 계획에 빠져 있었다 (기획 발견, 2026-09-16)
+
+**구형 크론을 언제 끄는지가 M0~M6 어디에도 없었다.** T4가 `collect.yml`을 새 저장소로
+**복사**하는 순간, 구형과 신형이 **둘 다 매일 돈다.** 구형은 M5까지 galmal.kr을 서빙해야 하므로
+그냥 끌 수도 없다. 실측으로 결과를 쟀다:
+
+| 무엇이 | 왜 두 번 되나 | 결과 |
+|---|---|---|
+| 🔴 **구독 알림 메일** | 중복 방지가 `alert_log` 테이블인데 그게 **`data/prices.db` 안**에 있다. DB가 저장소마다 따로다 | **구독자가 같은 특가를 두 번 받는다.** 우리는 각자 「안 보냈던 것만 보냈다」고 믿는다 |
+| **Claude API(Haiku) 파싱** | `emails` 테이블도 같은 DB다 | 같은 메일을 두 번 파싱한다. **이중 과금** |
+| **가격 API 호출** | — | `TP_TOKEN`으로 두 배 호출. 레이트 리밋 위험 |
+
+**중복 방지가 저장소 로컬 상태라는 게 핵심이다.** 두 저장소는 서로의 `alert_log`를 못 본다 —
+그래서 「이미 보냈나」를 각자 **자기 기준으로 맞게** 답하고, 합치면 두 번 보낸다.
+**어느 쪽도 예외를 내지 않는다.** 또 그 얼굴이다.
+
+**채택: 신형은 M4 동안 손으로만 돈다** (T4b)
+
+```
+M4   구형 schedule ✅ 돈다        신형 schedule ❌ (workflow_dispatch 만)
+     → 부작용 없는 채로 신형을 실제로 돌려볼 수 있다
+M5   구형 schedule ❌ 끈다  ←→  신형 schedule ✅ 켠다   (같은 작업으로)
+```
+
+**기각한 대안**
+- **(가) T4에서 구형 크론을 끈다** — galmal.kr이 M5까지 딜을 갱신 못 한다. 가용성이 아니라
+  **신선도**의 다운타임이지만, M5가 얼마나 걸릴지 모르는 상태에서 사이트를 먼저 멈출 이유가 없다.
+- **(나) 신형에서 부작용 스텝(알림·파싱)만 끈다** — 조건문이 늘고, **M5에서 되살리는 걸 잊으면
+  알림이 조용히 영영 안 나간다.** 트리거 한 줄을 빼는 쪽이 되돌리기도 눈에 보인다.
+
+> ⚠️ **M6에서 구형을 private으로 돌려도 Actions는 계속 돈다.** 비공개 저장소도 스케줄이 실행된다.
+> **끄는 건 M5에서 명시적으로** 해야 한다 — 「private으로 만들면 알아서 멈추겠지」가 아니다.
 
 #### 왜 `.gitattributes`를 **지금** 넣지 않고 새 저장소에 넣나 (2026-09-16)
 
@@ -906,6 +953,7 @@ BACKLOG.md 280/280 · PLAN.md 399/399 · CLAUDE.md 177/177 · PROJECT.md 190/190
 |---|---|
 | 1 | `api.galmal.kr` CNAME → `ryu-tomi.github.io`, `galmal-backend`에 커스텀 도메인 등록 |
 | 2 | 프론트 빌드가 `https://api.galmal.kr/v1/…`을 보게 전환 |
+| **2b** | 🔴 **크론 맞바꾸기** — 구형 `collect.yml`의 `schedule:` 제거(또는 Actions에서 비활성) **와** 신형의 `schedule:` 복원을 **같은 작업으로**. 한쪽만 하면 이중 발송(2b 이전)이나 수집 정지(2b 이후)다 |
 | 3 | 구형 레포에서 커스텀 도메인 해제 |
 | 4 | `galmal-frontend`에 `galmal.kr` 등록 → **HTTPS 인증서 발급 대기** (몇 분~수 시간) |
 | 5 | 서치콘솔·서치어드바이저 소유확인 유지 확인 + 사이트맵 재제출 |
