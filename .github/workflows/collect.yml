@@ -12,7 +12,12 @@ on:
   #
   # 중복 방지가 **저장소 로컬 상태**라는 게 핵심이다. 두 DB는 서로를 못 본다.
   # M5에서 구형을 끄면서 여기에 `schedule:`을 되살린다(맞바꿈).
-  workflow_dispatch: {}   # M4 동안은 손으로 돌려 검증한다
+  workflow_dispatch:      # M4 동안은 손으로 돌려 검증한다
+    inputs:
+      skip_side_effects:
+        description: "메일함·발송을 건드리지 않는다 (수동 검증용)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -57,6 +62,12 @@ jobs:
 
       - name: 프로모션 메일 수집
         id: mail
+        # 🔴 `mail_ingest` 는 메일함을 **소비한다** — `select("INBOX")` 가 readonly 가
+        # 아니고 `fetch(RFC822)` 가 PEEK 가 아니라 **\Seen 이 붙는다.** 다음 사람의
+        # `UNSEEN` 검색에서 사라진다. 구형 크론이 아직 galmal.kr 을 서빙하므로
+        # 여기서 읽어버리면 **라이브 사이트가 그날 딜을 잃는다.**
+        # 예약 실행(`inputs` 없음)에서는 null != true 라 **그대로 돈다.**
+        if: inputs.skip_side_effects != true
         continue-on-error: true   # 메일 실패가 가격 수집 커밋을 막지 않도록
         env:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
@@ -65,6 +76,9 @@ jobs:
 
       - name: 메일 LLM 파싱 (Claude API, Haiku)
         id: parse
+        # Claude API 과금이 붙는다. 수동 검증에 태울 이유가 없다.
+        # 예약 실행(`inputs` 없음)에서는 null != true 라 **그대로 돈다.**
+        if: inputs.skip_side_effects != true
         continue-on-error: true   # 파싱 실패가 나머지 파이프라인을 막지 않도록
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -74,6 +88,10 @@ jobs:
 
       - name: 구독 알림 발송
         id: alerts
+        # 구독자에게 **실제로 메일이 나간다.** 중복 방지(`alert_log`)는 저장소마다
+        # 따로라 양쪽이 각자 "처음"인 줄 알고 같은 딜을 두 번 보낼 수 있다.
+        # 예약 실행(`inputs` 없음)에서는 null != true 라 **그대로 돈다.**
+        if: inputs.skip_side_effects != true
         continue-on-error: true   # 발송 실패가 나머지 파이프라인을 막지 않도록
         env:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
