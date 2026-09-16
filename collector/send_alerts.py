@@ -10,6 +10,7 @@
 사용: python collector/send_alerts.py
 """
 import hashlib
+import os
 import smtplib
 import sys
 from datetime import date
@@ -21,15 +22,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
 from affiliates import booking_link
 from detect_deals import compute_deals
-import theme
 from labels import airline_name, city
 from mail_ingest import load_env
 from subscriptions import load_subscribers
 
 SMTP_HOST = "smtp.gmail.com"
-# 도메인은 `theme.BASE_URL`이 정본이다. 여기 따로 적어두면 도메인을 바꾸는 날
-# 알림 메일만 옛 주소를 가리킨다 — 화면은 멀쩡하고 메일만 틀리므로 아무도 모른다.
-SITE_URL = theme.BASE_URL + "/"
+
+# 🔴 **사이트 주소의 정본은 프론트다. 백엔드는 하드코딩하지 않는다** (M3 T4 · P2).
+#
+# 메일은 사이트로 링크하므로 주소를 알아야 하는 **유일한 백엔드 모듈**이다.
+# 예전엔 `theme.BASE_URL`에서 가져왔는데 그 파일이 프론트로 갔다 — 남겨뒀으면
+# 두 저장소가 각자 주소를 들고 **갈리는 날 메일만 옛 주소를 가리킨다.**
+# 화면은 멀쩡하고 메일만 틀리므로 아무도 모른다(R1b가 막으려던 것).
+#
+# 배포 설정(`vars.SITE_URL`)에서 받는다. 크론이 워크플로에서 넣어 준다.
+SITE_URL = (os.environ.get("SITE_URL") or "").strip().rstrip("/") + "/"
+
+
+def require_site_url():
+    """주소 없이 메일을 보내지 않는다.
+
+    비어 있으면 본문 링크가 `href="/"`가 되어 **어디로도 가지 않는 메일**이 나간다.
+    받는 사람은 링크가 죽었다고만 느끼고 우리는 보냈다고 믿는다 — 조용한 실패라
+    **여기서 멈춘다.** 발송 스텝은 `continue-on-error`라 파이프라인은 안 막힌다.
+    """
+    if SITE_URL == "/":
+        raise SystemExit("SITE_URL 이 비어 있다 — 메일 링크가 죽는다. "
+                         "배포 변수(vars.SITE_URL)를 확인할 것.")
 
 
 def email_hash(addr: str) -> str:
@@ -70,6 +89,7 @@ def build_mail(to_addr, deals):
 
 
 def main():
+    require_site_url()
     addr, pw = load_env()
     subs = load_subscribers(addr, pw)
     print(f"구독자 {len(subs)}명")

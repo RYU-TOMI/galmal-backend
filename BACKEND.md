@@ -1454,6 +1454,46 @@ url = $API_URL/v1/meta.json          vars.API_URL 없으면 https://galmal.kr
 3일 전 ❌ / 못 받음 ❌ / 주소 불일치 ❌. **실물 라이브 + 진짜 `MAIL_ADDRESS`로도 통과.**
 실패 메시지는 **부른 URL을 그대로** 찍는다(2026-09-15 `\r\n` 사건의 교훈).
 
+### M3 T4 ✅ — `theme.py`가 사라졌다 (2026-09-16). **M3 완료**
+
+```
+삭제   collector/theme.py            (프론트 site/shell.py 가 인수 완료)
+       tests/test_route_pages.py     (프론트 산출물을 검사하던 것 — 프론트로)
+바뀜   send_alerts  SITE_URL = env    ← 배포 설정(vars.SITE_URL)에서 받는다 (P2)
+       collect.yml  알림 발송 스텝에 SITE_URL 주입
+```
+
+**백엔드는 이제 사이트 주소를 모른다.** 아는 유일한 모듈이 `send_alerts`인데(메일이
+사이트로 링크한다) 그 값도 **하드코딩이 아니라 배포 설정**에서 온다.
+
+#### 빈 값으로 조용히 가지 않게 했다
+
+`SITE_URL`이 비면 본문 링크가 `href="/"`가 되어 **어디로도 가지 않는 메일**이 나간다.
+받는 사람은 링크가 죽었다고만 느끼고 우리는 보냈다고 믿는다 — 조용한 실패라
+`require_site_url()`이 **발송 전에 멈춘다.** 발송 스텝은 `continue-on-error`라
+파이프라인은 안 막힌다. 값 끝의 `
+`·`/`도 흡수한다(2026-09-15 사건).
+
+#### 테스트를 좁혔다 — 남의 산출물을 검사하지 않는다
+
+`test_site_url.py`가 `sitemap`·`robots`·노선 HTML·`CNAME`을 보고 있었다. **전부
+프론트가 만드는 것**이다. 백엔드 테스트가 남의 산출물을 검사하면 **그쪽이 고칠 때
+우리 테스트가 깨진다.** 남긴 건 하나다 — **백엔드 코드 어디에도 도메인이 없다.**
+예전엔 `theme.py`를 예외로 뒀는데 **이제 예외가 없다.**
+
+변이 검증: 백엔드 파일에 도메인을 한 줄 넣으면 잡고(`dests.py:307`), `SITE_URL`을
+env 대신 하드코딩하면 5건이 깨진다.
+
+#### `collector/`에 남은 HTML — DoD 대로다
+
+```
+charts.py     24줄  tests/test_charts.py 와 짝. M4 T4에서 같이 프론트로
+send_alerts   16줄  **영구 잔류** — 메일은 사이트 산출물이 아니다 (P1 개정)
+parse_mail 2 · publish 1    사소
+```
+
+`theme.py` 57줄 · `discover_home.py` 134줄이 사라졌다. **M3 끝.**
+
 #### 🔴 M4에서 이 점검이 반쪽이 된다 — T6b (기획 발견, 2026-09-16)
 
 지금 `$API_URL/v1/meta.json` **하나**로 충분한 이유는 **한 저장소가 v1과 화면을 같은 커밋으로

@@ -70,6 +70,9 @@ jobs:
           TP_TRIP_TRS: ${{ secrets.TP_TRIP_TRS }}
           TP_TRIP_P: ${{ secrets.TP_TRIP_P }}
           TP_TRIP_CAMPAIGN: ${{ secrets.TP_TRIP_CAMPAIGN }}
+          # 메일 본문이 사이트로 링크한다. 백엔드 코드는 주소를 모른다(P2) —
+          # 배포 설정에서 받는다. 비면 send_alerts 가 멈춘다(링크 죽은 메일 방지).
+          SITE_URL: ${{ vars.SITE_URL || 'https://galmal.kr' }}
         run: python collector/send_alerts.py
 
       - name: v1 API 발행 (백엔드)
