@@ -16,7 +16,9 @@ import json
 # Pages 설정에서 만든다. 발행·빌드 어느 쪽도 `docs/`를 지우지 않으므로(덮어쓰기만)
 # 크론 재빌드가 그 파일을 날리지 않는다 — 날아가면 사이트가 죽는 게 아니라 404가 된다.
 BASE_URL = "https://galmal.kr"
-SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
+# 정본은 `subscriptions.py`다(M3 T5). 여기서 다시 적으면 갈린다 — 이 파일은
+# T4에서 사라지므로 그때까지만 파생해 쓴다.
+from subscriptions import SUBSCRIBE_ADDR  # noqa: E402
 SITE_NAME = "갈래말래"
 
 # 링크 미리보기(카카오톡·슬랙·X) 썸네일. **절대 URL이어야 한다** — 상대 경로면

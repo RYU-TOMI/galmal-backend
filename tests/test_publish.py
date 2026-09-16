@@ -27,7 +27,6 @@ from pathlib import Path
 import config
 import publish
 import subscriptions
-import theme
 from route_stats import WINDOW_DAYS, airline_min, month_min, weekday_min
 
 V1 = Path(__file__).resolve().parent.parent / "docs" / "v1"
@@ -102,17 +101,29 @@ class MetaTest(unittest.TestCase):
 
         파서 상수를 바꿔서 발행값이 따라오는지 본다. 문자열을 복사해 두면 실패한다.
         """
-        real = subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE
-        subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE = "구독요청", "구독해지"
+        real = (subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE,
+                subscriptions.SUBSCRIBE_ADDR)
+        (subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE,
+         subscriptions.SUBSCRIBE_ADDR) = "구독요청", "구독해지", "다른@메일함.com"
         try:
             sub = publish.meta_payload({}, False)["subscribe"]
             self.assertEqual(sub["subject_subscribe"], "구독요청")
             self.assertEqual(sub["subject_unsubscribe"], "구독해지")
+            # 🔴 주소도 파서에서 온다 (M3 T5, BB32). 문자열을 복사해 두면 여기서 걸린다 —
+            # 갈리면 화면이 적는 주소와 우리가 읽는 메일함이 달라지고 **반송조차 안 온다.**
+            self.assertEqual(sub["address"], "다른@메일함.com")
         finally:
-            subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE = real
+            (subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE,
+             subscriptions.SUBSCRIBE_ADDR) = real
 
     def test_address_is_the_mailbox_we_actually_poll(self):
-        self.assertEqual(self.meta["subscribe"]["address"], theme.SUBSCRIBE_ADDR)
+        """발행된 주소가 **IMAP으로 로그인하는 그 메일함**인가.
+
+        T5 전에는 `theme.SUBSCRIBE_ADDR`과 비교했는데, 그건 화면 쪽 상수였다 —
+        「우리가 읽는 메일함」이 아니라 「화면이 적는 주소」를 확인한 셈이다.
+        """
+        self.assertEqual(self.meta["subscribe"]["address"],
+                         subscriptions.SUBSCRIBE_ADDR)
 
     def test_route_token_matches_what_the_parser_accepts(self):
         """본문에 실제로 들어갈 코드가 `ROUTE_RE`를 통과하는가."""
