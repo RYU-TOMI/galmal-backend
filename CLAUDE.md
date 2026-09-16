@@ -31,7 +31,8 @@
 - **산출**: 문서 + `design/*.html` 목업. **앱 코드는 건드리지 않는다.**
 
 ### 2) 프론트 (frontend) — deals.json **소비자**
-- **소유**: `docs/assets/discover.js` · `docs/assets/discover.css` · `collector/discover_home.py`(HTML 셸 템플릿) · `docs/assets/`의 벤더 라이브러리
+- **소유**: `site/`(화면 빌드 — `build.py`·`home.py`·`route.py`·`shell.py`·`charts.py`·`fmt.py`·`seo.py`) ·
+  `docs/assets/discover.js|css` · `docs/assets/`의 벤더 라이브러리 · `fixtures/`(v1 응답 사본)
 - **소유(문서)**: `FRONTEND.md`(작업 방식·챕터 로드맵) · `BACKLOG.md`(곁가지 적재소) — 다른 세션은 읽기만.
 - **역할**: 지도·카드 피드·필터 도크·확장 상세·반응형·인터랙션.
 - **개발 방식**: `fixtures/v1/`(기준선에서 받아 적은 v1 응답 사본)을 **픽스처**로 사용 → 백엔드를 기다리지 않는다.
@@ -39,10 +40,10 @@
 - **금지**: `collector/`의 데이터 로직(`discover_data.py`, `affiliates.py`, `dests.py`, `route_stats.py`, 수집기), `publish.py`.
 
 ### 3) 백엔드 (backend) — deals.json **생산자**
-- **소유**: `collector/*.py` 전부(단 `discover_home.py` 제외) · `publish.py` · `.github/workflows/` · `data/` · `tests/`
+- **소유**: `collector/*.py` 전부 · `publish.py` · `.github/workflows/` · `data/` · `tests/`
 - **소유(문서)**: `BACKEND.md`(작업 방식·챕터 로드맵·곁가지 백로그) — 다른 세션은 읽기만.
 - **역할**: 수집(가격·광역·메일)·특가 판정·`deals.json` 생성·예약/비교 링크·크론·SEO 페이지.
-- **금지**: `docs/assets/discover.js|css`, `discover_home.py`.
+- **금지**: `site/`, `docs/assets/discover.js|css`, `fixtures/`.
 
 ### 공용 (누구든, 단 조심)
 `README.md`, `.gitignore`, 이 파일 — 바꾸기 전 사용자에게 알린다.
