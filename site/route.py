@@ -267,7 +267,10 @@ def render(r, index, meta, generated_date):
     og_desc = (f"최근 30일 수집한 가격으로 본 {label} 왕복 시세. "
                "언제 가면 싼지 월·요일별로 비교했습니다.")
 
+    # `contact` 는 푸터 「문의」다. mailto 와 **같은 출처**(`meta.subscribe.address`)를 쓴다 —
+    # 한 페이지에 주소가 3번 나오는데 출처가 둘이면 바꾸는 날 하나만 남는다(`shell.py` 주석).
     return f"{code}.html", page(title, desc, f"/routes/{code}.html", body,
+                                contact=meta["subscribe"]["address"],
                                 jsonld=structured, og_title=og_title,
                                 og_description=og_desc)
 

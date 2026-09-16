@@ -28,8 +28,18 @@ import json
 # Pages 설정에서 만든다. `build_site.py`는 `docs/`를 지우지 않으므로(덮어쓰기만)
 # 크론 재빌드가 그 파일을 날리지 않는다 — 날아가면 사이트가 죽는 게 아니라 404가 된다.
 BASE_URL = "https://galmal.kr"
-SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SITE_NAME = "갈래말래"
+
+# 🔴 구독 주소는 **여기 없다.** `meta.json` 의 `subscribe.address` 에서 받는다.
+#
+# 그 값은 사이트 정체성이 아니라 **우리가 IMAP 으로 로그인해 신청 메일을 읽는 메일함**이고,
+# 정본은 `collector/subscriptions.py`(파서와 같은 자리)다. 계약 §subscribe 가 그래서 있다.
+#
+# 여기 복사본을 두면 주소를 바꾸는 날 CTA 는 따라오고 **푸터만 옛 주소로 남는다.**
+# 한 화면에 두 주소가 보이는데 오늘은 값이 같아서 아무도 못 본다. 그리고 틀린 쪽으로
+# 보낸 메일은 **반송조차 안 온다** — 둘 다 실재하는 주소라서 그냥 아무도 안 읽는다.
+# 사용자는 신청했다고 믿고 우리는 신청이 없다고 믿는다. (백엔드 BB32 의 남은 반쪽,
+# 2026-09-16 백엔드·기획이 짚어 제거했다.)
 
 # 링크 미리보기(카카오톡·슬랙·X) 썸네일. **절대 URL이어야 한다** — 상대 경로면
 # 크롤러가 못 읽어 미리보기가 백지가 된다. 한국에서 링크는 카톡으로 도니 유입에
@@ -306,11 +316,13 @@ CSS = """
               color:var(--accent); font-weight:900; font-size:.72rem; padding:3px 8px; border-radius:6px; }
 """
 
-FOOTER = f"""  <footer>
+def footer(contact):
+    """푸터. `contact` 는 `meta.json` 의 `subscribe.address` 다 — 위 주석 참조."""
+    return f"""  <footer>
     <p>· 가격은 조회 시점 기준이며 실제 예약 가격은 예약처에서 달라질 수 있습니다.</p>
     <p>· "예약" 링크를 통해 예약이 이루어지면 운영자가 수수료를 받을 수 있습니다.</p>
     <p>· 시세는 해당 노선·유형(직항/경유)의 최근 30일 수집 가격 중앙값입니다. 데이터: Travelpayouts(Aviasales)</p>
-    <p>· {SITE_NAME} · 문의 {SUBSCRIBE_ADDR}</p>
+    <p>· {SITE_NAME} · 문의 {contact}</p>
   </footer>"""
 
 
@@ -328,8 +340,8 @@ def jsonld_block(payload):
     return f'<script type="application/ld+json">{body}</script>'
 
 
-def page(title, description, canonical_path, body, extra_script="", jsonld=None,
-         og_title=None, og_description=None):
+def page(title, description, canonical_path, body, *, contact, extra_script="",
+         jsonld=None, og_title=None, og_description=None):
     """공통 <head>/<body> 셸. canonical_path 예: '/' 또는 '/routes/ICN-FUK.html'
 
     `jsonld` — schema.org 구조화 데이터(dict 또는 list). **화면에 실제로 있는 것만
@@ -371,7 +383,7 @@ def page(title, description, canonical_path, body, extra_script="", jsonld=None,
 <body>
 <main>
 {body}
-{FOOTER}
+{footer(contact)}
 </main>
 </body>
 </html>"""
