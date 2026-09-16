@@ -600,7 +600,13 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     같이 딸려가면 안 되고 **`subscriptions.py`로 옮겨야 한다**(제목 두 상수 옆).
     그러면 `meta.json`의 `subscribe` 넷이 **전부 파서 한 모듈에서** 나온다.
   - 프론트는 `meta.json`에서 받아 쓰므로 화면 쪽 의존은 저절로 끊긴다.
-  - **안 고쳤다** — M3 태스크다. 지금 옮기면 `build_site`의 표시 사용처가 같이 흔들린다.
+    → **해결(2026-09-16, M3 T5)**: `subscriptions.py`로 옮겼다. `meta.subscribe`의 네 값이
+    **전부 파서 한 모듈**에서 나온다. 테스트가 `SUBSCRIBE_ADDR`을 바꿔보고 발행값이
+    따라오는지 확인한다 — 문자열을 복사해 두면 실패한다(변이 검증 완료).
+    딸려온 것: `publish.py`·`tests/test_publish.py`가 **`theme`을 아예 안 쓰게 됐다**(import 제거).
+    백엔드 출구가 화면 모듈에서 떨어졌고 T4 걸림돌이 둘 줄었다.
+    ⚠️ **프론트 `site/shell.py:31`에 같은 주소가 literal로 남아 있다** — 화면 푸터의 문의처다.
+    `meta.json`에서 읽어야 이 갈림이 끝난다. 프론트 구역이라 알리기만 했다.
 
 ---
 
@@ -1383,13 +1389,15 @@ protection_rules   branch_policy 하나뿐 — Required reviewers 없음 · Wait
 
 🔴 **값의 길이를 재라 — 이름이 맞는 것과 값이 정확한 것은 다르다** (2026-09-15, 기획 발견)
 
-`API_URL`에 복붙하다 `
+`API_URL`에 복붙하다 `
+
 `이 딸려 들어가 **19자**였다. 그대로면 T6 점검이
 `https://galmal.kr⏎/v1/meta.json`을 부른다. **GitHub 화면에서는 정상으로 보인다** —
 `gh api …/actions/variables --jq '.value|length'`로 재야 보인다. 기획이 고쳐 둘 다 17자다.
 
 ⚠️ **나는 그 값을 출력해 놓고 못 봤다.** 내 출력에 두 변수 사이 **빈 줄**이 찍혔는데
-그게 바로 그 `
+그게 바로 그 `
+
 `이었다. 눈에 보이는 자리에 있었는데 「값을 봤다」로 넘어갔다 —
 **본 것과 검사한 것은 다르다.**
 
