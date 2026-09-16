@@ -570,21 +570,37 @@ import하지 않는다. **sqlite 전용 SQL 두 줄이 `route_stats.py`에만 �
 > → **T7에서 `CLAUDE.md` 충돌 해결 절차를 고칠 때 「재빌드」보다 「원격(크론) 산출물을 취한다」를
 > 기본으로 둔다.** 낮에 재빌드하면 아침 크론과 다른 딜 목록이 커밋된다.
 
-#### 📍 M3 현황 — 2026-09-16 기획 실측 (`origin/main` `44c90c9`)
+#### ✅ M3 완료 — 2026-09-16 (기획 독립 검증)
 
-사용자가 이전 재개를 지시해 기획이 상태를 다시 쟀다. **T4·T5·T6 셋 다 미착수다.**
+사용자가 이전 재개를 지시해 기획이 아침에 상태를 쟀고(T4·T5·T6 미착수), 같은 날 셋 다 끝났다.
+아래는 **기획이 직접 돌려 확인한 것**이다 — 담당 세션의 보고를 그대로 받아쓰지 않는다.
+
+| 확인 | 결과 |
+|---|---|
+| `collector/theme.py` | 없음 ✅ |
+| 백엔드 코드에 도메인 | `collector/`·`tests/` 전수 — 남은 둘은 `test_site_url.py`의 **주석과 테스트 입력값**이다. 운영 코드에 도메인 0 ✅ |
+| `send_alerts` 안전장치 | `require_site_url()`이 `main():92`, SMTP 연결이 `:116`. **발송 전에 멈춘다** ✅ |
+| `test_site_url.py`가 잠그는 것 | 도메인 하드코딩 금지 · env 출처 · 끝 `/` 정규화 · 공백 제거 · **빈 값이면 발송 전 정지** ✅ |
+| `subscriptions.py` | `SUBSCRIBE_ADDR` 보유, `publish.py`가 거기서 읽음 ✅ |
+| 크론 상태 점검 | `$API_URL/v1/meta.json` 신선도(오늘/어제) + `subscribe.address == MAIL_ADDRESS` ✅ |
+| 새 구조 실전 | 2026-09-16 크론 성공. 딜 127 · 제휴 링크 **127**(둘이 같다) · 지난 달 추천 0 ✅ |
+
+**T4의 「오늘/어제」 완화에 기획 동의.** 점검이 push 직후에 도는데 Pages 배포가 ~25초 늦어
+그 순간 라이브는 대개 어제 것이다. 「오늘」로 짜면 **매일 헛실패**하고, 매일 실패하는 점검은
+사람이 무시한다(BB30 늑대 소년). 하루 늦게 잡아도 R1의 목적(「몇 주를 모르는 것」 방지)은 그대로다.
+시간대도 확인했다 — `publish.py:68`이 `now_kst()`, 점검의 `today`도 `TZ=Asia/Seoul`. 양쪽 KST다.
 
 | 태스크 | 상태 | 근거 (실측) |
 |---|---|---|
 | T3 | ✅ | `collector/build_site.py` 없음, `publish.py` 있음, `site/` 7개 파일 |
-| T4 | ❌ | `collector/theme.py` 살아 있음. `send_alerts.py:32` `SITE_URL = theme.BASE_URL + "/"` |
-| T5 | ❌ | `collector/subscriptions.py`에 `SUBSCRIBE_ADDR` 없음. `publish.py:89`가 아직 `theme.SUBSCRIBE_ADDR` |
-| T6 | ❌ | `collect.yml:142~` 상태 점검이 스텝 `outcome`만 본다. `API_URL`·`meta.json`·`MAIL_ADDRESS` 대조 **전부 없음** |
+| T4 | ✅ | `theme.py` 367줄 삭제. `send_alerts.py:39` `SITE_URL = env`. `test_route_pages.py`는 프론트로 |
+| T5 | ✅ | `SUBSCRIBE_ADDR`이 `subscriptions.py`로. `publish.py`·`test_publish.py`가 `theme` import 자체를 버렸다 |
+| T6 | ✅ | API 신선도 + 구독 주소 대조. **M4에서 반쪽이 되므로 T6b를 신설했다**(아래 M4) |
 | T7 | ⚠️ | 문서 정정을 했으나 **`PROJECT.md`를 빠뜨렸다** → 2026-09-16 보완 (`PLAN.md` 함정 10) |
 
-**T4의 선행 조건**: `theme.py`를 지우면 `collector/discover_home.py:10`의 `from theme import ...`가
-깨진다. 그 파일은 **프론트 구역**이라 백엔드가 못 지운다. 실측상 런타임 import **0개**(죽은 파일,
-`site/home.py`가 M2 T1에서 인수 완료)라 **M4 T5를 기다리지 말고 지금 프론트가 지운다**(2026-09-16 요청).
+**T4의 선행 조건은 해소됐다**: `theme.py`를 지우면 `collector/discover_home.py:10`이 깨지는데
+그 파일은 프론트 구역이었다. 런타임 import 0개(죽은 파일)임을 실측해 프론트에 삭제를 요청했고,
+프론트가 `3e6eaac`로 지웠다. **M4 T5를 기다렸으면 T4가 하루 더 막혔다.**
 
 **M4 T5 확인**: `site/*.py` 전수 결과 `collector/` 모듈 import **0개**. 저장소가 갈라져도 안 깨진다.
 
@@ -790,11 +806,65 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 |---|---|---|
 | T1 | ~~사용자~~ 기획 | `galmal-backend`·`galmal-frontend` 생성 (**둘 다 public**) — ✅ **2026-09-11 완료** (기획이 `gh`로 생성, 둘 다 빈 저장소). **이름은 사용자 결정으로 `galmal-frontend`·`galmal-backend`** — 처음 `galmal-web`·`galmal-api`로 만들었다가 같은 날 바꿨다(비어 있어 비용 0, 옛 이름은 GitHub이 새 이름으로 넘겨준다). 세션 이름과 똑같이 읽히고, M6의 `galmal-plan`과 짝이 맞는다. 도메인 `api.galmal.kr`은 저장소 이름과 무관하므로 그대로다. `galmal-plan`은 **만들지 않았다** — M6에서 `promo-ticket-site`를 그 이름으로 rename 하므로 지금 만들면 이름을 막는다 |
 | T2 | **사용자** | **secrets 5종**을 `galmal-backend`의 **`production` 환경**에 등록 — ✅ **2026-09-11 완료** |
-| T3 | **사용자** | PAT 발급(fine-grained, `galmal-frontend`의 dispatch 권한만, **만료는 설정 가능한 최대로**) → `galmal-backend`의 **secret**. 만료돼도 R1c 점검이 다음 날 잡는다 |
+| T3 | **사용자** | PAT 발급 → `galmal-backend`의 **secret**. 절차는 아래 박스. 만료돼도 R1c 점검(T6b)이 다음 날 잡는다 |
+
+#### M4 T3 — PAT 발급 절차 (사용자 몫, 2026-09-16 확인)
+
+`github.com/settings/personal-access-tokens/new` (**fine-grained**, classic 아님)
+
+| 칸 | 값 |
+|---|---|
+| Token name | `galmal-backend → frontend dispatch` |
+| Resource owner | `RYU-TOMI` |
+| Expiration | **고를 수 있는 최대** (fine-grained는 보통 1년이 상한) |
+| Repository access | **Only select repositories** → **`galmal-frontend` 하나만** |
+| Repository permissions | **Contents: Read and write** — 이것 하나. 나머지는 전부 No access |
+
+**왜 Contents 인가**: `POST /repos/{owner}/{repo}/dispatches`가 fine-grained 토큰에 요구하는 권한이
+`contents: write`다([GitHub Docs](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)).
+직관과 다르다 — 「Actions」가 아니다. Actions 권한만 주면 `403 Resource not accessible`이 난다.
+
+→ 발급된 값을 `galmal-backend` → Settings → Secrets and variables → Actions →
+**`production` 환경**의 secret으로 `DISPATCH_TOKEN` 이름으로 등록.
+**변수(vars)가 아니라 secret이다** — 토큰은 로그에서 가려져야 한다(`API_URL`과 반대 이유).
+
+> **만료가 1년이면 2027-09에 조용히 죽는다.** 그게 R1이고, 대책이 T6b다 —
+> 사이트의 `api_generated`가 API의 `generated`와 어긋나면 **다음 날 잡힌다.**
+> 달력에 적어둘 필요가 없게 만드는 것이 이 설계의 요점이다.
 | T3b | **사용자** | ✅ **2026-09-15 완료.** `galmal-backend`에 **변수(vars) 둘** — 🔴 **secrets가 아니다**(secrets에 넣으면 로그에서 `***`로 가려져 점검 실패 메시지를 못 읽는다). `SITE_URL` = `https://galmal.kr` · `API_URL` = `https://galmal.kr` (**M5에서 `https://api.galmal.kr`로 이것 하나만 바꾼다**). 워크플로는 변수가 없으면 기본값을 쓰므로 M3 동안은 지금 저장소에 만들 필요 없다(백엔드 확정) |
+| **T4a** | 양쪽 | 🔴 **새 저장소의 첫 커밋에 `.gitattributes`** — `* text=auto eol=lf` (+`*.png *.db binary`). **지금 이 저장소에 넣지 않는다** — 아래 이유 |
 | T4 | 백 | `collector/` `data/` `collect.yml` 이동 + `tests/`(**`test_charts.py` 제외** — 프론트 코드를 테스트한다). Pages 켜고 `docs/v1/` 발행 |
 | T5 | 프 | `site/` `assets/` `fixtures/` `deploy.yml` 이동 |
 | **T5b** | 프 | 🔴 **`build.json` 발행** — `site/build.py`가 `{"api_generated": <meta.generated>, "built": <빌드 시각>}`을 `docs/build.json`에 쓴다. **R1c 점검의 사이트 쪽 절반이다** — 이게 없으면 M3 T6은 백엔드 자기 배포만 보게 되고 **R1(PAT 만료)을 아무도 안 본다** |
+
+#### 왜 `.gitattributes`를 **지금** 넣지 않고 새 저장소에 넣나 (2026-09-16)
+
+CRLF 함정이 이 이전에서 **세 번** 나왔다 — 기획의 M2 동등성 오진(작업 트리와 비교), 백엔드의
+`BACKEND.md` 1418줄 헛diff, 그리고 고쳤다고 한 **뒤에 한 번 더**(bash heredoc으로 append 하면
+LF가 들어가 파일이 섞이고, 섞인 파일은 git이 정규화를 못 한다).
+
+근본 원인은 하나다: **`core.autocrlf=true` + `.gitattributes` 부재.** 실측 — 커밋된 blob 기준:
+
+```
+BACKEND.md 1526/1526 CRLF · FRONTEND.md 1015/1015 · SPLIT.md 1017/1017
+BACKLOG.md 280/280 · PLAN.md 399/399 · CLAUDE.md 177/177 · PROJECT.md 190/190
+```
+
+**문서 7개가 전부 CRLF로 커밋돼 있다.** 그래서 LF로 쓰는 도구가 하나라도 끼면 전량 재기록된다.
+
+`.gitattributes`를 **지금** 넣으면 저 4,600줄이 한 번에 재정규화된다 — 이전 도중에 전 파일을
+건드리는 커밋이 하나 끼는 것이고, **바로 그 다음 태스크가 파일을 다른 저장소로 옮기는 일**이다.
+이동 diff와 정규화 diff가 섞여서 **무엇이 옮겨졌는지 아무도 못 본다.**
+
+**새 저장소의 첫 커밋에 넣으면 값이 0이다.** 어차피 전량 새 blob으로 들어가므로 정규화할 것이
+없다. 처음부터 LF로 앉는다. → **T4a**
+
+`galmal-plan`(M6에서 rename)은 문서만 남으므로 그때 별도 커밋 하나로 정규화한다 — 섞일 이동이 없다.
+
+> **그때까지의 규칙**: 이 저장소의 `.md`를 고칠 때 **bash `cat >>`·`>`·`sed -i`를 쓰지 않는다.**
+> 파이썬 `io.open(..., encoding="utf-8", newline="")`로 읽고 같은 방식으로 쓴다 —
+> 파일의 현재 줄바꿈이 그대로 보존돼 diff가 바뀐 줄만 나온다.
+> 「도구를 고쳤다」가 「모든 경로를 고쳤다」는 아니다 — 파이썬만 고치고 bash를 안 봐서 재발했다.
 
 > 🔴 **M4에서 조심할 것 둘** (프론트가 M2 중 발견):
 > - **`site/build.py`는 `assets/`를 내보내지 않는다.** 정적 자산이라 빌드 산출물이 아니다 —
