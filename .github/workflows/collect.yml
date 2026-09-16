@@ -147,6 +147,29 @@ jobs:
           echo "::error::3회 시도 후에도 push 실패 — 오늘 수집분이 커밋되지 않았다"
           exit 1
 
+      # v1 이 갱신됐으니 프론트에 **다시 구우라고 알린다** (M4 T6).
+      #
+      # 저장소가 갈린 뒤로 화면은 `galmal-frontend`가 만든다. 이 신호가 없으면
+      # 프론트는 자기 저장소에 push 가 없는 한 안 굽고, **API 만 매일 새로워진다.**
+      #
+      # 🔴 마켓플레이스 액션(`peter-evans/repository-dispatch` 등)을 쓰지 않는다 —
+      # 저장소 Actions 정책이 **GitHub 제작 액션만** 허용한다(M4 T0). `gh` 로 쏜다.
+      #
+      # ⚠️ `DISPATCH_TOKEN` 은 fine-grained 라 **`Contents: Read and write`** 가 필요하다.
+      # **Actions 권한이 아니다** — Actions 만 주면 `403 Resource not accessible` 이고,
+      # 그건 `continue-on-error` 아래서 **조용하다.** 그래서 아래 상태 점검이 이 스텝의
+      # outcome 을 본다. 만료는 1년 뒤지만 **권한 오설정은 배선을 켜는 그날**이다.
+      - name: 프론트에 알림 (repository_dispatch)
+        id: dispatch
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+        run: |
+          gh api -X POST repos/RYU-TOMI/galmal-frontend/dispatches \
+            -f event_type=api-updated
+          echo "galmal-frontend 에 api-updated 를 보냈다"
+
       # 커밋 **뒤**에 둔다 — 데이터는 먼저 남기고, 그다음에 잡을 실패로 표시한다.
       # continue-on-error 스텝은 실패해도 잡이 초록불이라 몇 주째 죽어 있어도
       # 아무도 몰랐다(BB18). 잡을 실패로 만들면 GitHub가 저장소 소유자에게 메일을 보낸다.
@@ -158,6 +181,7 @@ jobs:
           # 변수가 없으면 기본값 — M3 동안은 지금 저장소에 안 만들어도 된다.
           # M5에서 api.galmal.kr 로 **이 변수 하나만** 바꾼다.
           API_URL: ${{ vars.API_URL || 'https://galmal.kr' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://galmal.kr' }}
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
         run: |
           fail=0
@@ -165,7 +189,7 @@ jobs:
           note "## 수집 결과 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') KST)"
           # 수집·판정·빌드까지 전부 continue-on-error가 됐으므로, 여기서 안 보면
           # 무엇이 죽어도 잡이 초록불로 끝난다 — BB18을 되돌리는 셈이다.
-          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "v1 발행:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"; do
+          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "v1 발행:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"                    "프론트 알림:${{ steps.dispatch.outcome }}"; do
             name="${s%%:*}"; outcome="${s##*:}"
             if [ "$outcome" = "failure" ]; then
               note "- ❌ $name 실패"; fail=1
@@ -219,6 +243,40 @@ jobs:
               fail=1
             elif [ -n "$MAIL_ADDRESS" ]; then
               note "- ✅ 구독 주소: 우리가 읽는 메일함과 같다"
+            fi
+            # ── 사이트 점검 (T6b) ──────────────────────────────────────────
+            # 🔴 저장소가 갈린 뒤 **API 점검만으로는 R1 을 못 본다.** 프론트가 몇 주째
+            # 안 구워져도 백엔드 자기 API 는 매일 신선하기 때문이다 — 매일 초록불이고
+            # BB18 재발 조건 그대로다. 그래서 **사이트가 API 를 따라오는지**를 따로 본다.
+            #
+            # 두 값의 일치를 본다 — 절대값을 기대하지 않는다. 프론트가 `build.json` 에
+            # `meta.generated` 를 **가공 없이 그대로** 복사한다(프론트 확인).
+            #
+            # ⚠️ 관용은 API 점검과 같다(오늘/어제). dispatch 직후엔 프론트가 아직 굽는
+            # 중이라 **그 순간 사이트는 항상 한 주기 뒤처져 있다.** 정확히 같기를
+            # 기대하면 매일 헛실패하고, 매일 실패하는 점검은 무시당한다.
+            site_url="$SITE_URL/build.json"
+            site=""
+            for wait in 0 30 45; do
+              [ "$wait" = 0 ] || sleep "$wait"
+              site=$(curl -fsS --max-time 20 "$site_url" 2>/dev/null) && break
+            done
+            if [ -z "$site" ]; then
+              # 🔴 「못 받음」은 통과가 아니라 실패다. 여기서 넘어가면 이 점검은
+              # 아무것도 안 막는다 — build.json 위치·Pages 루트·SITE_URL 오타가
+              # 전부 404 로 온다.
+              note "- ❌ 사이트 점검: 못 받음 — $site_url"
+              echo "::error::$site_url 을 받지 못했다. 주소가 틀렸거나 프론트 배포가 죽었다."
+              fail=1
+            else
+              site_api=$(printf '%s' "$site" | python -c "import sys,json; print(json.load(sys.stdin)['api_generated'][:10])")
+              if [ "$site_api" = "$today" ] || [ "$site_api" = "$yday" ]; then
+                note "- ✅ 사이트 점검: API 를 따라오고 있다 (site $site_api / api $served)"
+              else
+                note "- ❌ 사이트 점검: 사이트가 **$site_api** 에 멈춰 있다 (api $served) — $site_url"
+                echo "::error::프론트가 다시 굽지 않는다. dispatch 권한·PAT·프론트 워크플로를 볼 것."
+                fail=1
+              fi
             fi
           fi
 
