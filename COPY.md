@@ -6,7 +6,7 @@
 
 ## 왜 이 문서가 있나
 
-우리 차별점은 목소리다. 그런데 문자열이 `discover.js`·`discover_home.py`·`build_site.py` 세 곳에
+우리 차별점은 목소리다. 그런데 문자열이 `docs/assets/discover.js`·`site/home.py`·`site/route.py` 세 곳에
 흩어져 있으면 **톤을 비교할 수가 없다.** 비교할 수 없으면 무너지는 걸 아무도 못 본다.
 "AI틱함"의 1순위 원인이 폰트가 아니라 **문장**이라서, 문장을 한 곳에 모은다.
 

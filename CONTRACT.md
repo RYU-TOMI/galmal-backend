@@ -20,7 +20,7 @@
 
 ## 파일
 - 경로: `docs/data/deals.json`
-- 생산자: `collector/discover_data.py` → `build_deals_json(conn)` (`build_site.py`가 호출)
+- 생산자: `collector/discover_data.py` → `build_deals_json(conn)` (`collector/publish.py:115`가 호출)
 - 소비자: `docs/assets/discover.js` (+ `collector/discover_home.py`가 HTML에 인라인)
 - 인코딩: UTF-8, 압축 없음(`separators=(",",":")`)
 
@@ -313,12 +313,13 @@ GET /v1/routes/{code}.json  노선 1개 통계
 ### 왜 이렇게 정했나 (백엔드 발견 2건, 2026-09-08)
 
 **① 지금은 백엔드가 조용히 버린다.**
-`build_site.py:54` `month_min()`의 `HAVING COUNT(*)>=3`이 3건 미만인 달을 **말없이 뺀다.**
+`collector/route_stats.py:66` `month_min()`의 `HAVING COUNT(*)>=3`이 3건 미만인 달을 **말없이 뺀다.**
+(M3 T0에서 `build_site.py:54`에서 옮겨왔다 — 동작은 그대로다.)
 그래서 프론트는 「10월이 없다」가 *자료가 없어서*인지 *얇아서 버려진 건지* 구분할 수 없다.
 v1이 만들 자리는 표본 수 필드 하나가 아니라 **버킷마다 건수**다.
 
 **② 🔴 임계가 지배하는 건 차트만이 아니다 — 실제로 잘못 나간 건 문장이었다.**
-`build_site.py:207`은 `if best_month:`다. 참·거짓만 본다.
+`build_site.py:207`은 `if best_month:`였다. 참·거짓만 봤다.
 **버킷이 하나뿐이어도 「9월 출발이 가장 저렴합니다」라고 쓴다.** 하나는 비교가 아니다.
 
 - 지금 안 터지는 건 위 ①의 `HAVING`이 **우연히 가려주기 때문**이다
@@ -326,8 +327,12 @@ v1이 만들 자리는 표본 수 필드 하나가 아니라 **버킷마다 건�
 - **새 노선을 넣으면 그날 재현된다.** 타이중이 지난 길이다.
 - `tests/test_charts.py`는 차트만 본다. **문장은 아무도 안 본다.**
 
-→ 백엔드 `BACKEND.md` BB28. **안 고쳤다** — 이전하면 `tips`는 P1 기준 사이트 산출물이라
-프론트 구역이 된다. 곧 옮겨질 자리를 지금 고칠 이유가 없다.
+→ 백엔드 `BACKEND.md` BB28. 당시엔 **안 고쳤다** — 이전하면 `tips`는 P1 기준 사이트 산출물이라
+프론트 구역이 되기 때문이다. 곧 옮겨질 자리를 그때 고칠 이유가 없었다.
+
+**✅ 2026-09-16 확인 — 해결됐다.** 이전이 그 자리를 옮겼고 프론트가 거기서 고쳤다:
+`site/route.py:139` `if usable(months):` · `:144` `if usable(weekdays):` — 차트와 **같은**
+판정 함수를 문장에도 건다. 계약이 의도한 그대로다. **다시 고치지 말 것.**
 
 ### 그래서 프론트가 지켜야 할 것
 

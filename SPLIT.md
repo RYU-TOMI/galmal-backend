@@ -570,6 +570,29 @@ import하지 않는다. **sqlite 전용 SQL 두 줄이 `route_stats.py`에만 �
 > → **T7에서 `CLAUDE.md` 충돌 해결 절차를 고칠 때 「재빌드」보다 「원격(크론) 산출물을 취한다」를
 > 기본으로 둔다.** 낮에 재빌드하면 아침 크론과 다른 딜 목록이 커밋된다.
 
+#### 📍 M3 현황 — 2026-09-16 기획 실측 (`origin/main` `44c90c9`)
+
+사용자가 이전 재개를 지시해 기획이 상태를 다시 쟀다. **T4·T5·T6 셋 다 미착수다.**
+
+| 태스크 | 상태 | 근거 (실측) |
+|---|---|---|
+| T3 | ✅ | `collector/build_site.py` 없음, `publish.py` 있음, `site/` 7개 파일 |
+| T4 | ❌ | `collector/theme.py` 살아 있음. `send_alerts.py:32` `SITE_URL = theme.BASE_URL + "/"` |
+| T5 | ❌ | `collector/subscriptions.py`에 `SUBSCRIBE_ADDR` 없음. `publish.py:89`가 아직 `theme.SUBSCRIBE_ADDR` |
+| T6 | ❌ | `collect.yml:142~` 상태 점검이 스텝 `outcome`만 본다. `API_URL`·`meta.json`·`MAIL_ADDRESS` 대조 **전부 없음** |
+| T7 | ⚠️ | 문서 정정을 했으나 **`PROJECT.md`를 빠뜨렸다** → 2026-09-16 보완 (`PLAN.md` 함정 10) |
+
+**T4의 선행 조건**: `theme.py`를 지우면 `collector/discover_home.py:10`의 `from theme import ...`가
+깨진다. 그 파일은 **프론트 구역**이라 백엔드가 못 지운다. 실측상 런타임 import **0개**(죽은 파일,
+`site/home.py`가 M2 T1에서 인수 완료)라 **M4 T5를 기다리지 말고 지금 프론트가 지운다**(2026-09-16 요청).
+
+**M4 T5 확인**: `site/*.py` 전수 결과 `collector/` 모듈 import **0개**. 저장소가 갈라져도 안 깨진다.
+
+**곁가지(안 고쳤다)**: `design/*.html` 20장이 아직 `docs/data/deals.json`을 가리킨다.
+T7에서 빌더(`design/*.py`)만 고치고 **산출물을 다시 굽지 않았다.** 지금 재생성하면 딜 데이터가
+2026-09-02 → 오늘로 바뀌어 목업 본문의 숫자 주석(「70건 중 23곳」 등)과 갈릴 수 있으므로
+**별도 태스크로 미룬다.** 목업은 배포물이 아니라 참고 자산이다.
+
 #### T7 충돌 해결 절차 초안 — 함정 둘을 피한 형태 (2026-09-11)
 
 **함정 ① `--theirs`는 merge와 rebase에서 뜻이 반대다** (백엔드 지적).
@@ -845,6 +868,14 @@ SITE_URL  "https://galmal.kr"        17자   ✅
 +     그 구역 담당 세션에 재빌드를 요청한다.
 +   - 재빌드했으면 커밋 전에 확인: `grep -c '"ad":true' docs/data/deals.json` → **125건**
 ```
+
+> 🔴 **위 diff는 2026-09-08 시점의 기록이다. 그대로 따라 하지 말 것.**
+> T7(2026-09-15)에서 같은 자리를 **다시** 고쳤다. 지금의 정본은 `CLAUDE.md`이고, 세 군데가 다르다:
+> ① `--theirs` → `git checkout origin/main -- <생성물 이름들>` (merge/rebase에서 뜻이 반대라서)
+> ② `build_site.py` → `collector/publish.py` + `site/build.py` 두 단계
+> ③ `grep -c '"ad":true'` → **쓰지 말 것.** `deals.json`은 개행이 없는 한 줄이라 **항상 `1`**이다.
+> 그리고 **`125`를 기대값으로 적은 것도 틀렸다** — 딜 수는 매일 바뀐다.
+> 불변식은 「딜 수 == 제휴 링크 수」다(`CLAUDE.md`의 python 한 줄).
 
 ---
 
