@@ -1494,6 +1494,32 @@ parse_mail 2 · publish 1    사소
 
 `theme.py` 57줄 · `discover_home.py` 134줄이 사라졌다. **M3 끝.**
 
+#### M4 T4a — `.gitattributes`는 **새 저장소 첫 커밋**에 넣는다 (기획, 2026-09-16)
+
+CRLF를 세 번 만났으니 구조로 끝낸다. 다만 **지금 이 저장소에 넣지 않는다.**
+커밋된 blob 기준 문서 7개 4,604줄이 **전부 CRLF**라(기획 실측), 지금 넣으면 한 번에
+재정규화된다 — 그런데 **바로 다음 태스크가 파일을 다른 저장소로 옮기는 일**이다.
+**이동 diff와 정규화 diff가 섞이면 무엇이 옮겨졌는지 아무도 못 본다.**
+
+```
+새 저장소 첫 커밋:   * text=auto eol=lf   +   *.png *.db binary
+```
+
+어차피 전량 새 blob으로 들어가므로 **정규화할 게 없다.** 처음부터 LF로 앉는다.
+
+⚠️ **그때까지 이 저장소의 `.md`에 bash `cat >>`·`>`·`sed -i`를 쓰지 않는다.**
+파이썬 `io.open(..., newline="")` 경로로만 고친다 — 섞인 파일은 git이 정규화를 못 한다.
+
+#### M4 T3·T6 — PAT 권한이 직관과 다르다 (기획 확인)
+
+```
+POST /repos/{owner}/{repo}/dispatches   fine-grained 토큰 요구 권한: Contents: Read and write
+```
+
+**Actions 권한이 아니다.** Actions만 주면 `403 Resource not accessible`이 난다.
+시크릿 이름은 **`DISPATCH_TOKEN`** 으로 맞춘다(사용자가 그 이름으로 등록한다).
+T6 배선에서 이 이름과 권한을 전제로 짠다.
+
 #### 🔴 M4에서 이 점검이 반쪽이 된다 — T6b (기획 발견, 2026-09-16)
 
 지금 `$API_URL/v1/meta.json` **하나**로 충분한 이유는 **한 저장소가 v1과 화면을 같은 커밋으로
