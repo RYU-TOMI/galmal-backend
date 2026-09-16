@@ -40,7 +40,7 @@
 - **금지**: `collector/`의 데이터 로직(`discover_data.py`, `affiliates.py`, `dests.py`, `route_stats.py`, 수집기), `publish.py`.
 
 ### 3) 백엔드 (backend) — deals.json **생산자**
-- **소유**: `collector/*.py` 전부 · `publish.py` · `.github/workflows/` · `data/` · `tests/`
+- **소유**: `collector/*.py` 전부(진입점 `collector/publish.py` 포함) · `.github/workflows/` · `data/` · `tests/`
 - **소유(문서)**: `BACKEND.md`(작업 방식·챕터 로드맵·곁가지 백로그) — 다른 세션은 읽기만.
 - **역할**: 수집(가격·광역·메일)·특가 판정·`deals.json` 생성·예약/비교 링크·크론·SEO 페이지.
 - **금지**: `site/`, `docs/assets/discover.js|css`, `fixtures/`.
