@@ -20,6 +20,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mail_ingest import IMAP_HOST, decode, html_body, load_env
 
+# 🔴 **구독 메일함 — 여기가 정본이다** (M3 T5, BB32).
+#
+# `theme.py`에 있던 것을 옮겼다. 사이트 정체성이 아니라 **이 파일이 IMAP으로
+# 로그인하는 메일함**이기 때문이다 — `theme.py`는 프론트로 가고, 같이 딸려가면
+# 화면이 적는 주소와 우리가 읽는 메일함이 **각자 살게 된다.**
+#
+# ⚠️ 갈리면 조용한 정도가 아니라 **반송조차 안 온다**(둘 다 실재하는 주소라).
+# 사용자는 신청했다고 믿고 우리는 신청이 없다고 믿는다.
+# 아래 셋이 `publish.py`를 통해 `meta.json`의 `subscribe`로 나가고, 프론트는
+# 그걸 읽어 mailto를 만든다 — **지어내지 않게 하는 게 그 필드의 존재 이유다.**
+SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SUBSCRIBE = "구독신청"
 UNSUBSCRIBE = "구독취소"
 ROUTE_RE = re.compile(r"\b([A-Z]{3})\s*[-→~]\s*([A-Z]{3})\b")

@@ -37,7 +37,6 @@ import affiliates
 import config
 import discover_data
 import subscriptions
-import theme
 import timeutil
 # 통계는 `route_stats`, 경로는 `discover_data`에서 온다.
 from discover_data import DOCS
@@ -76,9 +75,9 @@ def meta_payload(counts, preserved, generated=None):
     **표시가 아니라 전선(wire) 규약**이라서다. 프론트가 본문 형식을 지어내면
     구독 실패가 아니라 **전 노선 구독**이 된다(`subscriptions.py:61` `route or "ALL"`).
 
-    🔴 **값은 파서 상수에서 파생시킨다.** `theme.py`는 M3에서 프론트로 가므로
-    거기서 문자열을 가져오면 이전하는 날 출처가 갈린다. 제목 두 개는
-    `subscriptions`가 **실제로 읽는 바로 그 상수**다.
+    🔴 **넷 다 파서 상수에서 파생시킨다.** 주소도 T5에서 `subscriptions`로 옮겼다 —
+    `theme.py`가 프론트로 가는 날 출처가 갈리기 때문이다. 이제 `meta.subscribe`의
+    네 값이 **전부 파서 한 모듈**에서 나온다.
     """
     return {
         **_envelope(generated),
@@ -86,7 +85,7 @@ def meta_payload(counts, preserved, generated=None):
         "counts": counts,
         "preserved": preserved,
         "subscribe": {
-            "address": theme.SUBSCRIBE_ADDR,
+            "address": subscriptions.SUBSCRIBE_ADDR,
             "subject_subscribe": subscriptions.SUBSCRIBE,
             "subject_unsubscribe": subscriptions.UNSUBSCRIBE,
             # ROUTE_RE 가 받는 형태. 정규식 자체를 노출할 필요는 없다.
