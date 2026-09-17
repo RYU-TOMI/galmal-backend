@@ -90,6 +90,28 @@ class EnvelopeTest(unittest.TestCase):
                 self.assertIsNotNone(parsed.tzinfo, f"{raw}에 오프셋이 없다")
 
 
+class GeneratedIsRequiredTest(unittest.TestCase):
+    """🔴 `generated`를 빼먹으면 **조용히 지금 시각**이 아니라 **터져야** 한다 (BE9 T2, BB35).
+
+    기본값 `or now_kst()`가 있던 시절엔 새 payload가 넘기기를 빼먹어도 돌았다 —
+    그 파일만 초 단위로 갈리고, 프론트는 섞인 스냅숏으로 보고 배포를 멈춘다.
+    원인이 백엔드 한 줄인데 증상은 프론트 배포 실패로 나타나 엉뚱한 데를 판다.
+    """
+
+    def test_every_payload_function_demands_it(self):
+        for name, args in (("_envelope", ()),
+                           ("meta_payload", ({}, False)),
+                           ("deals_payload", (None, set())),
+                           ("route_payload", (None, "ICN", "FUK"))):
+            with self.subTest(fn=name), self.assertRaises(TypeError):
+                getattr(publish, name)(*args)
+
+    def test_naive_time_is_refused(self):
+        """오프셋 없는 시각은 날짜 경계에서 하루가 조용히 어긋난다."""
+        with self.assertRaises(ValueError):
+            publish._envelope(datetime(2026, 9, 17, 11, 45))
+
+
 class MetaTest(unittest.TestCase):
 
     @classmethod
@@ -129,7 +151,7 @@ class MetaTest(unittest.TestCase):
         (subscriptions.SUBSCRIBE, subscriptions.UNSUBSCRIBE,
          subscriptions.SUBSCRIBE_ADDR) = "구독요청", "구독해지", "다른@메일함.com"
         try:
-            sub = publish.meta_payload({}, False)["subscribe"]
+            sub = publish.meta_payload({}, False, timeutil.now_kst())["subscribe"]
             self.assertEqual(sub["subject_subscribe"], "구독요청")
             self.assertEqual(sub["subject_unsubscribe"], "구독해지")
             # 🔴 주소도 파서에서 온다 (M3 T5, BB32). 문자열을 복사해 두면 여기서 걸린다 —
