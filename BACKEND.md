@@ -605,8 +605,11 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   한 값을 모두에 넘겨 지켜지지만, `_envelope(generated=None)` 기본값이 함정이다 — 새 payload가
   빼먹으면 그 파일만 초 단위로 갈린다.
   - ⚠️ **「전부 같다」는 틀린 규칙이다**: 보존일엔 `deals.json`이 어제 `generated`로 남는다(BB1 합의).
-    기획에 정정 제안함 — 「`deals`는 `preserved=false`면 같고 `true`면 이르다」.
+    **확정(CONTRACT.md §공통 규칙)**: `meta`·`routes/index`·index에 실린 `routes/*` = G ·
+    `deals` = G(`preserved=false`) / `deals` < G(`preserved=true`).
   - 할 일: `generated` 필수 인자화 + 확정된 규칙 그대로 테스트. **BB34와 같은 챕터.**
+    🔴 **보존일 케이스 필수** — 하한선 미달을 인메모리로 만들어 `deals < G`·나머지 `== G`를 본다.
+    규칙이 한 날(보존 아닌 날)의 관측에서 나왔다가 틀렸던 분기다. 빠지면 같은 일이 반복된다.
 
 - **BB33. `mail_ingest`가 메일함을 소비한다 — `subscriptions`와 다르게 읽는다.** (2026-09-16, M4 T6c 중 기획 발견)
   ```
