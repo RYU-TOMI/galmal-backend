@@ -590,7 +590,7 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - **안 고쳤다** — 표시 문자열이라 `COPY.md`(기획) 소관이고, 이전하면 프론트가 만든다.
     기획·프론트 양쪽에 알렸다.
 
-- **BB34. 산출물 대조 테스트가 「그날」에만 통과한다.** (2026-09-17, M5 ②~③ 중 발견)
+- ~~**BB34. 산출물 대조 테스트가 「그날」에만 통과한다.**~~ → **해결(2026-09-17, BE9 T1 `115a44d`)**. (2026-09-17, M5 ②~③ 중 발견)
   `ReproducesTheCurrentScreenTest`·`test_backend_does_not_drop_thin_buckets` 등이
   **커밋된 `docs/v1/`**을 **테스트 시각의 즉석 계산**과 대조한다. 두 창(`today_utc()-30일`,
   `depart_date >= today_kst()`)이 시각에 따라 움직이므로 **산출물을 만든 날이 지나면 어긋난다.**
@@ -600,7 +600,7 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 수정 방향: 대조 테스트의 시계를 **`meta.generated`에 고정**한다(산출물이 만들어진 그 시각으로).
   - **안 고쳤다.** 이전 중 동작 변경 금지 사유는 M5로 끝났다 — 헛 빨간불이 반복되면 CI를 안 믿게 되므로 **다음 챕터 첫 태스크**(기획 동의 2026-09-17).
 
-- **BB35. `generated` 단일성이 코드 성질일 뿐 잠겨 있지 않다.** (2026-09-17, 기획 요청)
+- ~~**BB35. `generated` 단일성이 코드 성질일 뿐 잠겨 있지 않다.**~~ → **해결(2026-09-17, BE9 T2 `45a4e05` · T3 `0bdf498`)**. (2026-09-17, 기획 요청)
   프론트 T6d가 받은 v1 응답들의 `generated` 일치로 「섞인 스냅숏」을 잡는다. 지금은 `publish()`가
   한 값을 모두에 넘겨 지켜지지만, `_envelope(generated=None)` 기본값이 함정이다 — 새 payload가
   빼먹으면 그 파일만 초 단위로 갈린다.
@@ -1756,3 +1756,18 @@ GitHub 권장 순서(레포 먼저, DNS 나중)대로 했더니 `https_certifica
 - **새 규칙**: 기획 결정 없이 `contract/`를 바꾸지 않는다. 커밋 메시지에 그 결정을 인용한다
 - 공존 구간(T1~T4)에 계약 변경이 생기면 기획이 양쪽 동시 반영을 요청한다
 - 범위 밖(기획이 BE10 뒤 정리): `vocab.json`을 v1으로 발행해 프론트 `site/home.py` 필터 칩 사본 제거
+
+### BE9 완료 (2026-09-17)
+
+```
+T1 115a44d  산출물 대조 3테스트 시계를 meta.generated 에 고정
+            고정 전 +1일 55건 실패 → 고정 후 +1·+30·+365·-3일 OK
+            고정 시각을 하루 틀리게 하면 55건 실패 (헛것 아님)
+T2 45a4e05  generated 필수 인자 · naive 면 ValueError
+            기본값 있던 publish.py 로 되돌리면 새 테스트 실패 확인
+T3 0bdf498  스냅숏 규칙 — 평범한 날 · 보존일 · 05d0de9 반례 · 커밋된 산출물
+            탐침: 노선 1초 어긋남 / 보존일 deals 에 오늘 도장 → 둘 다 잡음
+```
+
+- ⚠️ 시프트 도구로 +30일에 `GeneratedOutputTest` 2건이 실패하는데 **고정 전에도 같다**.
+  테스트가 `date.today()`로 데이터를 넣고 도구는 `timeutil`만 옮기는 불일치라 실제 시간 의존이 아니다. 안 고쳤다.
