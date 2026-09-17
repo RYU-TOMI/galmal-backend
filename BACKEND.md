@@ -1722,3 +1722,37 @@ GitHub 권장 순서(레포 먼저, DNS 나중)대로 했더니 `https_certifica
 `grep -q "^OK"`로 고쳤는데 반복했다.** `654dc70`부터 출력에서 `^OK`를 확인하고 커밋한다.
 
 실패 원인은 코드가 아니었다(아래 BB34) — 올라간 게 우연히 무해했을 뿐 **게이트가 안 걸린 건 실수다.**
+
+---
+
+## 16. 다음 챕터 — 사용자 승인 (2026-09-17)
+
+**BE9 먼저 → BE10.** 이유: 내일 크론 뒤 push부터 CI가 헛 빨간불(BB34)이고, BE10은 push가 많다.
+헛 빨간불 속에서 옮기기 작업을 하면 진짜 실패를 못 가려낸다.
+
+### BE9 — 테스트 신뢰성 (BB34 + BB35)
+| | 내용 | DoD |
+|---|---|---|
+| T1 | 산출물 대조 테스트의 시계를 `meta.generated`에 고정 | 시계를 +1일 옮겨 돌려도 `^OK` |
+| T2 | `_envelope`·payload 함수의 `generated` 기본값 제거 → 필수 인자 | 빼먹으면 `TypeError` · `^OK` |
+| T3 | `generated` 규칙 테스트(CONTRACT §공통 규칙) — **보존일 케이스 필수** + `05d0de9` 반례(deals 42초 이름) | 반례에서 실패함을 한 번 보이고 `^OK` |
+
+파일: `tests/test_publish.py` `tests/test_contract.py` `collector/publish.py` `BACKEND.md`
+
+### BE10 — 계약 목록을 코드 옆 한 곳으로 (R8 C안, 기획 DECISIONS 2026-09-17)
+| | 내용 | DoD |
+|---|---|---|
+| T1 | `contract/v1/deal.schema.json` — 필드·타입·nullable·description | **옛 파서가 CONTRACT.md에서 뽑은 `{필드: nullable}` == 새 로더 결과**를 한 번 보이고 옛 파서 삭제 |
+| T2 | `contract/v1/vocab.json` — tags(상위·하위) · when · region · haul · tier | 옛 파싱 결과 == 새 파일 · **테스트 안 손 사본(`REGIONS`·`HAULS`·`TIERS`·`WHEN_*`)도 제거** |
+| T3 | `test_dests`의 TAGS.md 대조 제거 — `DEST`가 정본, 태그 ⊆ vocab 검사로 | `^OK` |
+| T4 | `test_labels`의 COPY.md 대조 제거 — `REGION_NAME`이 정본, vocab region 전부 이름 있음 | `^OK` |
+| T5 | `CONTRACT.md`·`COPY.md`·`TAGS.md` 사본 삭제 | 문서를 여는 코드 0 · `^OK` |
+
+파일: `contract/v1/*` `tests/test_contract.py` `tests/test_dests.py` `tests/test_labels.py`
+`tests/test_affiliates.py`(주석만) `CONTRACT.md`·`COPY.md`·`TAGS.md`(삭제) `BACKEND.md`
+
+- `jsonschema` 라이브러리 안 씀(의존성 0) — JSON Schema **모양**만, 자체 로더
+- `DEST` 구조는 안 바꾼다(기획 `build_tags.py`가 기댄다)
+- **새 규칙**: 기획 결정 없이 `contract/`를 바꾸지 않는다. 커밋 메시지에 그 결정을 인용한다
+- 공존 구간(T1~T4)에 계약 변경이 생기면 기획이 양쪽 동시 반영을 요청한다
+- 범위 밖(기획이 BE10 뒤 정리): `vocab.json`을 v1으로 발행해 프론트 `site/home.py` 필터 칩 사본 제거
