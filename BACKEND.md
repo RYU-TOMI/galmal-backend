@@ -600,6 +600,14 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 수정 방향: 대조 테스트의 시계를 **`meta.generated`에 고정**한다(산출물이 만들어진 그 시각으로).
   - **안 고쳤다.** 이전 중 동작 변경 금지 사유는 M5로 끝났다 — 헛 빨간불이 반복되면 CI를 안 믿게 되므로 **다음 챕터 첫 태스크**(기획 동의 2026-09-17).
 
+- **BB35. `generated` 단일성이 코드 성질일 뿐 잠겨 있지 않다.** (2026-09-17, 기획 요청)
+  프론트 T6d가 받은 v1 응답들의 `generated` 일치로 「섞인 스냅숏」을 잡는다. 지금은 `publish()`가
+  한 값을 모두에 넘겨 지켜지지만, `_envelope(generated=None)` 기본값이 함정이다 — 새 payload가
+  빼먹으면 그 파일만 초 단위로 갈린다.
+  - ⚠️ **「전부 같다」는 틀린 규칙이다**: 보존일엔 `deals.json`이 어제 `generated`로 남는다(BB1 합의).
+    기획에 정정 제안함 — 「`deals`는 `preserved=false`면 같고 `true`면 이르다」.
+  - 할 일: `generated` 필수 인자화 + 확정된 규칙 그대로 테스트. **BB34와 같은 챕터.**
+
 - **BB33. `mail_ingest`가 메일함을 소비한다 — `subscriptions`와 다르게 읽는다.** (2026-09-16, M4 T6c 중 기획 발견)
   ```
   mail_ingest.py:67   select("INBOX")            readonly 아님
