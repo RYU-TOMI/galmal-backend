@@ -21,12 +21,15 @@ M1의 DoD가 「계약이 현행 노선 페이지의 모든 숫자를 덮는가�
 import json
 import re
 import unittest
-from datetime import datetime
+from contextlib import closing
+from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 import config
 import publish
 import subscriptions
+import timeutil
 from route_stats import WINDOW_DAYS, airline_min, month_min, weekday_min
 
 V1 = Path(__file__).resolve().parent.parent / "docs" / "v1"
@@ -37,6 +40,26 @@ DISPLAY_LEAK = re.compile(r"\d+월|월요일|[월화수목금토일]요일|원$"
 
 def load(rel):
     return json.loads((V1 / rel).read_text(encoding="utf-8"))
+
+
+def published_clock():
+    """시계를 **산출물이 발행된 그 시각**(`meta.generated`)에 고정한다 (BE9 T1, BB34).
+
+    커밋된 `docs/v1/`을 즉석 계산과 대조하는 테스트는 창(`today_utc()-30일`,
+    `depart_date >= today_kst()`)이 시각에 따라 움직여서 **발행한 날에만** 통과했다.
+    크론이 매일 새로 만들고 같은 날 돌던 구형에선 안 보였지만, push마다 도는
+    `test.yml`은 크론 다음 날 아침부터 헛 빨간불이다(실측: +1일에 55건 실패).
+
+    「지금」이 아니라 「발행한 순간」과 대조해야 같은 질문이 된다. DB와 `docs/v1/`은
+    크론이 한 커밋으로 같이 올리므로 그 시각의 DB 상태가 곧 커밋된 DB다.
+
+    `timeutil`만 고정하면 된다 — 창을 여는 코드가 전부 거기를 거친다(규칙이다).
+    """
+    at = datetime.fromisoformat(load("meta.json")["generated"])
+    return mock.patch.multiple(
+        timeutil,
+        now_kst=lambda: at.astimezone(timeutil.KST),
+        today_utc=lambda: at.astimezone(timezone.utc).date())
 
 
 class EnvelopeTest(unittest.TestCase):
@@ -197,8 +220,7 @@ class RoutePayloadTest(unittest.TestCase):
         `route_page()`의 기본값이지 사실이 아니다.
         """
         import db
-        conn = db.connect()
-        try:
+        with published_clock(), closing(db.connect()) as conn:
             for code, r in self.routes.items():
                 o, d = code.split("-")
                 with self.subTest(route=code):
@@ -208,8 +230,6 @@ class RoutePayloadTest(unittest.TestCase):
                     self.assertEqual(
                         len(r["airlines"]),
                         len(airline_min(conn, o, d, limit=None)))
-        finally:
-            conn.close()
 
 
 class ReproducesTheCurrentScreenTest(unittest.TestCase):
@@ -229,9 +249,13 @@ class ReproducesTheCurrentScreenTest(unittest.TestCase):
             raise unittest.SkipTest("v1이 아직 발행되지 않았다")
         import db
         cls.conn = db.connect()
+        # 클래스 전체가 커밋된 산출물과의 대조라 시계도 클래스 단위로 고정한다
+        cls.clock = published_clock()
+        cls.clock.start()
 
     @classmethod
     def tearDownClass(cls):
+        cls.clock.stop()
         cls.conn.close()
 
     def test_front_rules_reproduce_every_number(self):
