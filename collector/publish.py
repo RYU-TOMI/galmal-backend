@@ -57,20 +57,27 @@ def _write(rel_path, payload):
     return path
 
 
-def _envelope(generated=None):
+def _envelope(generated):
     """모든 응답의 최상위 두 키.
 
     `generated`는 **ISO 8601 + 오프셋 필수**다. 화면이 신선도를 표시하고 있어
     (`발견가 · N일 전 가격`) 날짜 경계에서 오프셋이 없으면 하루가 조용히 어긋난다.
     현행 `updated`의 `"2026-08-06 00:15"`는 **완성된 문장**이라 v1에선 쓰지 않는다.
+
+    🔴 **기본값이 없다** (BE9 T2, BB35). 한 번의 발행이 낸 응답은 모두 같은
+    `generated`를 가져야 한다(CONTRACT §공통 규칙 — 프론트가 섞인 스냅숏을 이걸로 잡는다).
+    예전엔 `generated or now_kst()`였다 — 새 payload가 넘기기를 빼먹으면 그 파일만
+    초 단위로 갈리고 **프론트 배포가 매일 실패**한다. 빼먹는 순간 `TypeError`로 터지게 둔다.
     """
+    if generated.tzinfo is None:
+        raise ValueError(f"generated 에 오프셋이 없다: {generated!r}")
     return {"schema": SCHEMA,
-            "generated": (generated or timeutil.now_kst()).isoformat(timespec="seconds")}
+            "generated": generated.isoformat(timespec="seconds")}
 
 
 # ---------------------------------------------------------------- 1) meta.json
 
-def meta_payload(counts, preserved, generated=None):
+def meta_payload(counts, preserved, generated):
     """구독 규약이 여기 실리는 이유는 `CONTRACT.md` §subscribe에 있다 — 요약하면
     **표시가 아니라 전선(wire) 규약**이라서다. 프론트가 본문 형식을 지어내면
     구독 실패가 아니라 **전 노선 구독**이 된다(`subscriptions.py:61` `route or "ALL"`).
@@ -96,7 +103,7 @@ def meta_payload(counts, preserved, generated=None):
 
 # ---------------------------------------------------------------- 2) deals.json
 
-def deals_payload(conn, codes, generated=None):
+def deals_payload(conn, codes, generated):
     """딜 응답을 만든다. **하한선 미달이면 `None`** (BB1).
 
     T3 전에는 `docs/data/deals.json`을 읽어 다시 봉투에 넣었다. 그 파일이 사라져
@@ -119,7 +126,7 @@ def deals_payload(conn, codes, generated=None):
 
 # ------------------------------------------------------- 3)·4) routes/*.json
 
-def route_payload(conn, origin, dest, generated=None):
+def route_payload(conn, origin, dest, generated):
     """노선 1개. 표본이 0이면 `None` — 그런 노선은 **응답 자체가 없다.**
 
     `min_samples`·`limit`을 끄고 부르는 게 이 함수의 요점이다.
