@@ -20,13 +20,17 @@ M1의 DoD가 「계약이 현행 노선 페이지의 모든 숫자를 덮는가�
 """
 import json
 import re
+import sqlite3
+import tempfile
 import unittest
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
 import config
+import db
+import discover_data
 import publish
 import subscriptions
 import timeutil
@@ -39,7 +43,11 @@ DISPLAY_LEAK = re.compile(r"\d+월|월요일|[월화수목금토일]요일|원$"
 
 
 def load(rel):
-    return json.loads((V1 / rel).read_text(encoding="utf-8"))
+    return load_from(V1, rel)
+
+
+def load_from(v1, rel):
+    return json.loads((v1 / rel).read_text(encoding="utf-8"))
 
 
 def published_clock():
@@ -110,6 +118,136 @@ class GeneratedIsRequiredTest(unittest.TestCase):
         """오프셋 없는 시각은 날짜 경계에서 하루가 조용히 어긋난다."""
         with self.assertRaises(ValueError):
             publish._envelope(datetime(2026, 9, 17, 11, 45))
+
+
+def snapshot_errors(v1):
+    """`CONTRACT.md` §공통 규칙의 스냅숏 규칙 위반 목록 (BE9 T3, BB35).
+
+        meta = G · routes/index = G · routes/{code}(index에 실린 것) = G
+        deals = G (preserved=false) · deals < G (preserved=true)
+
+    프론트가 받은 응답들로 「섞인 스냅숏」(CDN이 파일마다 따로 캐시)을 잡는 규칙이다.
+    백엔드가 먼저 어기면 프론트 배포가 매일 멈춘다.
+
+    **`routes/index.json` 기준으로만** 본다 — `_write`는 옛 파일을 지우지 않아서
+    오늘 표본이 0인 노선의 파일이 어제 시각으로 디스크에 남는다. 계약도 소비자에게
+    index 기준으로 받으라고 적었다. 디렉터리를 훑으면 정상 발행을 위반으로 본다.
+    """
+    def read(rel):
+        return json.loads((v1 / rel).read_text(encoding="utf-8"))
+
+    meta = read("meta.json")
+    g = datetime.fromisoformat(meta["generated"])
+    errs = []
+
+    def same(rel):
+        got = datetime.fromisoformat(read(rel)["generated"])
+        if got != g:
+            errs.append(f"{rel}: {got.isoformat()} != meta {g.isoformat()}")
+
+    same("routes/index.json")
+    for r in read("routes/index.json")["routes"]:
+        same(f"routes/{r['code']}.json")
+    dg = datetime.fromisoformat(read("deals.json")["generated"])
+    if meta["preserved"] and not dg < g:
+        errs.append(f"deals.json: preserved=true 인데 {dg.isoformat()} 가 meta 보다 이르지 않다")
+    if not meta["preserved"] and dg != g:
+        errs.append(f"deals.json: preserved=false 인데 {dg.isoformat()} != meta {g.isoformat()}")
+    return errs
+
+
+class SnapshotRuleTest(unittest.TestCase):
+    """🔴 한 번의 발행이 낸 응답의 `generated` 규칙 (BE9 T3, BB35).
+
+    **보존일 케이스가 핵심이다.** 규칙이 처음엔 「전부 같다」였다 — 보존일이 아닌 날
+    39개가 전부 같은 걸 보고 올렸고, 하한선 미달(BB1)이면 `deals.json`이 어제 시각으로
+    남는 분기를 못 봤다. 그대로 잠갔으면 보존일마다 프론트 배포가 멈췄다.
+    **한 날의 관측은 규칙의 근거가 아니다** — 그래서 두 분기를 둘 다 실제로 발행해 본다.
+    """
+
+    NOW = datetime(2026, 9, 18, 7, 12, 3, tzinfo=timeutil.KST)
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        docs = Path(self.tmp.name)
+        self.v1 = docs / "v1"
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.executescript(db.SCHEMA)
+        today = self.NOW.date()
+        # 노선 둘에 표본을 넣는다 — routes/{code}.json 이 실제로 나오게
+        for o, d in config.ROUTES[:2]:
+            self.conn.execute(
+                "INSERT INTO offers (fetched_date, origin, destination, depart_date, "
+                "price, airline, transfers) VALUES (?,?,?,?,?,?,0)",
+                (today.isoformat(), o, d,
+                 (today + timedelta(days=40)).isoformat(), 150000, "KE"))
+        for p in (mock.patch.object(discover_data, "DOCS", docs),
+                  mock.patch.object(publish, "V1", self.v1),
+                  mock.patch.multiple(timeutil, now_kst=lambda: self.NOW,
+                                      today_utc=lambda: self.NOW.astimezone(timezone.utc).date())):
+            p.start()
+            self.addCleanup(p.stop)
+        self.addCleanup(self.conn.close)
+        self.addCleanup(self.tmp.cleanup)
+
+    def _publish(self):
+        with mock.patch("builtins.print"):
+            return publish.publish(self.conn)
+
+    def test_ordinary_day_every_response_shares_one_time(self):
+        n_routes, preserved = self._publish()
+        self.assertFalse(preserved)
+        self.assertEqual(n_routes, 2)
+        self.assertEqual(snapshot_errors(self.v1), [])
+        self.assertEqual(load_from(self.v1, "deals.json")["generated"],
+                         self.NOW.isoformat(timespec="seconds"))
+
+    def test_preserved_day_deals_is_older_and_the_rest_is_now(self):
+        """하한선 미달 → `deals.json`은 어제 것 그대로, 나머지는 오늘."""
+        yesterday = (self.NOW - timedelta(days=1)).isoformat(timespec="seconds")
+        self.v1.mkdir(parents=True)
+        (self.v1 / "deals.json").write_text(json.dumps(
+            {"schema": "v1", "generated": yesterday, "origins": {},
+             "deals": [{}] * discover_data.MIN_DEALS}), encoding="utf-8")
+        # 옛 노선 파일이 어제 시각으로 남아 있다 — index 에 없으니 규칙 밖이어야 한다
+        (self.v1 / "routes").mkdir()
+        (self.v1 / "routes" / "ICN-XXX.json").write_text(json.dumps(
+            {"schema": "v1", "generated": yesterday}), encoding="utf-8")
+
+        _, preserved = self._publish()
+
+        self.assertTrue(preserved)
+        self.assertEqual(load_from(self.v1, "deals.json")["generated"], yesterday)
+        self.assertTrue(load_from(self.v1, "meta.json")["preserved"])
+        self.assertEqual(snapshot_errors(self.v1), [])
+
+    def test_the_rule_catches_what_actually_went_wrong(self):
+        """반례 — 구형 `05d0de9`의 `docs/v1`: deals만 42초 이르고 `preserved=false`.
+
+        M1 때 deals의 `generated`를 분 단위 `updated`에서 만들던 흔적이다(프론트 제보).
+        검사기가 이걸 통과시키면 위의 두 테스트도 헛것이다.
+        """
+        self._publish()
+        meta = load_from(self.v1, "meta.json")
+        meta["generated"] = "2026-09-08T15:28:42+09:00"
+        (self.v1 / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+        for rel in ["routes/index.json"] + [f"routes/{r['code']}.json" for r in
+                                             load_from(self.v1, "routes/index.json")["routes"]]:
+            x = load_from(self.v1, rel)
+            x["generated"] = "2026-09-08T15:28:42+09:00"
+            (self.v1 / rel).write_text(json.dumps(x), encoding="utf-8")
+        deals = load_from(self.v1, "deals.json")
+        deals["generated"] = "2026-09-08T15:28:00+09:00"
+        (self.v1 / "deals.json").write_text(json.dumps(deals), encoding="utf-8")
+
+        errs = snapshot_errors(self.v1)
+        self.assertEqual(len(errs), 1, errs)
+        self.assertIn("deals.json", errs[0])
+
+    def test_committed_artifact_follows_the_rule(self):
+        if not (V1 / "meta.json").exists():
+            self.skipTest("v1이 아직 발행되지 않았다")
+        self.assertEqual(snapshot_errors(V1), [])
 
 
 class MetaTest(unittest.TestCase):
