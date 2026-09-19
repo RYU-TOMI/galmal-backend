@@ -134,9 +134,9 @@ def snapshot_errors(v1):
     프론트가 받은 응답들로 「섞인 스냅숏」(CDN이 파일마다 따로 캐시)을 잡는 규칙이다.
     백엔드가 먼저 어기면 프론트 배포가 매일 멈춘다.
 
-    **`routes/index.json` 기준으로만** 본다 — `_write`는 옛 파일을 지우지 않아서
-    오늘 표본이 0인 노선의 파일이 어제 시각으로 디스크에 남는다. 계약도 소비자에게
-    index 기준으로 받으라고 적었다. 디렉터리를 훑으면 정상 발행을 위반으로 본다.
+    **`routes/index.json` 기준으로만** 본다 — 계약이 소비자에게 index 기준으로 받으라고 적었다.
+    (예전엔 표본이 0이 된 노선의 파일이 어제 시각으로 디스크에 남았다. BE14 T2부터 발행이 지운다 —
+    디렉터리와 index 의 일치는 `OrphanRouteTest`가 따로 본다.)
     """
     def read(rel):
         return json.loads((v1 / rel).read_text(encoding="utf-8"))
@@ -266,6 +266,49 @@ class SnapshotRuleTest(PublishedToTempDir):
         if not (V1 / "meta.json").exists():
             self.skipTest("v1이 아직 발행되지 않았다")
         self.assertEqual(snapshot_errors(V1), [])
+
+
+class OrphanRouteTest(PublishedToTempDir):
+    """발행에서 빠진 노선의 파일이 **남지 않는가** (BE14 T2).
+
+    남으면 옛 `generated`를 단 통계가 그 URL에서 계속 서빙된다. index에 없어 스냅숏 규칙은
+    통과하므로 아무도 모른다 — 노선을 빼는 날, 또는 한 노선의 수집이 30일 끊긴 날 생긴다.
+    """
+
+    def _codes_on_disk(self):
+        return {p.stem for p in (self.v1 / "routes").glob("*.json")} - {"index"}
+
+    def test_a_route_no_longer_published_is_removed(self):
+        self._publish()
+        orphan = self.v1 / "routes" / "ICN-ZZZ.json"
+        orphan.write_text('{"schema":"v1","generated":"2026-06-01T07:00:00+09:00"}',
+                          encoding="utf-8")
+        self._publish()
+        self.assertFalse(orphan.exists(), "index 에 없는 노선 파일이 디스크에 남았다")
+
+    def test_published_routes_and_index_survive(self):
+        self._publish()
+        self._publish()
+        listed = {r["code"] for r in load_from(self.v1, "routes/index.json")["routes"]}
+        self.assertEqual(len(listed), 2)                  # 픽스처가 표본을 넣은 노선 둘
+        self.assertEqual(self._codes_on_disk(), listed)
+        self.assertTrue((self.v1 / "routes" / "index.json").exists())
+
+    def test_a_route_whose_samples_dried_up_disappears(self):
+        """노선은 목록에 그대로인데 **창 안 표본이 0이 된** 경우 — 실제로 올 경로다."""
+        self._publish()
+        o, d = config.ROUTES[0]
+        self.conn.execute("DELETE FROM offers WHERE origin=? AND destination=?", (o, d))
+        self._publish()
+        self.assertNotIn(f"{o}-{d}", self._codes_on_disk())
+        self.assertEqual(snapshot_errors(self.v1), [])
+
+    def test_committed_routes_dir_matches_the_index(self):
+        if not (V1 / "routes" / "index.json").exists():
+            self.skipTest("v1이 아직 발행되지 않았다")
+        listed = {r["code"] for r in load("routes/index.json")["routes"]}
+        on_disk = {p.stem for p in (V1 / "routes").glob("*.json")} - {"index"}
+        self.assertEqual(on_disk, listed)
 
 
 class VocabPublishTest(PublishedToTempDir):

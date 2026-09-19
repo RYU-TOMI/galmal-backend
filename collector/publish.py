@@ -191,6 +191,22 @@ def route_payload(conn, origin, dest, generated):
     }
 
 
+def _drop_orphan_routes(codes):
+    """이번 발행에 실리지 않은 `routes/{code}.json`을 지운다 (BE14 T2).
+
+    `_write`는 쓰기만 한다. 그래서 `config.ROUTES`에서 뺀 노선이나 창 안 표본이 0이 된
+    노선의 파일이 **옛 `generated`를 단 채 영원히 서빙됐다** — index에는 없으니 스냅숏 규칙도
+    통과하고, 그 URL을 직접 부르는 쪽은 몇 달 전 통계를 오늘 것처럼 받는다.
+    `route_payload`가 말하는 「표본이 0이면 응답 자체가 없다」를 디스크에서도 참으로 만든다.
+
+    index를 **쓴 뒤에** 지운다. 도중에 죽어도 「index에 있는데 파일이 없다」는 상태는 안 생긴다.
+    """
+    keep = {f"{c}.json" for c in codes} | {"index.json"}
+    for path in (V1 / "routes").glob("*.json"):
+        if path.name not in keep:
+            path.unlink()
+
+
 def publish(conn):
     """v1 5종(meta·deals·routes/index·routes/{code}·vocab)을 전부 쓴다. 반환: `(발행한 노선 수, 하한선 미달로 딜을 보존했나)`."""
     generated = timeutil.now_kst()
@@ -207,6 +223,7 @@ def publish(conn):
 
     # 정렬은 config.ROUTES 순서 그대로. 프론트가 필요한 순서로 다시 정렬한다.
     _write("routes/index.json", {**_envelope(generated), "routes": routes})
+    _drop_orphan_routes({r["code"] for r in routes})
     # 참조 데이터는 딜 보존과 무관하다 — 보존일에도 오늘 G 로 나간다(CONTRACT §5).
     _write("vocab.json", vocab_payload(generated))
 
