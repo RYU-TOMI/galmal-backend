@@ -8,7 +8,8 @@
 
 메일 규약:
 - 구독: 제목에 '구독신청', 제목/본문에 노선 코드(예: ICN-FUK) 또는 '전체'
-- 해지: 제목에 '구독취소', 노선 코드가 있으면 해당 노선만, 없으면 전체 해지
+- 해지: 제목에 '구독취소'. **제목에** 노선 코드가 있으면 해당 노선만, 없으면 전체 해지.
+        🔴 해지는 본문을 읽지 않는다(BB37) — 아래 `apply_message` 참조.
 """
 import email
 import email.utils
@@ -47,8 +48,63 @@ def _extract_route(text):
     return None
 
 
+EXCLUDE = "!"          # `"!ICN-FUK"` — 전체 구독자가 그 노선만 뺐다
+
+
+def wants(routes, code):
+    """이 구독자에게 `code` 노선 알림을 보내도 되는가.
+
+    판정을 발송 쪽에 두지 않는 이유: 제외 표기(`!`)를 아는 곳이 둘이 되면 하루는
+    하나가 틀린다. 그리고 여기서 틀리면 **해지한 사람에게 메일이 간다.**
+    """
+    if EXCLUDE + code in routes:
+        return False
+    return "ALL" in routes or code in routes
+
+
+def apply_message(subs, sender, subject, body=""):
+    """구독/해지 메일 한 통을 `subs`에 반영한다. IMAP을 모른다 — 그래서 테스트할 수 있다.
+
+    🔴 **해지는 제목에서만 노선을 읽는다** (BB37, 2026-09-20).
+    알림 메일 푸터가 "제목 '구독취소'로 **회신**"하라고 안내하는데, 회신은 원문을 인용한다.
+    예전엔 본문에서도 노선을 찾았고 푸터에 예시 `ICN-FUK`가 있었다 → 인용문 속 예시를 집어
+    「ICN-FUK만 해지」로 처리했다. **전체 해지를 요청한 사람이 계속 구독자로 남았다** —
+    본인은 해지했다고 믿고 우리는 계속 보낸다(정보통신망법 수신거부 의무).
+
+    어느 쪽으로 틀릴지 고른 것이다: 본문에 코드를 적은 사람은 그 노선만이 아니라 **전부**
+    해지된다(과잉). 과잉 해지는 다시 신청하면 되지만 과소 해지는 법 위반이다.
+    구독은 그대로 본문도 읽는다 — 사이트의 mailto가 본문에 코드를 넣는다(계약 `route_token`).
+
+    `ALL` 구독자가 한 노선만 해지하면 `"!ICN-FUK"`로 남긴다. 예전엔 `discard`가 아무것도
+    안 지워 **해지가 조용히 무시됐다.** 그 노선을 다시 신청하거나 전체를 다시 신청하면 풀린다.
+    """
+    if SUBSCRIBE in subject:
+        route = _extract_route(subject) or _extract_route(body) or "ALL"
+        mine = subs.setdefault(sender, set())
+        if route == "ALL":
+            mine.difference_update({r for r in mine if r.startswith(EXCLUDE)})
+        mine.discard(EXCLUDE + route)
+        mine.add(route)
+    elif UNSUBSCRIBE in subject:
+        route = _extract_route(subject)
+        mine = subs.get(sender)
+        if mine is None:
+            return
+        if route is None or route == "ALL":
+            del subs[sender]
+            return
+        mine.discard(route)
+        if "ALL" in mine:
+            mine.add(EXCLUDE + route)
+        if not any(not r.startswith(EXCLUDE) for r in mine):
+            del subs[sender]
+
+
 def load_subscribers(addr=None, pw=None):
-    """{구독자 이메일: {노선코드 or 'ALL', ...}} 반환. 신청/취소를 시간순 적용."""
+    """{구독자 이메일: {노선코드 | 'ALL' | '!노선코드', ...}} 반환. 신청/취소를 시간순 적용.
+
+    돌려받은 집합은 직접 뒤지지 말고 `wants(routes, code)`로 묻는다.
+    """
     if not addr:
         addr, pw = load_env()
     imap = imaplib.IMAP4_SSL(IMAP_HOST)
@@ -67,16 +123,7 @@ def load_subscribers(addr=None, pw=None):
         sender = email.utils.parseaddr(msg.get("From", ""))[1].lower()
         if not sender:
             continue
-        route = _extract_route(subject) or _extract_route(html_body(msg))
-        if SUBSCRIBE in subject:
-            subs.setdefault(sender, set()).add(route or "ALL")
-        else:  # 구독취소
-            if route and sender in subs:
-                subs[sender].discard(route)
-                if not subs[sender]:
-                    del subs[sender]
-            else:
-                subs.pop(sender, None)
+        apply_message(subs, sender, subject, html_body(msg))
     imap.logout()
     return subs
 
