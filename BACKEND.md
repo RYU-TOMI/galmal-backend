@@ -1796,3 +1796,18 @@ T5 5c8315b  CONTRACT.md·COPY.md·TAGS.md 사본 삭제 — 여는 코드 0
 `python collector/publish.py` → 딜 수 == 제휴 링크 수(CLAUDE.md의 한 줄). 다르면 `.env`가 안 넘어온 것이다.
 - `.env`는 **사용자가** 옮긴다(시크릿 — 세션은 복사하지 않는다). 옮기기 전 사본은 옛 폴더에만 있었다.
 - 새 클론 `.gitignore:3`이 `.env`를 무시함(기획 check-ignore 확인).
+
+### BE11 완료 (2026-09-19) — `/v1/vocab.json` 참조 데이터 발행 (CONTRACT §5)
+
+```
+T1 86a2e31  vocab_payload — contract/v1/vocab.json 그대로 + region_name, $comment 중첩까지 제거
+T2 dbe4cab  발행물 == 정본 - $comment (기대값 손으로 안 씀, 제거도 다른 방법으로)
+            탐침: 정본에 태그 추가 → 따라옴 / 최상위만 제거 → 실패 / top 순서 뒤집기 → 실패
+T4 run 35428313999  수동 실행(skip_side_effects=true) → api.galmal.kr/v1/vocab.json 200
+            generated == meta.generated (16:04:43+09:00) · 라이브 == 커밋된 파일
+T3 7a4983e  스냅숏 규칙에 vocab == G, **없으면 위반**. 탐침: 1초 어긋남 / 발행 누락 → 잡음
+```
+
+- **T4를 T3보다 먼저 했다.** T3는 커밋된 산출물에 vocab.json을 요구해서, 발행 전에 올리면 CI가 빨갛다.
+  「있으면 본다」로 약하게 만드는 대신 순서를 바꿨다.
+- 수동 실행도 프론트에 dispatch를 보낸다 — 프론트는 지금 39개만 받으므로 vocab은 무시된다.
