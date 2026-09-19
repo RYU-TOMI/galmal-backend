@@ -20,11 +20,13 @@
 | BE11 | `/v1/vocab.json` 발행 — 프론트 빌드가 이걸 **필수로** 받는다(없거나 G가 다르면 그날 배포 정지) | §16 끝 |
 | BE12 | 중간 점검(코드 전수 읽기) — 발견은 BB36~BB41, README 전면 개편. **코드는 안 고쳤다** | §7 미분류 · §16 끝 |
 | BE13 | 점검 수정 — 크론 20:10 UTC + 자정 근접 점검(BB36) · 구독취소 회신(BB37) · 죽은 코드(BB40) | §16 끝 |
+| BE14 | 점검 잔여 — `date.today()` 0(BB25) · 고아 노선 파일 · 발행물 없으면 실패 · `concurrency`·`pydantic` | §16 끝 |
 
 **다음 챕터 후보 — 사용자와 정한다**
 - ⏳ **BE13 뒤 확인 하나**: 새 크론 슬롯(20:10 UTC)의 **실제 시작 시각** — `gh run list --workflow=collect.yml --event schedule`.
   23·00시대 UTC면 상태 점검이 빨간불을 켠다. 재면 기획·프론트에 알린다(둘 다 숫자를 비워 두고 기다린다).
-- 점검에서 남은 것: BB38(메일 산출 소비자 없음 — **기획·사용자 결정 대기**) · BB39(공개 DB PII 잠재 경로) · BB41(소소한 것).
+- 점검에서 남은 것: **메일 묶음** BB33·BB38·BB39(BB38의 기획·사용자 결정이 나면 한 챕터로) ·
+  BB41 잔여(`.env` 파서 5벌 · 중앙값 3벌[계약 의미 영향 — 기획 먼저] · `LICENSE`[사용자 결정] · 로컬 3.11 vs CI 3.12).
 - **BE8 노선 확대**(분리 때문에 멈춤). 서치콘솔 유입 질의로 노선을 고르는 안 — 전제·측정값은 §11.2·§11.3·§12.5.
 - 서버 스파이크(포트폴리오 목적, Azure 크레딧 2027-02) — 분리가 선행 조건이었고 풀렸다. 기획·사용자 결정 전.
 
@@ -792,19 +794,19 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   `https://galmal.kr`(지금 API는 `api.galmal.kr` — 변수가 지워지면 **엉뚱한 곳을 점검하고 404로 실패**한다. 조용하진 않다).
   → **BE13 T3.** 지울 때 `tests/test_publish.py:423`의 P7 방어(「`fmt_month`를 부르면 걸린다」)가 같이 의미를 잃는지 본다.
 
-- **BB41. 소소한 것 — 한 줄씩.**
+- **BB41. 소소한 것 — 한 줄씩.** (2026-09-20 BE14에서 넷 해결 — ✅ 표시. 나머지는 열려 있다)
   - `.env` 파서가 5벌이다(`fetch_prices`·`fetch_breadth`·`parse_mail`의 `load_*`, `mail_ingest.load_env`, `affiliates._env`).
     `affiliates._env`는 **호출마다 파일을 다시 읽는다**(딜 137건 × 링크당 여러 번). 느리진 않다, 갈릴 자리가 많을 뿐.
   - 중앙값 구현이 3벌이다 — `discover_data._median`(짝수면 평균) · `detect_deals`(`statistics.median`) ·
     `route_stats.route_summary`(`prices[n//2]` = **상위 중앙값**). 통일하면 `routes/*.summary.median` 값이
     움직일 수 있어 **계약 의미 영향**을 먼저 본다.
-  - `parse_mail.py`가 `pydantic`을 import하는데 `requirements.txt`엔 `anthropic`뿐이다(전이 의존이라 지금은 깔린다).
-  - `collect.yml`에 `concurrency`가 없다 — 수동 실행과 예약 실행이 겹칠 수 있다(09-01·09-16·09-19에 하루 2~3회 실행).
-  - `publish()`가 빠진 노선의 `routes/{code}.json`을 지우지 않는다. 지금은 파일 36 == `config.ROUTES` 36이라 해당 없음.
+  - ✅(BE14 T4) `parse_mail.py`가 `pydantic`을 import하는데 `requirements.txt`엔 `anthropic`뿐이다(전이 의존이라 지금은 깔린다).
+  - ✅(BE14 T4, `cancel-in-progress: false`) `collect.yml`에 `concurrency`가 없다 — 수동 실행과 예약 실행이 겹칠 수 있다(09-01·09-16·09-19에 하루 2~3회 실행).
+  - ✅(BE14 T2, `_drop_orphan_routes`) `publish()`가 빠진 노선의 `routes/{code}.json`을 지우지 않는다. 지금은 파일 36 == `config.ROUTES` 36이라 해당 없음.
     노선을 빼는 날 고아 파일이 옛 `generated`로 영원히 서빙된다(index엔 없어 스냅숏 규칙은 통과).
   - 로컬 Python 3.11.9 vs CI 3.12. `str | None`(3.10+)만 쓰여 지금은 무해.
   - `LICENSE`가 없다(공개 저장소). 사용자 결정.
-  - `CommittedArtifactTest` 둘(`test_contract.py:460`·`test_publish.py:267`)은 `docs/v1`이 없으면 **skip**이다.
+  - ✅(BE14 T3, 없으면 실패) `CommittedArtifactTest` 둘(`test_contract.py:460`·`test_publish.py:267`)은 `docs/v1`이 없으면 **skip**이다.
     v1이 항상 커밋돼 있는 지금은 fail이 맞다 — 통째로 지워져도 CI가 초록이다.
   - 기계가 읽는 계약 정본은 `deals[]` 원소뿐이다. `meta`·`routes/*`의 모양은 `test_publish.py`와
     `CONTRACT.md` 산문에만 있다. 기획 소관 — 필요해지면 그쪽에 제안한다.
@@ -2007,3 +2009,19 @@ T3 (이 커밋) 죽은 코드 8개 · 낡은 서술 · API_URL 기본값. 전후
 - **T1은 아직 반만 검증됐다.** 가드 논리와 YAML 유효성은 봤지만 **새 슬롯에서 실제로 몇 시에 도는지는 첫 실행을 봐야 안다.**
 - 검증용 재빌드(`publish.py`)는 하지 않았다 — 발행 경로의 코드 변경이 `daily_min`의 죽은 분기 제거뿐이고 그건 실 DB 대조로 봤다.
 - 통지: 크론 이동을 기획·프론트에 알렸고 기획이 `PROJECT.md`를 맞췄다(실제 시작 숫자는 비워 둠). T2·T3는 남에게 닿는 게 없어 안 알렸다.
+
+### BE14 완료 (2026-09-20) — 점검 잔여 중 메일·계약과 무관한 것
+
+```
+T1 428f945  date.today() 3곳 → timeutil (기계용 UTC 2 · 사람용 KST 1). KNOWN_DEBT 목록 삭제, 새 위반 방지는 유지   BB25
+T2 b1a9b3a  publish 가 index 에 없는 routes/{code}.json 을 지운다. OrphanRouteTest 4건                         BB41
+T3 53ff334  커밋된 발행물이 없으면 skip → 실패 (3곳)                                                          BB41
+T4 (이 커밋) collect.yml concurrency(group: collect, cancel-in-progress: false) · requirements 에 pydantic>=2   BB41
+```
+
+- 테스트 198 → 201건 `OK`(빚 목록 테스트 -1, 고아 노선 +4). 탐침은 태스크마다 했다: 위반 심기 / 지우는 호출 끄기 /
+  `docs/v1` 치우기 → 각각 실패 확인 후 원복. T4의 YAML 은 PyYAML(scratchpad 설치)로 구조를 확인했다.
+- 계약·발행물 형식은 **안 바뀌었다.** T2는 `CONTRACT.md:262`의 괄호 설명(「옛 파일이 남아 있을 수 있다 — `_write`는
+  지우지 않는다」)을 낡게 만든다. 규칙 자체(index 에 실린 코드만 받는다)는 여전히 옳다 → 기획에 알렸다.
+- ⚠️ T2 작업 중 원복에 `git checkout -p`(대화형)를 끼워 넣는 실수를 했다 — 이 환경은 대화형을 못 돌려 아무 일도
+  안 했고, 결과는 `PROBE` 0건·호출 복원·`^OK`로 따로 확인했다. 원복은 `sed` 역치환이나 `git checkout -- 파일`로만 한다.

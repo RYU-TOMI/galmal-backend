@@ -30,6 +30,14 @@ on:
 permissions:
   contents: write
 
+# 한 번에 하나만 돈다 (BE14 T4). 수동 검증 실행이 예약 실행과 겹치면 둘이 같은 `prices.db` 를
+# 각자 고쳐 push 하고, 늦은 쪽이 rebase 충돌에서 **자기 DB 를 통째로 취한다**(아래 커밋 스텝) —
+# 먼저 끝난 쪽의 수집분이 조용히 사라진다. 실제로 하루 2~3회 돈 날이 있다(09-01·09-16·09-19).
+# 🔴 `cancel-in-progress: false` — 도는 중인 수집을 끊으면 그날 수집분을 잃는다. 뒤 실행이 기다린다.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
