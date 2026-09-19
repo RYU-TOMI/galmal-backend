@@ -24,7 +24,7 @@ from affiliates import booking_link
 from detect_deals import compute_deals
 from labels import airline_name, city
 from mail_ingest import load_env
-from subscriptions import load_subscribers
+from subscriptions import load_subscribers, wants
 
 SMTP_HOST = "smtp.gmail.com"
 
@@ -79,7 +79,7 @@ def build_mail(to_addr, deals):
 <hr>
 <p style="color:#888;font-size:12px">본 메일은 특가 알림을 구독 신청하신 분께 발송됩니다.<br>
 수신거부(구독 해지): 이 메일에 제목 '구독취소'로 회신해 주세요.
-특정 노선만 해지하려면 본문에 노선 코드(예: ICN-FUK)를 적어주세요.<br>
+특정 노선만 해지하려면 제목을 '구독취소 ICN-FUK'처럼 노선 코드와 함께 적어주세요.<br>
 발신: 항공권 특가 알림 ({SITE_URL})</p>
 </div>"""
     msg = MIMEText(body, "html", "utf-8")
@@ -102,7 +102,7 @@ def main():
     n_sent = 0
     for to_addr, routes in subs.items():
         matched = [d for d in deals
-                   if "ALL" in routes or f"{d['origin']}-{d['destination']}" in routes]
+                   if wants(routes, f"{d['origin']}-{d['destination']}")]
         h = email_hash(to_addr)
         new = [d for d in matched if not conn.execute(
             """SELECT 1 FROM alert_log WHERE email_hash=? AND origin=? AND destination=?
