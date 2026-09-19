@@ -110,7 +110,8 @@ class GeneratedIsRequiredTest(unittest.TestCase):
         for name, args in (("_envelope", ()),
                            ("meta_payload", ({}, False)),
                            ("deals_payload", (None, set())),
-                           ("route_payload", (None, "ICN", "FUK"))):
+                           ("route_payload", (None, "ICN", "FUK")),
+                           ("vocab_payload", ())):
             with self.subTest(fn=name), self.assertRaises(TypeError):
                 getattr(publish, name)(*args)
 
