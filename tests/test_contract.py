@@ -30,6 +30,7 @@ import discover_data
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT = ROOT / "CONTRACT.md"
+DEAL_SCHEMA = ROOT / "contract" / "v1" / "deal.schema.json"
 ARTIFACT = ROOT / "docs" / "v1" / "deals.json"
 
 REGIONS = {"jp", "cn", "sea", "island", "oc", "eu", "am", "etc", "dom"}
@@ -40,7 +41,9 @@ HUBS = {"SEL", "PUS", "TAE", "CJU"}
 # 필드 목록을 여기 하드코딩하지 않는다(BB19). 하드코딩하면 기획이 계약에 필드를
 # 추가해도 검증기가 모르고 **CI가 조용히 초록불**이 된다. 실제로 `low`·`obs_days`가
 # 그렇게 통과했다 — "계약이 단일 출처"가 반쯤만 참이었다.
-# 표의 타입 열도 읽어 `|null` 표기에서 nullable 여부를 뽑는다.
+# 정본은 `contract/v1/deal.schema.json`이다(BE10 T1, R8 C안). 예전엔 `CONTRACT.md`의
+# 마크다운 표를 파싱했는데, 저장소가 갈리면서 그 문서가 두 벌이 됐고 첫날 사본이
+# 뒤처졌다 — 검증기가 **낡은 계약으로** 검사하는 상태였다. 목록은 코드 옆 한 곳에만 둔다.
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 UPDATED_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
@@ -61,43 +64,33 @@ WHEN_PATTERNS = (
 )
 
 
-def _cells(line):
-    r"""마크다운 표 한 줄을 셀로 자른다.
+def deal_schema():
+    return json.loads(DEAL_SCHEMA.read_text(encoding="utf-8"))
 
-    타입 열에 `string\|null`처럼 **이스케이프된 파이프**가 들어 있다. 그냥
-    `split("|")`하면 거기서 잘려 `string\`만 읽히고 nullable 판정이 틀어진다.
-    """
-    return [c.replace(r"\|", "|").strip()
-            for c in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
+
+def _types(prop):
+    t = prop["type"]
+    return t if isinstance(t, list) else [t]
 
 
 def contract_fields():
-    """`CONTRACT.md`의 deal 필드 표에서 `{필드: nullable 여부}`를 읽는다.
+    """`deal.schema.json`에서 `{필드: nullable 여부}`를 읽는다.
 
-    계약이 단일 출처가 되려면 **필드 목록도** 여기서 나와야 한다. 그래야 기획이
-    필드를 추가한 순간 검증기가 요구하기 시작하고, 생산자가 안 채우면 CI가 잡는다.
+    계약이 단일 출처가 되려면 **필드 목록도** 여기서 나와야 한다. 그래야 필드가
+    추가된 순간 검증기가 요구하기 시작하고, 생산자가 안 채우면 CI가 잡는다.
     """
-    body = CONTRACT.read_text(encoding="utf-8")
-    if "## deal 객체" not in body:
-        raise AssertionError("CONTRACT.md에서 '## deal 객체' 절을 찾지 못했다. "
-                             "계약이 재편됐다면 이 파서도 함께 고쳐야 한다.")
-    table = body.split("## deal 객체")[1].split("### ")[0]
-    fields = {}
-    for line in table.splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = _cells(line)
-        if len(cells) < 2:
-            continue
-        names = re.findall(r"`([^`]+)`", cells[0])     # `lat` `lon` 처럼 한 칸에 둘인 행
-        if not names:
-            continue
-        nullable = "null" in cells[1]
-        for name in names:
-            fields[name] = nullable
-    if len(fields) < 10:
-        raise AssertionError(f"deal 필드 표에서 {len(fields)}개만 읽었다. 표 형식 변경 의심.")
-    return fields
+    schema = deal_schema()
+    props = schema["properties"]
+    # 이 검증기는 「있는 필드 = 전부 필수」로 읽는다. 스키마가 달리 말하면 먼저 터진다.
+    if set(schema["required"]) != set(props):
+        raise AssertionError("deal.schema.json 의 required 와 properties 가 다르다: "
+                             f"{sorted(set(schema['required']) ^ set(props))}")
+    return {name: "null" in _types(p) for name, p in props.items()}
+
+
+def link_fields():
+    """`links[]` 원소의 필드 집합 — 스키마에서."""
+    return set(deal_schema()["properties"]["links"]["items"]["properties"])
 
 
 def contract_vocab():
@@ -275,12 +268,13 @@ def validate(payload, vocab, parent=None, fields=None):
                     errs.append(f"{at}.seen이 KST(+09:00) 오프셋이 아니다: {dl['seen']!r}")
 
         links = dl["links"]
+        link_keys = link_fields()
         if not isinstance(links, list) or not 3 <= len(links) <= 5:
             shown = len(links) if isinstance(links, list) else repr(links)
             errs.append(f"{at}.links 개수가 3~5가 아니다: {shown}")
         else:
             for j, ln in enumerate(links):
-                if not isinstance(ln, dict) or set(ln) != {"name", "tag", "ad", "url"}:
+                if not isinstance(ln, dict) or set(ln) != link_keys:
                     errs.append(f"{at}.links[{j}] 구조가 다르다: {ln!r}")
                     continue
                 if not (ln["name"] and ln["tag"]):
@@ -316,12 +310,12 @@ def validate(payload, vocab, parent=None, fields=None):
 
 
 class ContractParsingTest(unittest.TestCase):
-    """검증기가 딛고 선 계약서 자체가 읽히는가."""
+    """검증기가 딛고 선 계약 파일 자체가 읽히는가."""
 
-    def test_field_table_is_readable(self):
+    def test_field_list_is_readable(self):
         """필드 목록이 계약에서 나와야 검증기가 계약을 따라간다(BB19).
 
-        하드코딩하면 기획이 필드를 추가해도 검증기가 모르고 CI가 조용히 통과한다.
+        하드코딩하면 필드가 추가돼도 검증기가 모르고 CI가 조용히 통과한다.
         실제로 `low`·`obs_days`가 그렇게 며칠 방치됐다.
         """
         fields = contract_fields()
@@ -329,17 +323,25 @@ class ContractParsingTest(unittest.TestCase):
         for core in ("o", "d", "price", "links"):
             self.assertIn(core, fields)
 
-    def test_escaped_pipes_do_not_break_nullable_detection(self):
-        """타입 열의 `string\|null`을 제대로 읽는가.
-
-        마크다운에서 파이프를 `\|`로 이스케이프하는데, 순진하게 자르면 거기서
-        끊겨 `string\`만 읽힌다. 그러면 nullable 필드를 필수로 오판한다.
-        """
+    def test_nullable_is_read_from_the_type(self):
+        """`["string","null"]`만 null 허용으로 읽는가 — 틀리면 필수 필드가 null로 새도 통과한다."""
         fields = contract_fields()
-        for nullable in ("ret", "seen", "low"):
+        for nullable in ("ret", "seen", "low", "median", "route"):
             self.assertTrue(fields.get(nullable), f"{nullable}은 null 허용이어야 한다")
         for required in ("o", "d", "price", "obs_days"):
             self.assertFalse(fields.get(required), f"{required}은 필수여야 한다")
+
+    def test_every_field_says_what_it_means(self):
+        """스키마가 정본이 되면서 **의미 설명도 여기로** 왔다 — 비면 「왜」가 사라진다."""
+        props = deal_schema()["properties"]
+        items = list(props.items())
+        items += [(f"links[].{k}", p)
+                  for k, p in props["links"]["items"]["properties"].items()]
+        empty = [k for k, p in items if not p.get("description", "").strip()]
+        self.assertEqual(empty, [], f"설명이 없는 필드: {empty}")
+
+    def test_link_fields_come_from_the_schema(self):
+        self.assertEqual(link_fields(), {"name", "tag", "ad", "url"})
 
     def test_when_vocabulary_covers_the_contract_table(self):
         """`when` 어휘 검사가 계약 §when의 7단계를 전부 받아들이는가.

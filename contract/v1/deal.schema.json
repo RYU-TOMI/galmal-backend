@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:galmal:contract:v1:deal",
+  "title": "deal",
+  "description": "deals.json 의 deals[] 원소 하나. **필드 목록의 정본은 이 파일이다** (R8 C안, 2026-09-17). 왜 이렇게 정했나는 기획 문서 CONTRACT.md 에 있다. 기획 결정 없이 바꾸지 않는다 — 바꾸면 커밋 메시지에 그 결정을 인용한다.",
+  "type": "object",
+  "required": [
+    "o",
+    "d",
+    "ko",
+    "country",
+    "region",
+    "haul",
+    "tier",
+    "tags",
+    "lat",
+    "lon",
+    "price",
+    "transfers",
+    "dep",
+    "ret",
+    "nights",
+    "median",
+    "route",
+    "discount",
+    "when",
+    "low",
+    "obs_days",
+    "seen",
+    "links"
+  ],
+  "properties": {
+    "o": {
+      "type": "string",
+      "description": "출발 허브 코드 (`origins`의 키)",
+      "examples": [
+        "SEL"
+      ]
+    },
+    "d": {
+      "type": "string",
+      "description": "**목적지 코드** — IATA **도시 코드가 있으면 도시 코드**, 없으면 공항 코드. `(o, d)`는 **유일**해야 한다(URL 딥링크 `#{o}-{d}` 키 + 중복 제거 키)",
+      "examples": [
+        "TYO"
+      ]
+    },
+    "ko": {
+      "type": "string",
+      "description": "목적지 한글 도시명 (**화면 표시용**)",
+      "examples": [
+        "제주"
+      ]
+    },
+    "country": {
+      "type": "string",
+      "description": "국가 한글명",
+      "examples": [
+        "한국"
+      ]
+    },
+    "region": {
+      "type": "string",
+      "description": "지역 코드 (`jp`/`cn`/`sea`/`island`/`oc`/`eu`/`am`/`etc`/`dom`)",
+      "examples": [
+        "dom"
+      ]
+    },
+    "haul": {
+      "type": "string",
+      "description": "거리대 — `short`(근거리) / `mid`(중거리) / `long`(장거리)",
+      "examples": [
+        "short"
+      ]
+    },
+    "tier": {
+      "type": "string",
+      "description": "LOD 등급 — `major`(축소에도 표시) / `minor`(확대 시 표시)",
+      "examples": [
+        "major"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "분위기 태그. **통제 어휘 24종 · 상위6/하위18**(아래 참조). 필터·카드 표시·사진 색에 사용",
+      "examples": [
+        [
+          "야경",
+          "미식",
+          "도시",
+          "쇼핑"
+        ]
+      ]
+    },
+    "lat": {
+      "type": "number",
+      "description": "목적지 공항 위경도 (**지도 핀 좌표**)",
+      "examples": [
+        33.51
+      ]
+    },
+    "lon": {
+      "type": "number",
+      "description": "목적지 공항 위경도 (**지도 핀 좌표**)",
+      "examples": [
+        126.49
+      ]
+    },
+    "price": {
+      "type": "number",
+      "description": "**발견가**(KRW, 왕복 총액). 화면에선 \"발견가 · 스캔 시점\"으로 표기",
+      "examples": [
+        42522
+      ]
+    },
+    "transfers": {
+      "type": "number",
+      "description": "경유 횟수 (0=직항)",
+      "examples": [
+        0
+      ]
+    },
+    "dep": {
+      "type": "string",
+      "description": "출발일 `YYYY-MM-DD`",
+      "examples": [
+        "2026-09-16"
+      ]
+    },
+    "ret": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "귀국일. 편도면 `null`",
+      "examples": [
+        "2026-09-17"
+      ]
+    },
+    "nights": {
+      "type": "string",
+      "description": "표시용 기간 문자열. 편도/불명이면 `\"\"`",
+      "examples": [
+        "1박2일"
+      ]
+    },
+    "median": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "해당 노선 **평소 시세(중앙값)**. \"평소 시세 vs 발견가\" 막대에 사용. **관측 이력이 없으면 `null`** — 오늘 가격을 평소 시세라고 단언하지 않는다. 프론트는 `null`이면 **비교 막대를 생략**한다(`median <= price`일 때와 같은 처리)",
+      "examples": [
+        59319
+      ]
+    },
+    "route": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "**그 딜에 해당하는 노선 페이지 코드.** 없으면 `null`. 프론트는 이 값이 있을 때만 `이 노선 시세 자세히` 링크를 보인다 — `o`가 가상 허브(`SEL`)라 프론트는 실제 공항을 모른다. **아는 쪽(백엔드)이 판정해서 넣는다**",
+      "examples": [
+        "ICN-FUK"
+      ]
+    },
+    "discount": {
+      "type": "number",
+      "description": "중앙값 대비 할인율(%). 0~70로 클램프. 할인 없으면 `0`",
+      "examples": [
+        28
+      ]
+    },
+    "when": {
+      "type": "string",
+      "description": "상대 날짜 라벨. **통제 어휘** — 아래 `when` 절 참조",
+      "examples": [
+        "다음 달"
+      ]
+    },
+    "low": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "**오늘(이번 수집)을 제외한 이전 관측 기간의 최저가.** 오늘 값을 포함하지 않는 게 핵심이다 — 포함하면 \"최저\" 판정이 동어반복이 된다. 이력이 없으면 `null`",
+      "examples": [
+        203758
+      ]
+    },
+    "obs_days": {
+      "type": "number",
+      "description": "그 `(허브, 목적지)`를 **관측한 일수**. `broad_offers` 기준. 이력이 없으면 `0`",
+      "examples": [
+        17
+      ]
+    },
+    "seen": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "**소스가 이 가격을 마지막으로 관측한 시각**(신선도 배지용). ISO8601, **KST 기준**. 값이 없거나 파싱 불가면 `null`",
+      "examples": [
+        "2026-08-18T03:17:35+09:00"
+      ]
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "tag",
+          "ad",
+          "url"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "예약처 표시명 (프론트가 그대로 출력)"
+          },
+          "tag": {
+            "type": "string",
+            "description": "성격 라벨. **프론트는 미표시**(중립성 위해 숨김). 필드는 유지"
+          },
+          "ad": {
+            "type": "boolean",
+            "description": "🔴 **이 링크로 예약하면 우리가 수수료를 받는가** (boolean, **항상 존재**). **프론트는 이 값이 `true`인 링크에만 `(광고)`를 붙인다.** **이름·순서·URL 모양으로 추측하지 않는다.**"
+          },
+          "url": {
+            "type": "string",
+            "description": "노선·날짜가 프리필된 딥링크. 프론트는 `target=\"_blank\" rel=\"noopener sponsored\"` 로 연다"
+          }
+        }
+      },
+      "description": "**예약처 비교 링크**",
+      "examples": [
+        [
+          {
+            "name": "Aviasales",
+            "tag": "영어·수수료",
+            "ad": true,
+            "url": "https://..."
+          }
+        ]
+      ]
+    }
+  }
+}
