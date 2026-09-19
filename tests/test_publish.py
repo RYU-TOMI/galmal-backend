@@ -263,8 +263,8 @@ class SnapshotRuleTest(PublishedToTempDir):
         self.assertIn("deals.json", errs[0])
 
     def test_committed_artifact_follows_the_rule(self):
-        if not (V1 / "meta.json").exists():
-            self.skipTest("v1이 아직 발행되지 않았다")
+        # 없으면 skip 이 아니라 실패다 — 발행물이 통째로 지워져도 초록불이면 안 된다(BE14 T3)
+        self.assertTrue((V1 / "meta.json").exists(), "docs/v1/meta.json 이 없다 — 발행물이 지워졌다")
         self.assertEqual(snapshot_errors(V1), [])
 
 
@@ -304,8 +304,8 @@ class OrphanRouteTest(PublishedToTempDir):
         self.assertEqual(snapshot_errors(self.v1), [])
 
     def test_committed_routes_dir_matches_the_index(self):
-        if not (V1 / "routes" / "index.json").exists():
-            self.skipTest("v1이 아직 발행되지 않았다")
+        self.assertTrue((V1 / "routes" / "index.json").exists(),
+                        "docs/v1/routes/index.json 이 없다 — 발행물이 지워졌다")
         listed = {r["code"] for r in load("routes/index.json")["routes"]}
         on_disk = {p.stem for p in (V1 / "routes").glob("*.json")} - {"index"}
         self.assertEqual(on_disk, listed)

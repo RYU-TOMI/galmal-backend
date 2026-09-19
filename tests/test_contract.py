@@ -453,11 +453,13 @@ class CommittedArtifactTest(unittest.TestCase):
 
     생산 로직이 옳아도 커밋된 산출물이 옛 스키마로 남아 있으면, 그걸 픽스처로
     쓰는 프론트가 어긋난다. 그래서 파일 자체도 검사한다.
+
+    발행물은 크론이 매일 커밋한다 — **없는 게 정상인 날이 없다.** 예전엔 없으면 skip 이었고,
+    그러면 `docs/v1`이 통째로 지워져도 CI 가 초록불이다(BE14 T3). 없으면 실패한다.
     """
 
     def test_artifact_satisfies_the_contract(self):
-        if not ARTIFACT.exists():
-            self.skipTest("docs/v1/deals.json이 없다 (아직 생성 전)")
+        self.assertTrue(ARTIFACT.exists(), "docs/v1/deals.json 이 없다 — 발행물이 지워졌다")
         payload = json.loads(ARTIFACT.read_text(encoding="utf-8"))
         errs = validate(payload, *contract_vocab())
         self.assertEqual(errs, [], "커밋된 산출물의 계약 위반:\n  " + "\n  ".join(errs))
