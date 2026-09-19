@@ -60,7 +60,7 @@ curl -s https://api.galmal.kr/v1/deals.json | python -c "import sys,json; d=json
 |---|---|---|
 | [`galmal-plan`](https://github.com/RYU-TOMI/galmal-plan) | 제품·스펙·결정 기록·계약의 **이유** · `design/` 목업 | — |
 | **[`galmal-backend`](https://github.com/RYU-TOMI/galmal-backend)** ← 여기 | **수집·판정·v1 API·계약 정본 `contract/v1/`·크론** | **`https://api.galmal.kr/v1/`** |
-| [`galmal-frontend`](https://github.com/RYU-TOMI/galmal-frontend) | v1 을 받아 화면을 굽는다 | `https://galmal.kr` |
+| [`galmal-frontend`](https://github.com/RYU-TOMI/galmal-frontend) | v1 소비 · 화면 빌드 | `https://galmal.kr` |
 
 경계는 **데이터 / 화면**입니다. 백엔드는 사실(JSON)만 내고 HTML 을 만들지 않습니다. 프론트는 DB 를 모르고 계약만 읽습니다.
 **어느 기간을 보나(창)는 백엔드가, 보여줘도 되나(임계)는 프론트가** 정합니다.
