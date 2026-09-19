@@ -13,13 +13,13 @@ import hashlib
 import os
 import smtplib
 import sys
-from datetime import date
 from email.mime.text import MIMEText
 from email.header import Header
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
+import timeutil
 from affiliates import booking_link
 from detect_deals import compute_deals
 from labels import airline_name, city
@@ -97,7 +97,7 @@ def main():
         return
     conn = db.connect()
     deals = compute_deals(conn)
-    today = date.today().isoformat()
+    today = timeutil.today_utc().isoformat()   # 기계용 라벨(`sent_date`) — `fetched_date`와 같은 축(BB25)
     smtp = None
     n_sent = 0
     for to_addr, routes in subs.items():

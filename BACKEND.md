@@ -510,7 +510,11 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     `45h`로 줄이는 게 전부다. 캐시는 남들이 검색해야 갱신되므로 우리가 더 자주 불러도 못 내린다.
   - **언제**: BE5에서 Trip.com 재신청과 함께. 둘 다 조건이 트래픽이라 타이밍이 같다.
 
-- **BB25. `detect_deals.py`·`send_alerts.py`가 아직 `date.today()`를 쓴다.** (2026-09-02, BE4 T1에서 발견)
+- ~~**BB25. `detect_deals.py`·`send_alerts.py`가 아직 `date.today()`를 쓴다.**~~ → **해결(2026-09-20, BE14 T1)**:
+  셋 다 옮겼다. 용도로 갈랐다 — `compute_deals`의 빈 DB 대체값·`alert_log.sent_date`는 `fetched_date`와 같은 축이라
+  `today_utc()`, 판정 리포트 머리(`[날짜] 특가 N건`)는 사람이 읽는 라벨이라 `today_kst()`(커밋 라벨과 같은 날짜가 된다).
+  `KNOWN_DEBT` 목록과 그 정확성 테스트는 지웠고 **새 위반을 막는 테스트는 남겼다**(탐침: 위반을 심으면 실패).
+  (원문) (2026-09-02, BE4 T1에서 발견)
   BB13·BB17에서 `timeutil`을 만들어 "새 코드는 반드시 여기를 쓴다"고 정했는데
   **기존 모듈 3개는 옮기지 않았다.** BE4에서 `build_site.py` 4곳만 옮겼고
   (`build_seo`의 sitemap `lastmod` 포함) 나머지 둘은 **안 고쳤다** — BE4 스코프 밖이다.
