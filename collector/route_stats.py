@@ -17,7 +17,6 @@
 from datetime import timedelta
 
 import timeutil
-from detect_deals import IS_DIRECT_SQL
 
 # 통계의 **창**. `meta.json`이 이 값을 그대로 싣는다 — 두 곳에 적으면 갈라진다.
 WINDOW_DAYS = 30
@@ -27,24 +26,20 @@ WEEK_ORDER = (1, 2, 3, 4, 5, 6, 0)
 
 
 
-def daily_min(conn, origin, dest, days=WINDOW_DAYS, direct_only=None):
+def daily_min(conn, origin, dest, days=WINDOW_DAYS):
+    """수집일별 (날짜, 최저가). 수집이 없던 날은 **점이 없다** — 메우지 않는다."""
     since = (timeutil.today_utc() - timedelta(days=days)).isoformat()
-    cond = ""
-    if direct_only is True:
-        cond = f"AND {IS_DIRECT_SQL}"
-    elif direct_only is False:
-        cond = f"AND NOT {IS_DIRECT_SQL}"
     return conn.execute(
-        f"""SELECT fetched_date, MIN(price) FROM offers
-            WHERE origin=? AND destination=? AND fetched_date>=? {cond}
-            GROUP BY fetched_date ORDER BY fetched_date""",
+        """SELECT fetched_date, MIN(price) FROM offers
+           WHERE origin=? AND destination=? AND fetched_date>=?
+           GROUP BY fetched_date ORDER BY fetched_date""",
         (origin, dest, since)).fetchall()
 
 
 def month_min(conn, origin, dest, min_samples=3, limit=10):
     """출발월별 (월, 최저가, **표본수**) — **오늘 이후 출발만** 센다 (BB29).
 
-    창이 없으면 이미 지나간 달이 버킷으로 남는다. 그 위에서 `route_page()`가
+    창이 없으면 이미 지나간 달이 버킷으로 남는다. 그 위에서 화면이
     "○월 출발이 가장 저렴합니다"를 쓰므로 **살 수 없는 달을 추천하게 된다** —
     2026-09-08에 실제로 5개 노선이 "8월/7월 출발"을 권하고 있었다.
 
@@ -55,9 +50,10 @@ def month_min(conn, origin, dest, min_samples=3, limit=10):
     `today_kst()`인 이유: 사용자의 '오늘'은 KST다. 새벽 3시 KST(전날 18시 UTC)에
     UTC 날짜로 거르면 한국 사용자에겐 이미 지난 달이 하루 더 남는다.
 
-    `min_samples`·`limit`은 **임계**라서 계약상 프론트 몫이다(v1은 `None`으로 끈다).
-    기본값이 현행 화면 동작인 이유: 이전이 끝날 때까지 `route_page()`가 이 함수를
-    **같이 쓰기 때문이다.** 기본값이 바뀌면 라이브 화면이 움직이고 M2 기준선이 무효가 된다.
+    `min_samples`·`limit`은 **임계**라서 계약상 프론트 몫이다 — 발행(`publish.py`)은 둘 다 끄고 부른다.
+    기본값(3건·10개)은 **옛 화면의 규칙**이다. 그 화면을 만들던 `route_page()`는 M3 T3에 사라졌지만
+    기본값은 남긴다: `tests/test_publish.py`가 「발행값에 이 임계를 걸면 옛 화면의 숫자가 나오는가」를
+    이 기본값으로 대조한다. 죽은 값이 아니라 **대조의 기준**이다(BE13 T3에서 지우려다 확인).
     """
     sql = """SELECT strftime('%Y-%m', depart_date) AS m, MIN(price), COUNT(*)
              FROM offers
@@ -81,7 +77,6 @@ def weekday_min(conn, origin, dest, min_samples=1):
     "화요일은 싼가"에 대한 유효한 증거다. `month_min`과 다른 이유가 여기 있다.
 
     `min_samples=1`은 필터가 없는 것과 같다(`GROUP BY`의 모든 묶음이 1건 이상).
-    현행 화면 동작을 그대로 두려는 기본값이다.
     """
     rows = {wd: (p, n) for wd, p, n in conn.execute(
         """SELECT CAST(strftime('%w', depart_date) AS INTEGER) AS wd,

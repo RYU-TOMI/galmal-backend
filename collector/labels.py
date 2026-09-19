@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-"""도시·항공사 한글명, 지역 분류, 날짜 표기 — 사이트와 알림 메일이 공유."""
-from datetime import date
+"""도시·항공사 한글명, 지역 분류 — v1 발행과 알림 메일이 공유하는 **참조 데이터**.
 
+날짜·요일 표기(`fmt_date`·`fmt_month`·`WEEKDAY`)는 여기 없다. 화면이 프론트로 간 뒤
+호출자가 0이라 지웠다(BE13 T3). 백엔드는 `"2026-09"`·`wd=1`을 그대로 보낸다(P7).
+"""
 import dests
-
-WEEKDAY = "월화수목금토일"          # date.weekday(): 0=월
-SQL_WEEKDAY = "일월화수목금토"      # strftime('%w'): 0=일
 
 CITY = {
     "ICN": "인천", "GMP": "김포", "CJU": "제주",
@@ -58,19 +57,3 @@ def region_of(dest):
     entry = dests.DEST.get(dest)
     return entry[2] if entry else "etc"
 
-
-def fmt_date(iso):
-    """'2026-07-18' -> '7.18(토)'"""
-    try:
-        d = date.fromisoformat(iso)
-        return f"{d.month}.{d.day}({WEEKDAY[d.weekday()]})"
-    except (ValueError, TypeError):
-        return iso or ""
-
-
-def fmt_month(ym):
-    """'2026-08' -> '8월'"""
-    try:
-        return f"{int(ym.split('-')[1])}월"
-    except (ValueError, IndexError, AttributeError):
-        return ym or ""

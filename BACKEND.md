@@ -19,10 +19,12 @@
 | BE10 | 계약 목록을 `contract/v1/`(deal.schema.json·vocab.json)로, 문서 사본 삭제(R8 C안) | §16 끝 |
 | BE11 | `/v1/vocab.json` 발행 — 프론트 빌드가 이걸 **필수로** 받는다(없거나 G가 다르면 그날 배포 정지) | §16 끝 |
 | BE12 | 중간 점검(코드 전수 읽기) — 발견은 BB36~BB41, README 전면 개편. **코드는 안 고쳤다** | §7 미분류 · §16 끝 |
+| BE13 | 점검 수정 — 크론 20:10 UTC + 자정 근접 점검(BB36) · 구독취소 회신(BB37) · 죽은 코드(BB40) | §16 끝 |
 
 **다음 챕터 후보 — 사용자와 정한다**
-- **BE13 점검 수정**(BE12가 찾은 것) — 첫 태스크는 **크론 시각 이동(BB36, 사용자 승인 2026-09-19)**,
-  이어서 구독취소 회신 버그(BB37) · 죽은 코드 정리(BB40). 🔴 둘은 조용히 새는 종류라 BE8보다 먼저다.
+- ⏳ **BE13 뒤 확인 하나**: 새 크론 슬롯(20:10 UTC)의 **실제 시작 시각** — `gh run list --workflow=collect.yml --event schedule`.
+  23·00시대 UTC면 상태 점검이 빨간불을 켠다. 재면 기획·프론트에 알린다(둘 다 숫자를 비워 두고 기다린다).
+- 점검에서 남은 것: BB38(메일 산출 소비자 없음 — **기획·사용자 결정 대기**) · BB39(공개 DB PII 잠재 경로) · BB41(소소한 것).
 - **BE8 노선 확대**(분리 때문에 멈춤). 서치콘솔 유입 질의로 노선을 고르는 안 — 전제·측정값은 §11.2·§11.3·§12.5.
 - 서버 스파이크(포트폴리오 목적, Azure 크레딧 2027-02) — 분리가 선행 조건이었고 풀렸다. 기획·사용자 결정 전.
 
@@ -762,7 +764,16 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 실측: `emails` 35행의 발신 도메인은 **전부 항공사**(11종)다. 아직 안 터졌다.
   - 고칠 방향: 차단 목록이 아니라 **허용 목록**(항공사 도메인)으로 뒤집는다. `emails` 테이블도 읽는 곳이 없다(BB38과 같이 볼 것).
 
-- **BB40. 죽은 코드와 낡은 주석.** (이전이 끝나며 남은 것 — 전부 grep으로 호출자 0 확인)
+- ~~**BB40. 죽은 코드와 낡은 주석.**~~ → **해결(2026-09-20, BE13 T3)** — 단 둘은 남겼다.
+  지운 것: `timeutil.parse_kst_stamp` · `labels.fmt_date/fmt_month/WEEKDAY/SQL_WEEKDAY` · `dests.meta/origin_name/HAUL_NAME` ·
+  `daily_min(direct_only=)`(덕분에 `route_stats`가 `detect_deals`를 import하지 않는다). 낡은 서술: `discover_data` 머리 docstring
+  (필드 사본을 없애고 스키마를 가리킨다)·`build_index()` 주석 · `publish`의 「4종」·`route_page()` · `collect.yml` 이전 중 주석 ·
+  `API_URL` 기본값 `galmal.kr` → `api.galmal.kr`(두 곳). 전후 대조: 실 DB에서 36노선 × 통계 함수 5개 = **180/180 동일**.
+  🔴 **내 오판 하나**: `route_stats` 기본값(3건·10개·8개)을 「죽었다」고 적었는데 **살아 있다** —
+  `test_publish.py::test_front_rules_reproduce_every_number`가 「발행값에 이 임계를 걸면 옛 화면 숫자가 나오는가」를
+  이 기본값으로 대조한다. 호출자를 `collector/`에서만 grep하고 `tests/`를 안 봤다. **지우지 않고 설명만 고쳤다.**
+  남긴 것: `affiliates.booking_link`의 「(하위호환)」 표기 — `affiliates.py`가 BE13 스코프 밖이다. 죽지는 않았다(`send_alerts`가 쓴다).
+  (원문) (이전이 끝나며 남은 것 — 전부 grep으로 호출자 0 확인)
   ```
   timeutil.parse_kst_stamp                      `updated` 문자열이 사라져 쓸 곳이 없다
   labels.fmt_date · fmt_month · WEEKDAY · SQL_WEEKDAY   화면용 — 화면은 프론트로 갔다(BB31도 같이 소멸)
@@ -1977,3 +1988,18 @@ T2 (이 커밋) README.md 전면 개편 — 41줄짜리 옛 promo-ticket-site �
   P7 방어는 import 검사가 **아니라** 발행물 문자열 정규식(`DISPLAY_LEAK`)이다 — 처음에 틀리게 적었다가 고쳤다.
 - ~~⚠️ 소개 문장은 `galmal-plan` 어디에도 **글자 그대로는 없다**~~ → 기획이 `PRODUCT.md` §한 줄 소개에 정본을 뒀다(같은 날).
   README 발췌 주석을 그 절로 바꿨다.
+
+### BE13 완료 (2026-09-20) — BE12 점검에서 나온 것 중 셋을 고쳤다
+
+```
+T1 2c3edba  cron "10 22" → "10 20"(05:10 KST) + 상태 점검에 「예약 실행이 23·00시대 UTC 면 실패」   BB36
+            탐침: 22·01·20시 통과 / 23·00시 실패 / 00시 수동 실행 통과. GitHub 가 워크플로를 active 로 읽음
+T2 0444ea4  해지는 제목에서만 노선을 읽는다 · ALL 구독자의 노선 해지는 "!코드" 제외 · wants()          BB37
+            tests/test_subscriptions.py 15건 신설. 탐침: 옛 로직 → 6건 실패
+T3 (이 커밋) 죽은 코드 8개 · 낡은 서술 · API_URL 기본값. 전후 대조 180/180 동일                        BB40
+```
+
+- 테스트 183 → 198건 `OK`. 계약(`contract/`)·발행물 형식·`meta.subscribe`는 **안 바뀌었다.**
+- **T1은 아직 반만 검증됐다.** 가드 논리와 YAML 유효성은 봤지만 **새 슬롯에서 실제로 몇 시에 도는지는 첫 실행을 봐야 안다.**
+- 검증용 재빌드(`publish.py`)는 하지 않았다 — 발행 경로의 코드 변경이 `daily_min`의 죽은 분기 제거뿐이고 그건 실 DB 대조로 봤다.
+- 통지: 크론 이동을 기획·프론트에 알렸고 기획이 `PROJECT.md`를 맞췄다(실제 시작 숫자는 비워 둠). T2·T3는 남에게 닿는 게 없어 안 알렸다.

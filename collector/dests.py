@@ -275,8 +275,6 @@ REGION_NAME = {"dom": "국내", "jp": "일본", "cn": "중화권", "sea": "동�
                "island": "섬", "oc": "대양주", "eu": "유럽", "am": "미주",
                "etc": "그 외"}
 
-HAUL_NAME = {"short": "가까운 곳", "mid": "중거리", "long": "먼 곳"}
-
 
 def dest_name(iata):
     d = DEST.get(iata)
@@ -297,14 +295,3 @@ def canonical(code):
 def is_destination(iata):
     return iata in DEST
 
-
-def origin_name(iata):
-    return ORIGINS.get(iata, iata)
-
-
-def meta(iata):
-    d = DEST.get(iata)
-    if not d:
-        return None
-    ko, country, region, haul, tags = d
-    return {"ko": ko, "country": country, "region": region, "haul": haul, "tags": tags}
