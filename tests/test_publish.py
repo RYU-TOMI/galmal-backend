@@ -125,8 +125,11 @@ class GeneratedIsRequiredTest(unittest.TestCase):
 def snapshot_errors(v1):
     """`CONTRACT.md` §공통 규칙의 스냅숏 규칙 위반 목록 (BE9 T3, BB35).
 
-        meta = G · routes/index = G · routes/{code}(index에 실린 것) = G
+        meta = G · routes/index = G · routes/{code}(index에 실린 것) = G · vocab = G
         deals = G (preserved=false) · deals < G (preserved=true)
+
+    `vocab.json`(BE11)은 딜 보존과 무관하다 — 보존일에도 `== G`다(CONTRACT §5).
+    **없으면 위반이다.** 「있으면 본다」로 두면 발행이 파일을 빠뜨려도 조용히 통과한다.
 
     프론트가 받은 응답들로 「섞인 스냅숏」(CDN이 파일마다 따로 캐시)을 잡는 규칙이다.
     백엔드가 먼저 어기면 프론트 배포가 매일 멈춘다.
@@ -148,6 +151,10 @@ def snapshot_errors(v1):
             errs.append(f"{rel}: {got.isoformat()} != meta {g.isoformat()}")
 
     same("routes/index.json")
+    if not (v1 / "vocab.json").exists():
+        errs.append("vocab.json 이 없다")
+    else:
+        same("vocab.json")
     for r in read("routes/index.json")["routes"]:
         same(f"routes/{r['code']}.json")
     dg = datetime.fromisoformat(read("deals.json")["generated"])
@@ -225,6 +232,9 @@ class SnapshotRuleTest(PublishedToTempDir):
         self.assertTrue(preserved)
         self.assertEqual(load_from(self.v1, "deals.json")["generated"], yesterday)
         self.assertTrue(load_from(self.v1, "meta.json")["preserved"])
+        # 참조 데이터는 보존 대상이 아니다 — 보존일에도 오늘 G (CONTRACT §5)
+        self.assertEqual(load_from(self.v1, "vocab.json")["generated"],
+                         self.NOW.isoformat(timespec="seconds"))
         self.assertEqual(snapshot_errors(self.v1), [])
 
     def test_the_rule_catches_what_actually_went_wrong(self):
@@ -237,8 +247,10 @@ class SnapshotRuleTest(PublishedToTempDir):
         meta = load_from(self.v1, "meta.json")
         meta["generated"] = "2026-09-08T15:28:42+09:00"
         (self.v1 / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
-        for rel in ["routes/index.json"] + [f"routes/{r['code']}.json" for r in
-                                             load_from(self.v1, "routes/index.json")["routes"]]:
+        # 05d0de9 때는 vocab.json 이 없었다 — 반례를 옮기려고 meta 와 같은 시각에 맞춘다
+        for rel in ["routes/index.json", "vocab.json"] + [
+                f"routes/{r['code']}.json"
+                for r in load_from(self.v1, "routes/index.json")["routes"]]:
             x = load_from(self.v1, rel)
             x["generated"] = "2026-09-08T15:28:42+09:00"
             (self.v1 / rel).write_text(json.dumps(x), encoding="utf-8")
