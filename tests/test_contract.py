@@ -11,8 +11,10 @@
 
 둘은 성격이 다르다. 1은 코드가 옳은지, 2는 배포된 것이 옳은지 본다.
 
-태그 통제 어휘는 `CONTRACT.md`의 표를 **직접 파싱해서** 쓴다. 계약서가 단일
-출처이므로 표를 고치면 검사가 따라온다(어휘를 여기 하드코딩하면 두 곳이 어긋난다).
+필드 목록과 통제 어휘는 `contract/v1/`(`deal.schema.json`·`vocab.json`)에서 읽는다
+(BE10, R8 C안). 목록은 거기 한 곳에만 있다 — 여기 하드코딩하면 두 곳이 어긋나고,
+문서 표를 파싱하면 문서가 두 벌이 되는 순간 낡은 쪽으로 검사한다. 「왜」는 기획의
+`CONTRACT.md`에 남는다.
 """
 import json
 import re
@@ -29,14 +31,22 @@ import dests
 import discover_data
 
 ROOT = Path(__file__).resolve().parent.parent
-CONTRACT = ROOT / "CONTRACT.md"
 DEAL_SCHEMA = ROOT / "contract" / "v1" / "deal.schema.json"
+VOCAB = ROOT / "contract" / "v1" / "vocab.json"
 ARTIFACT = ROOT / "docs" / "v1" / "deals.json"
 
-REGIONS = {"jp", "cn", "sea", "island", "oc", "eu", "am", "etc", "dom"}
-HAULS = {"short", "mid", "long"}
-TIERS = {"major", "minor"}
-HUBS = {"SEL", "PUS", "TAE", "CJU"}
+
+def vocab_file():
+    return json.loads(VOCAB.read_text(encoding="utf-8"))
+
+
+# enum 도 손으로 옮겨 적지 않는다 (BE10 T2). 예전엔 「CONTRACT.md에서 그대로 옮긴 값」을
+# 여기 적었다 — 파싱은 틀리면 터지기라도 하는데 **손 사본은 틀려도 조용하다**(BB19 모양).
+_V = vocab_file()
+REGIONS = set(_V["region"])
+HAULS = set(_V["haul"])
+TIERS = set(_V["tier"])
+HUBS = set(_V["hub"])
 
 # 필드 목록을 여기 하드코딩하지 않는다(BB19). 하드코딩하면 기획이 계약에 필드를
 # 추가해도 검증기가 모르고 **CI가 조용히 초록불**이 된다. 실제로 `low`·`obs_days`가
@@ -48,20 +58,11 @@ HUBS = {"SEL", "PUS", "TAE", "CJU"}
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 UPDATED_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
 IATA_RE = re.compile(r"^[A-Z]{3}$")
-# | **`해변`** | 24 | — | `리조트` · ... |   ← 상위는 굵게, 3열이 부모
-# | `리조트`   | 13 | **`해변`** |          |   ← 하위는 부모를 가리킴
-TAG_ROW_RE = re.compile(
-    r"^\|\s*\*{0,2}`([^`]+)`\*{0,2}\s*\|\s*\d+\s*\|"
-    r"\s*(?:\*{0,2}`([^`]+)`\*{0,2}|[—-]+)\s*\|", re.M)
 KST_OFFSET = timedelta(hours=9)
 ROUTE_CODES = {f"{o}-{d}" for o, d in config.ROUTES}
-# `when` 통제 어휘(계약 §when). 고정 문구 넷 + 패턴 셋.
-WHEN_FIXED = {"이번 주말", "다음 주말", "이번 주", "이번 달", "다음 달"}
-WHEN_PATTERNS = (
-    re.compile(r"^\d{1,2}월$"),            # 같은 해, 2개월 이후
-    re.compile(r"^내년 \d{1,2}월$"),        # 이듬해
-    re.compile(r"^\d{4}년 \d{1,2}월$"),    # 2년 이후(방어용)
-)
+# `when` 통제 어휘. 고정 문구 + 패턴 — 둘 다 vocab.json 에서.
+WHEN_FIXED = set(_V["when"]["fixed"])
+WHEN_PATTERNS = tuple(re.compile(p["regex"]) for p in _V["when"]["patterns"])
 
 
 def deal_schema():
@@ -94,24 +95,19 @@ def link_fields():
 
 
 def contract_vocab():
-    """계약서 어휘 표를 읽어 `(어휘 집합, {하위: 상위})`를 돌려준다.
+    """`vocab.json`의 태그 어휘를 `(어휘 집합, {하위: 상위})`로 돌려준다.
 
-    표 형식이 바뀌면(2026-08-22에 열이 2개 늘었다) 여기가 먼저 깨져야 한다.
-    조용히 빈 집합을 돌려주면 검사가 통과해 버려 아무 의미가 없어진다.
+    조용히 빈 집합을 돌려주면 검사가 통과해 버려 아무 의미가 없어진다 — 그래서
+    구조가 이상하면 여기서 먼저 터진다.
     """
-    parts = CONTRACT.read_text(encoding="utf-8").split("### `tags` 통제 어휘")
-    if len(parts) < 2:
-        raise AssertionError(
-            "CONTRACT.md에서 '### `tags` 통제 어휘' 절을 찾지 못했다. "
-            "계약 문서가 재편됐다면 이 파서도 함께 고쳐야 한다.")
-    rows = TAG_ROW_RE.findall(parts[1])
-    vocab = {tag for tag, _ in rows}
-    parent = {tag: up for tag, up in rows if up}
-    if not vocab:
-        raise AssertionError("어휘 절은 찾았으나 태그를 하나도 못 읽었다. 표 형식 변경 의심.")
-    stray = sorted(set(parent.values()) - vocab)
+    tags = vocab_file()["tags"]
+    parent = dict(tags["sub"])
+    vocab = set(tags["top"]) | set(parent)
+    if not tags["top"]:
+        raise AssertionError("vocab.json 에 상위 태그가 없다.")
+    stray = sorted(set(parent.values()) - set(tags["top"]))
     if stray:
-        raise AssertionError(f"상위로 지목됐으나 어휘 표에 행이 없는 태그: {stray}")
+        raise AssertionError(f"상위로 지목됐으나 top 에 없는 태그: {stray}")
     return vocab, parent
 
 
@@ -183,7 +179,7 @@ def validate(payload, vocab, parent=None, fields=None):
         if (isinstance(dl["when"], str) and dl["when"] not in WHEN_FIXED
                 and not any(p.match(dl["when"]) for p in WHEN_PATTERNS)):
             errs.append(f"{at}.when 통제 어휘 밖: {dl['when']!r} "
-                        "(CONTRACT.md §when 표를 먼저 갱신해야 한다)")
+                        "(기획 결정 후 contract/v1/vocab.json 의 when 을 먼저 갱신해야 한다)")
         if dl["region"] not in REGIONS:
             errs.append(f"{at}.region enum 위반: {dl['region']!r}")
         if dl["haul"] not in HAULS:
@@ -197,7 +193,7 @@ def validate(payload, vocab, parent=None, fields=None):
             outside = sorted(t for t in dl["tags"] if t not in vocab)
             if outside:
                 errs.append(f"{at}.tags 통제 어휘 밖: {outside} "
-                            "(CONTRACT.md 어휘 표를 먼저 갱신해야 한다)")
+                            "(기획 결정 후 contract/v1/vocab.json 의 tags 를 먼저 갱신해야 한다)")
             # 하위 태그는 반드시 자기 상위를 데리고 다녀야 한다. 깨지면 그 태그가
             # 카드에는 보이는데 필터로는 안 잡힌다(프론트 C-10과 같은 증상).
             orphan = sorted(f"{x}→{parent[x]}" for x in dl["tags"]
@@ -368,10 +364,10 @@ class ContractParsingTest(unittest.TestCase):
         """`dests.py`에 어휘 밖 태그가 들어오면 여기서 잡힌다.
 
         `야시장`·`유적`·`트레킹`이 조용히 들어왔던 것도 검사가 없어서였다.
-        어휘를 늘리려면 `CONTRACT.md` 표를 먼저 갱신하는 게 계약 변경 절차다.
+        어휘를 늘리려면 기획 결정 → `contract/v1/vocab.json` 갱신이 계약 변경 절차다.
         """
         outside = sorted({t for v in dests.DEST.values() for t in v[4]} - contract_tags())
-        self.assertEqual(outside, [], f"CONTRACT.md 어휘 표에 없는 태그: {outside}")
+        self.assertEqual(outside, [], f"vocab.json 어휘에 없는 태그: {outside}")
 
     def test_every_subtag_carries_its_parent(self):
         """⭐ 계약의 핵심 불변식 — 하위 태그를 단 목적지는 상위도 함께 갖는다.
