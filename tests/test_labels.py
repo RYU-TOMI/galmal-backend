@@ -5,7 +5,7 @@
 있어서 노선 페이지 제목이 `"PUS → 도쿄"`로 나갔다(2026-09-01, 부산 노선 추가 때).
 이 프로젝트에서 반복해 만난 "같은 사실이 두 곳에 있으면 갈라진다"의 또 다른 사례다.
 """
-import re
+import json
 import unittest
 from pathlib import Path
 
@@ -57,46 +57,30 @@ class CityNameTest(unittest.TestCase):
 
 
 class RegionTest(unittest.TestCase):
-    """지역 이름의 정본은 `COPY.md` §2b다 (BB26).
+    """지역 표시명의 정본은 `dests.REGION_NAME`이다 (BB26 → BE10 T4).
 
     예전엔 `labels.REGION`·`labels.REGION_NAME`·`dests.REGION_NAME` 셋이 각자
     지역을 알고 있었다. `labels.REGION`은 초기 26개 노선만 담아 목적지를 넓힐
     때마다 조용히 `"etc"`로 떨어졌고(89곳 중 59곳 불일치), 어휘까지 갈라져
     **괌이 지도에서는 "휴양·섬", 노선 페이지에서는 "국내·괌"** 이었다.
 
-    근본 원인은 **표시명 표가 어느 문서에도 없었던 것**이다. 문서에 없으니 코드
-    두 곳이 각자 이름을 지어냈다. 이제 `COPY.md` §2b가 정본이고, 여기서 그
-    표와 코드를 대조한다 — `TAGS.md` 배정표를 대조하는 것과 같은 방식이다.
+    그 뒤 기획의 `COPY.md` §2b 표와 대조했는데, 저장소가 갈리면서 그 문서가
+    두 벌이 됐다(R8). 이제 코드 쪽 한 곳(`REGION_NAME`)이 정본이고, 여기서는
+    **계약의 지역 코드(`vocab.json`)와 빈틈없이 맞물리는지**만 본다.
     """
 
-    COPY_MD = Path(__file__).resolve().parent.parent / "COPY.md"
-    ROW_RE = re.compile(r"^\|\s*`([a-z]+)`\s*\|\s*\*\*([^*]+)\*\*\s*\|", re.M)
-
-    @classmethod
-    def copy_table(cls):
-        """`COPY.md` §2b의 코드 → 표시명."""
-        text = cls.COPY_MD.read_text(encoding="utf-8")
-        idx = text.find("지역 표시명")
-        if idx < 0:
-            return {}
-        return dict(cls.ROW_RE.findall(text[idx:idx + 1400]))
-
-    def test_display_names_match_the_copy_document(self):
-        """코드가 이름을 지어내면 실패한다. 이 파일의 존재 이유다."""
-        want = self.copy_table()
-        self.assertTrue(want, "COPY.md §2b 표를 읽지 못했다 — 표 형식 변경 의심")
-        self.assertEqual(REGION_NAME, want,
-                         "dests.REGION_NAME이 COPY.md §2b와 다르다")
+    VOCAB = Path(__file__).resolve().parent.parent / "contract" / "v1" / "vocab.json"
 
     def test_every_contract_region_has_a_name(self):
-        """`CONTRACT.md`가 약속한 코드 9종에 이름이 다 있어야 한다.
+        """계약이 약속한 지역 코드 전부에 이름이 있고, 계약 밖 코드엔 이름이 없다.
 
-        `build_site`가 `REGION_NAME[region_of(dest)]`로 **직접 인덱싱**하므로
-        하나라도 빠지면 노선 페이지 생성이 KeyError로 죽는다.
+        빠지면 `REGION_NAME[region_of(dest)]`로 직접 인덱싱하는 곳이 KeyError로 죽는다.
+        남으면 계약에 없는 지역이 화면 어딘가에서 이름을 달고 나올 수 있다.
         """
-        used = {v[2] for v in dests.DEST.values()} | {"etc"}
-        missing = sorted(used - set(REGION_NAME))
-        self.assertEqual(missing, [], f"이름 없는 지역 코드: {missing}")
+        regions = set(json.loads(self.VOCAB.read_text(encoding="utf-8"))["region"])
+        self.assertEqual(sorted(regions - set(REGION_NAME)), [], "이름 없는 지역 코드")
+        self.assertEqual(sorted(set(REGION_NAME) - regions), [], "계약 밖 지역 코드")
+        self.assertTrue(all(REGION_NAME[r].strip() for r in regions), "빈 표시명")
 
     def test_region_comes_only_from_the_destination_dictionary(self):
         """`labels`가 자체 지역 사전을 다시 갖지 않는가 — 갈라짐의 원인이었다."""
