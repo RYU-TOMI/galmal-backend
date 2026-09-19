@@ -12,6 +12,7 @@ M3 T3(2026-09-15)에 `build_site.py`가 사라지면서 화면 생성이 프론�
     GET /v1/deals.json          발견 홈이 쓰는 전부
     GET /v1/routes/index.json   노선 목록
     GET /v1/routes/{code}.json  노선 1개 통계
+    GET /v1/vocab.json          참조 데이터 — 통제 어휘 + 지역 표시명 (BE11)
 
 **화면을 몰라야 하고, 실제로 모른다** — `fmt_month`도 `SQL_WEEKDAY`도 import하지 않는다.
 P7(백엔드는 사실을, 프론트는 말을)을 문서가 아니라 **import 그래프가 지킨다.**
@@ -42,10 +43,12 @@ import timeutil
 from discover_data import DOCS
 from route_stats import (WINDOW_DAYS, airline_min, daily_min, month_min,
                          route_summary, weekday_min)
+from dests import REGION_NAME
 from labels import airline_name, city, region_of
 
 SCHEMA = "v1"
 V1 = DOCS / "v1"
+VOCAB_SRC = Path(__file__).resolve().parent.parent / "contract" / "v1" / "vocab.json"
 
 
 def _write(rel_path, payload):
@@ -124,6 +127,36 @@ def deals_payload(conn, codes, generated):
     return {**_envelope(generated), **built}
 
 
+# -------------------------------------------------------------- 5) vocab.json
+
+def _strip_comments(x):
+    """`$comment` 키를 **중첩까지** 뺀다 — 파일 속 설명 문장이지 데이터가 아니다.
+
+    최상위만 빼면 `tags.$comment`·`when.$comment`가 API로 나간다.
+    """
+    if isinstance(x, dict):
+        return {k: _strip_comments(v) for k, v in x.items() if k != "$comment"}
+    if isinstance(x, list):
+        return [_strip_comments(v) for v in x]
+    return x
+
+
+def vocab_payload(generated):
+    """참조 데이터 (`CONTRACT.md` §5, BE11).
+
+    정본 `contract/v1/vocab.json`을 **그대로** 싣고 지역 표시명만 더한다.
+    프론트에 남은 손 사본(상위 태그·when 칩·지역 표시명)을 URL로 바꾸려는 것이다 —
+    백엔드가 어휘를 바꿨는데 칩이 옛 이름으로 남으면 **필터가 조용히 0건**이 된다.
+
+    **발행 전용이다.** 어휘는 여기서 정하지 않는다 — 기획 결정 → `contract/` 수정.
+    `region_name`은 `region` 순서로 만든다. 이름이 없는 코드가 있으면 `KeyError`로 터진다
+    (조용히 빠지면 프론트가 코드를 그대로 보인다).
+    """
+    src = _strip_comments(json.loads(VOCAB_SRC.read_text(encoding="utf-8")))
+    return {**_envelope(generated), **src,
+            "region_name": {r: REGION_NAME[r] for r in src["region"]}}
+
+
 # ------------------------------------------------------- 3)·4) routes/*.json
 
 def route_payload(conn, origin, dest, generated):
@@ -174,6 +207,8 @@ def publish(conn):
 
     # 정렬은 config.ROUTES 순서 그대로. 프론트가 필요한 순서로 다시 정렬한다.
     _write("routes/index.json", {**_envelope(generated), "routes": routes})
+    # 참조 데이터는 딜 보존과 무관하다 — 보존일에도 오늘 G 로 나간다(CONTRACT §5).
+    _write("vocab.json", vocab_payload(generated))
 
     # 딜은 노선 **뒤에** 만든다 — `route` 필드가 이번에 실린 노선만 가리켜야 한다.
     deals = deals_payload(conn, {r["code"] for r in routes}, generated)
