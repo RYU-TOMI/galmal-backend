@@ -18,8 +18,11 @@
 | BE9 | 테스트 신뢰성 — 대조 테스트 시계 고정(BB34) · `generated` 필수 + 스냅숏 규칙(BB35) | §16 |
 | BE10 | 계약 목록을 `contract/v1/`(deal.schema.json·vocab.json)로, 문서 사본 삭제(R8 C안) | §16 끝 |
 | BE11 | `/v1/vocab.json` 발행 — 프론트 빌드가 이걸 **필수로** 받는다(없거나 G가 다르면 그날 배포 정지) | §16 끝 |
+| BE12 | 중간 점검(코드 전수 읽기) — 발견은 BB36~BB41, README 전면 개편. **코드는 안 고쳤다** | §7 미분류 · §16 끝 |
 
 **다음 챕터 후보 — 사용자와 정한다**
+- **BE13 점검 수정**(BE12가 찾은 것) — 첫 태스크는 **크론 시각 이동(BB36, 사용자 승인 2026-09-19)**,
+  이어서 구독취소 회신 버그(BB37) · 죽은 코드 정리(BB40). 🔴 둘은 조용히 새는 종류라 BE8보다 먼저다.
 - **BE8 노선 확대**(분리 때문에 멈춤). 서치콘솔 유입 질의로 노선을 고르는 안 — 전제·측정값은 §11.2·§11.3·§12.5.
 - 서버 스파이크(포트폴리오 목적, Azure 크레딧 2027-02) — 분리가 선행 조건이었고 풀렸다. 기획·사용자 결정 전.
 
@@ -84,21 +87,22 @@ BB6·BB31은 화면 쪽이라 프론트 저장소로 넘어갔다. 새로 열 �
 ## 4. 확인 방법
 
 ```bash
-python collector/build_site.py                      # 전체 재생성 (유일 진입점)
-python collector/discover_data.py                   # deals.json만
-python -m http.server 8000 --directory docs         # 실서버와 동일 확인
+python collector/publish.py                         # v1 전체 재발행 → docs/v1/ (유일 진입점, .env 필요)
+python collector/discover_data.py                   # 딜 건수만 찍는다 — 파일은 안 쓴다
+python -m http.server 8000 --directory docs         # http://localhost:8000/v1/meta.json
 ```
+> 2026-09-15(M3 T3)까지는 `build_site.py`가 진입점이었다. 지금은 없다 — 화면은 프론트 저장소가 만든다.
 
 ### 산출물을 커밋할 때 주의
-`python collector/publish.py`(v1 JSON) → `python site/build.py --api docs/v1 --out docs`(화면)를
-돌리면 `docs/v1/*`·`docs/index.html`·`docs/routes/*`·`sitemap.xml`이 그날 DB 기준으로
-**전부 다시 써진다.** 이건 백엔드 산출물이지만 **프론트의 개발 픽스처이기도 하다.**
+`python collector/publish.py`를 돌리면 `docs/v1/*`(meta·deals·vocab·routes/index·routes/{code})가
+그날 DB 기준으로 **전부 다시 써진다.** 이건 백엔드 산출물이지만 **프론트가 URL로 받아 굽는 입력이기도 하다.**
+(화면 파일 `index.html`·`routes/*.html`·`sitemap.xml`은 이 저장소에 없다 — 프론트 저장소 몫이다.)
 
 ⚠️ **딜 목록은 시각에 따라 달라진다** — `build_deals_json()`이 `now_kst()` 기준으로 신선도를
 자르므로 오후에 재빌드하면 아침 크론과 다른 건수가 나온다(2026-09-11 실측 138 → 129).
 **검증 목적의 재빌드는 커밋하지 않는다.**
 
-- 코드 변경 검증 목적으로만 돌렸다면 → `git checkout -- docs/` 로 되돌린다.
+- 코드 변경 검증 목적으로만 돌렸다면 → `git checkout -- docs/v1` 로 되돌린다.
 - 산출물을 의도적으로 갱신했다면 → **딜 건수 변화를 보고에 적는다**(예: 103건 → 94건).
 - 크론이 매일 같은 일을 하므로, 산출물만 바뀐 커밋은 굳이 만들지 않는다.
 
@@ -114,12 +118,14 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
 
 - **스택 고정**: Python 표준 라이브러리 우선. 외부 의존성은 `anthropic`(메일 파싱) 하나뿐이며,
   **새 의존성 추가는 사용자 승인 사항**이다. Node/npm 금지. — `CLAUDE.md`
-- **빌드 진입점은 `build_site.py` 하나.** 새 산출물도 여기에 붙인다. 크론은 이것만 호출한다.
+- **발행 진입점은 `publish.py` 하나.** 새 응답도 여기에 붙인다(`generated`를 반드시 넘긴다 — BB35).
+  크론은 수집 뒤 이것만 호출한다. 백엔드는 HTML을 만들지 않는다.
 - **기존 스타일을 따른다**: 모듈 docstring(한국어)·표준 라이브러리·`sys.path.insert`로 형제 모듈 import.
 - **시간대 함정**: Actions 러너는 UTC라 `date.today()`가 KST와 하루 어긋난다.
   판정 기준일은 `detect_deals.py`처럼 **DB의 `MAX(fetched_date)`** 를 쓴다.
 - **계약 필드는 항상 채운다**: `null`이 허용된 필드(`ret`)를 빼면 키를 생략하지 않는다.
-  0건인 날도 `{"updated":..,"origins":{},"deals":[]}` 형태는 유지한다. — `CONTRACT.md`
+  0건인 날도 `{"schema":..,"generated":..,"origins":{},"deals":[]}` 형태는 유지한다. — `CONTRACT.md`
+  (`updated`는 v1에서 `generated`(ISO 8601 + 오프셋)가 됐다.)
 - **가짜 데이터 금지**: 없는 데이터를 그럴듯한 값으로 채우지 않는다. 신뢰가 유일한 자산이다.
   — `DECISIONS.md`(가짜 가격 그래프 제거, 2026-08-06)
 - **PII·시크릿 금지**: 구독자 이메일은 해시만, 메일 본문은 `emails_raw.db`(로컬 전용), `.env` 커밋 금지.
@@ -677,6 +683,95 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     백엔드 출구가 화면 모듈에서 떨어졌고 T4 걸림돌이 둘 줄었다.
     ⚠️ **프론트 `site/shell.py:31`에 같은 주소가 literal로 남아 있다** — 화면 푸터의 문의처다.
     `meta.json`에서 읽어야 이 갈림이 끝난다. 프론트 구역이라 알리기만 했다.
+
+### BE12 — 중간 점검에서 나온 것 (2026-09-19, 코드 전수 읽기 · **전부 안 고쳤다**)
+
+> 읽은 범위: `collector/` 16개 · 워크플로 2개 · `contract/v1/` 2개 · `tests/`는 skip·네트워크·sleep 지점만.
+> 안 한 것: 크론 파이프라인 통째 실행(부작용), 이 문서 §8~§15 정독.
+> 기준선: 테스트 183건 `OK` · 딜 137 == 제휴 링크 137 · `.env`/`emails_raw.db` git 이력 없음 · 미사용 import 0.
+
+- **BB36. 🔴 크론이 UTC 자정에 걸쳐 `fetched_date`에 구멍이 난다.** (발행물까지 나가는 **조용한 데이터 손실**)
+  예약 22:10 UTC + GitHub 지연 ~1h50m = **실제 실행이 00:00 UTC 앞뒤**. `fetched_date`는
+  `today_utc()`라 실행이 자정 앞이냐 뒤냐에 따라 라벨이 하루씩 흔들린다.
+
+  ```
+  커밋 시각(UTC)      fetched_date
+  09-06 23:47         09-06
+  09-08 00:14         09-08          ← 09-07 이 없다
+  09-12 00:11         09-12
+  09-12 23:57         09-12          ← 같은 날 두 번 — broad_offers 는 INSERT OR REPLACE 라 앞 실행을 덮는다
+  09-14 00:06         09-14          ← 09-13 이 없다
+  ```
+
+  - **실측**: `broad_offers` 53일 중 49일, `offers` 73일 중 69일. 누락 `08-06 · 08-26 · 09-07 · 09-13`.
+    뒤의 둘은 위 표로 원인을 확정했다. 앞의 둘은 같은 유형으로 보이나 **확정하지 않았다**(수동 실행이 섞인 구간).
+  - **발행물에 그대로 나간다**: `routes/ICN-NRT.json`의 `trend` 28점에 09-07·09-13이 없다.
+    `_prior_history`의 `obs_days`·`median`·`low`도 그만큼 표본을 잃는다. `STALE_DAYS` 창이 품는
+    수집 횟수도 3회/4회로 흔들린다.
+  - **왜 몰랐나**: §13 「T1 대조가 못 보던 것」이 "크론은 이미 UTC 자정에 걸쳐 있다"까지는 적었다.
+    그때 문맥이 sitemap 날짜라 **데이터 쪽 귀결을 안 따졌다.** 구멍은 예외도 경고도 없이 난다.
+  - 지금(09-18·19)은 시작이 00:13Z·00:17Z로 **우연히 자정 뒤쪽에 몰려 있을 뿐**이다.
+  - **고칠 방향(사용자 승인 2026-09-19)**: 예약을 `10 20 * * *`(05:10 KST)로 옮긴다. 지연이 붙어도
+    22시대 UTC라 자정과 멀다. 한 줄이고 계약 영향 없음. 라벨을 KST로 바꾸는 안은 BB13 결정
+    (`fetched_date`는 UTC 유지)을 뒤집으므로 택하지 않는다. → **BE13 T1.** 옮기면 프론트에 알린다
+    (프론트 `machine_date` 주석·공통 흐름도가 「크론 시각의 정본은 collect.yml」이라 적고 있다).
+  - 이미 난 구멍은 메우지 않는다 — 없는 관측을 지어내지 않는다(§5 가짜 데이터 금지).
+
+- **BB37. 🔴 구독취소 회신이 조용히 실패한다.** (법적 위험 — 수신거부 의무)
+  알림 메일 푸터(`send_alerts.py:81-82`)가 "제목 '구독취소'로 **회신**"하라면서 예시로 `ICN-FUK`를 적는다.
+  회신은 원문을 인용하므로 `subscriptions.py:70`의 `_extract_route(html_body(msg))`가 **인용문 속 예시**를
+  집어 「ICN-FUK만 해지」로 처리한다. 탐침으로 재현했다 — `{'ALL'}` 구독자는 해지 후에도 `{'ALL'}` 그대로다.
+  - 같은 뿌리 하나 더: `ALL` 구독자가 **정말로** 특정 노선만 해지해도 `discard(route)`가 아무것도 안 지운다.
+  - **지금 실해는 없다** — `alert_log` 0행(발송된 적 없음). BE6(알림 재개) **전에** 반드시 고친다.
+  - `subscriptions.py`에는 테스트가 0건이다. 고칠 때 `tests/test_subscriptions.py`를 새로 만들고
+    「푸터를 인용한 회신 → 전체 해지」를 탐침으로 잠근다. → **BE13 T2.**
+  - 고칠 방향(미확정): 해지는 **제목만** 보고 본문에서 노선을 뽑지 않는다 / 푸터 예시에서 코드 모양을 뺀다.
+    노선별 해지 규약을 바꾸면 `meta.subscribe`(전선 규약)에 닿을 수 있다 → 그 경우 기획 먼저.
+
+- **BB38. 메일 파이프라인의 산출을 아무도 쓰지 않는다.** (기획 결정 필요)
+  `mail_ingest` → `parse_mail`(Haiku 과금) → `mail_deals` 25행(마지막 2026-09-09). 그런데 `publish.py`는
+  `mail_deals`를 싣지 않고, 읽는 코드가 저장소에 없다(grep 확인). M3 T3에서 `build_site.mail_deal_rows`가
+  사라지며 소비자가 없어졌다. 매일 메일함을 소비(BB33)하고 과금만 한다.
+  - 끌지 / v1에 실을지(계약 **추가**) / 그대로 쌓을지는 제품 판단 → 기획에 묻는다. **안 껐다.**
+
+- **BB39. 비항공사 발신이 공개 DB로 들어갈 경로가 있다.** (PII 잠재 — 지금은 0건)
+  `mail_ingest.SKIP_SENDERS`가 `google.com`·`gmail.com`뿐이고, 구독 메일은 제목에 `구독신청`/`구독취소`가
+  **정확히** 있어야 걸러진다. naver 주소로 "구독 신청"(띄어쓰기)처럼 보내면 발신 주소·제목이
+  공개 `prices.db`의 `emails` 테이블에 커밋된다.
+  - 실측: `emails` 35행의 발신 도메인은 **전부 항공사**(11종)다. 아직 안 터졌다.
+  - 고칠 방향: 차단 목록이 아니라 **허용 목록**(항공사 도메인)으로 뒤집는다. `emails` 테이블도 읽는 곳이 없다(BB38과 같이 볼 것).
+
+- **BB40. 죽은 코드와 낡은 주석.** (이전이 끝나며 남은 것 — 전부 grep으로 호출자 0 확인)
+  ```
+  timeutil.parse_kst_stamp                      `updated` 문자열이 사라져 쓸 곳이 없다
+  labels.fmt_date · fmt_month · WEEKDAY · SQL_WEEKDAY   화면용 — 화면은 프론트로 갔다(BB31도 같이 소멸)
+  dests.meta · origin_name · HAUL_NAME
+  route_stats.daily_min(direct_only=)           호출자가 안 넘긴다
+  route_stats 기본값 min_samples=3·limit=10·limit=8   "이전이 끝날 때까지만" — 끝났고 publish 가 전부 끈다
+  affiliates.booking_link "(하위호환)"           send_alerts 만 쓴다 — 죽지는 않았다, 표기만 낡음
+  ```
+  낡은 서술: `discover_data.py:1-18`(옛 스키마 `updated`, `route`·`links` 누락) · `:279`(`build_index()`) ·
+  `publish.py:195`("v1 4종" — 5종이다) · `publish.py:28-29`·`route_stats.py:58-60`(`route_page()`) ·
+  `collect.yml:66-69,119-124,234-235`(이전 중 주석) · `collect.yml:205,236-237` `API_URL` 기본값이
+  `https://galmal.kr`(지금 API는 `api.galmal.kr` — 변수가 지워지면 **엉뚱한 곳을 점검하고 404로 실패**한다. 조용하진 않다).
+  → **BE13 T3.** 지울 때 `tests/test_publish.py:423`의 P7 방어(「`fmt_month`를 부르면 걸린다」)가 같이 의미를 잃는지 본다.
+
+- **BB41. 소소한 것 — 한 줄씩.**
+  - `.env` 파서가 5벌이다(`fetch_prices`·`fetch_breadth`·`parse_mail`의 `load_*`, `mail_ingest.load_env`, `affiliates._env`).
+    `affiliates._env`는 **호출마다 파일을 다시 읽는다**(딜 137건 × 링크당 여러 번). 느리진 않다, 갈릴 자리가 많을 뿐.
+  - 중앙값 구현이 3벌이다 — `discover_data._median`(짝수면 평균) · `detect_deals`(`statistics.median`) ·
+    `route_stats.route_summary`(`prices[n//2]` = **상위 중앙값**). 통일하면 `routes/*.summary.median` 값이
+    움직일 수 있어 **계약 의미 영향**을 먼저 본다.
+  - `parse_mail.py`가 `pydantic`을 import하는데 `requirements.txt`엔 `anthropic`뿐이다(전이 의존이라 지금은 깔린다).
+  - `collect.yml`에 `concurrency`가 없다 — 수동 실행과 예약 실행이 겹칠 수 있다(09-01·09-16·09-19에 하루 2~3회 실행).
+  - `publish()`가 빠진 노선의 `routes/{code}.json`을 지우지 않는다. 지금은 파일 36 == `config.ROUTES` 36이라 해당 없음.
+    노선을 빼는 날 고아 파일이 옛 `generated`로 영원히 서빙된다(index엔 없어 스냅숏 규칙은 통과).
+  - 로컬 Python 3.11.9 vs CI 3.12. `str | None`(3.10+)만 쓰여 지금은 무해.
+  - `LICENSE`가 없다(공개 저장소). 사용자 결정.
+  - `CommittedArtifactTest` 둘(`test_contract.py:460`·`test_publish.py:267`)은 `docs/v1`이 없으면 **skip**이다.
+    v1이 항상 커밋돼 있는 지금은 fail이 맞다 — 통째로 지워져도 CI가 초록이다.
+  - 기계가 읽는 계약 정본은 `deals[]` 원소뿐이다. `meta`·`routes/*`의 모양은 `test_publish.py`와
+    `CONTRACT.md` 산문에만 있다. 기획 소관 — 필요해지면 그쪽에 제안한다.
 
 ---
 
