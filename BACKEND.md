@@ -1771,3 +1771,21 @@ T3 0bdf498  스냅숏 규칙 — 평범한 날 · 보존일 · 05d0de9 반례 ·
 
 - ⚠️ 시프트 도구로 +30일에 `GeneratedOutputTest` 2건이 실패하는데 **고정 전에도 같다**.
   테스트가 `date.today()`로 데이터를 넣고 도구는 `timeutil`만 옮기는 불일치라 실제 시간 의존이 아니다. 안 고쳤다.
+
+### BE10 완료 (2026-09-19) — 계약 목록은 `contract/v1/` 한 곳
+
+```
+T1 9964efd  deal.schema.json (필드 23 + links 4, 타입·nullable·설명·예시)
+            옛 파서 == 새 로더: 23 필드 · nullable [low median ret route seen], 순서까지 같음
+T2 fa6e347  vocab.json (tags top6/sub18 · when 5+3 · region 9 · haul 3 · tier 2 · hub 4)
+            옛 파싱·손 사본 8종 전부 같음 · 탐침(야시장·jp 제거) → 잡음
+T3 42ca12c  test_dests: TAGS.md 대조 삭제, REGIONS·HAULS 를 vocab 에서
+T4 60a59f8  test_labels: COPY.md 대조 삭제, vocab region 전체 ↔ REGION_NAME 양방향
+T5 5c8315b  CONTRACT.md·COPY.md·TAGS.md 사본 삭제 — 여는 코드 0
+```
+
+- **새 규칙**: 기획 결정 없이 `contract/`를 바꾸지 않는다. 커밋 메시지에 그 결정을 인용한다.
+- `$id`는 `urn:` — Pages는 `docs/`만 서빙해서 URL로 적으면 열리지 않는 주소가 된다.
+- ⚠️ **잃은 것: 태그 순서 대조**(T3). 카드가 배열 순서대로 보이는데, 이제 `DEST`가 정본이라
+  `sorted()` 같은 변경은 코드 리뷰만 막는다.
+- 남은 주석 속 `CONTRACT.md` 언급은 출처 표기 — 「왜」는 기획 저장소에 있다.
