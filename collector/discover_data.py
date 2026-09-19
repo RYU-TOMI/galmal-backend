@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
-"""발견 지도 데이터 계약 — broad_offers + dests 메타를 조인해 딜 목록 생성.
+"""발견 지도 데이터 — broad_offers + dests 메타를 조인해 딜 목록(`origins` + `deals[]`)을 만든다.
 
-프론트(지도+피드)는 오직 이 JSON에만 의존한다. 스키마:
-{
-  "updated": "YYYY-MM-DD HH:MM",
-  "origins": { "SEL": {"name":"서울","lat":..,"lon":..}, ... },
-  "deals": [ {
-     "o","d","ko","country","region","haul","tier","tags":[...],"lat","lon",
-     "price","transfers","dep","ret","nights","median","discount","when",
-     "low","obs_days","seen"
-  }, ... ]
-}
+**필드 목록을 여기 옮겨 적지 않는다** — 정본은 `contract/v1/deal.schema.json`이고
+`tests/test_contract.py`가 이 모듈의 출력을 그 스키마로 검사한다. (예전엔 여기 사본이 있었고
+`updated`·`route`·`links`에서 이미 갈려 있었다.) 봉투(`schema`·`generated`)와 파일 쓰기는 `publish.py` 몫이다.
+
 정책: 최근 3일 수집 + 미래 출발만, dests 사전(좌표) 있는 목적지만(데이터 게이팅),
       seen(가격 관측 시각)이 7일 넘은 딜 제외, (출발지, 도시) 단위 최저가 1건
       (인천+김포=서울 통합). `d`는 도시 코드(NRT→TYO) — 광역 수집이 도시 단위라
@@ -276,10 +270,9 @@ def build_deals_json(conn, routes=None):
     deals.sort(key=lambda x: x["price"])
 
     # 수집이 무너진 날 빈 산출물로 덮어쓰지 않는다(BB1 / 기획 F1).
-    # 파일을 아예 쓰지 않으면 `build_index()`가 기존 파일을 읽어 그대로 인라인하므로
-    # index.html도 같은 내용으로 재생성되고, git이 변경 없음으로 보아 커밋조차 안 생긴다.
-    # `updated`도 예전 시각 그대로 남는데 그게 옳다 — 어제 데이터에 오늘 도장을 찍는 것이
-    # 더 나쁘다(기획 합의 2026-08-22). seen 배지가 저절로 늙어 상태를 대신 말해 준다.
+    # `None`을 돌려주면 `publish.py`가 `deals.json`을 건드리지 않는다 — 어제 파일이 어제
+    # `generated` 그대로 남는다. 그게 옳다 — 어제 데이터에 오늘 도장을 찍는 것이 더 나쁘다
+    # (기획 합의 2026-08-22). 상태는 `meta.preserved`가 말하고, seen 배지가 저절로 늙는다.
     prev = _previous_deal_count()
     if prev is not None and prev >= MIN_DEALS:
         if len(deals) < MIN_DEALS or len(deals) < prev * MIN_RATIO:

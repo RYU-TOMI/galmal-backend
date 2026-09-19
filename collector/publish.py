@@ -14,8 +14,8 @@ M3 T3(2026-09-15)에 `build_site.py`가 사라지면서 화면 생성이 프론�
     GET /v1/routes/{code}.json  노선 1개 통계
     GET /v1/vocab.json          참조 데이터 — 통제 어휘 + 지역 표시명 (BE11)
 
-**화면을 몰라야 하고, 실제로 모른다** — `fmt_month`도 `SQL_WEEKDAY`도 import하지 않는다.
-P7(백엔드는 사실을, 프론트는 말을)을 문서가 아니라 **import 그래프가 지킨다.**
+**화면을 몰라야 하고, 실제로 모른다** — 월·요일 표시 포매터는 백엔드에 아예 없다(BE13 T3에서 지웠다).
+P7(백엔드는 사실을, 프론트는 말을)은 `tests/test_publish.py`가 발행물의 문자열을 훑어 지킨다.
 
 ## 이 파일이 지키는 두 가지
 
@@ -25,8 +25,8 @@ P7(백엔드는 사실을, 프론트는 말을)을 문서가 아니라 **import 
 
 **② 얇다고 버리지 않는다** — 창은 백엔드, 임계는 프론트.
 `month_min`의 `min_samples`·`limit`을 **끄고** 부른다. 3건짜리 달도 `n`과 함께 내보내고,
-자를지는 프론트가 정한다. 지금 화면이 3건 미만을 버리는 건 `route_page()`가
-기본값으로 부르기 때문이고, **그 기본값은 이전이 끝날 때까지만 산다.**
+자를지는 프론트가 정한다. `route_stats`의 기본값(3건·10개)은 옛 화면의 규칙이고,
+지금은 테스트가 「발행값에 그 임계를 걸면 옛 숫자가 나오는가」를 대조하는 기준으로만 쓴다.
 """
 import json
 import os
@@ -163,7 +163,7 @@ def route_payload(conn, origin, dest, generated):
     """노선 1개. 표본이 0이면 `None` — 그런 노선은 **응답 자체가 없다.**
 
     `min_samples`·`limit`을 끄고 부르는 게 이 함수의 요점이다.
-    현행 화면이 3건 미만인 달을 버리는 건 `route_page()`의 기본값이지 **사실이 아니다.**
+    3건 미만인 달을 버리는 건 화면의 임계이지 **사실이 아니다.**
     """
     cheapest, median, n = route_summary(conn, origin, dest)
     if not n:
@@ -192,7 +192,7 @@ def route_payload(conn, origin, dest, generated):
 
 
 def publish(conn):
-    """v1 4종을 전부 쓴다. 반환: `(발행한 노선 수, 하한선 미달로 딜을 보존했나)`."""
+    """v1 5종(meta·deals·routes/index·routes/{code}·vocab)을 전부 쓴다. 반환: `(발행한 노선 수, 하한선 미달로 딜을 보존했나)`."""
     generated = timeutil.now_kst()
     routes = []
     for origin, dest in config.ROUTES:

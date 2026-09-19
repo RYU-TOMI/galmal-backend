@@ -71,9 +71,9 @@ jobs:
       - name: 프로모션 메일 수집
         id: mail
         # 🔴 `mail_ingest` 는 메일함을 **소비한다** — `select("INBOX")` 가 readonly 가
-        # 아니고 `fetch(RFC822)` 가 PEEK 가 아니라 **\Seen 이 붙는다.** 다음 사람의
-        # `UNSEEN` 검색에서 사라진다. 구형 크론이 아직 galmal.kr 을 서빙하므로
-        # 여기서 읽어버리면 **라이브 사이트가 그날 딜을 잃는다.**
+        # 아니고 `fetch(RFC822)` 가 PEEK 가 아니라 **\Seen 이 붙는다.** 다음 실행의
+        # `UNSEEN` 검색에서 사라진다(BB33). 검증용 수동 실행이 읽어버리면 **그날 예약 실행이
+        # 그 메일을 못 본다** — 본문 DB 는 러너와 함께 사라지므로 다시 파싱할 길도 없다.
         # 예약 실행(`inputs` 없음)에서는 null != true 라 **그대로 돈다.**
         if: inputs.skip_side_effects != true
         continue-on-error: true   # 메일 실패가 가격 수집 커밋을 막지 않도록
@@ -124,11 +124,7 @@ jobs:
         run: python collector/publish.py
 
       # 화면은 **프론트 저장소**(`galmal-frontend`)가 만든다. 여기엔 `site/`가 없다.
-      #
-      # M3에서는 같은 저장소에 둘 다 있어서 이 자리에서 `site/build.py`를 불렀다.
-      # 분리 후에는 발행이 끝나면 **프론트에 신호를 보내** 그쪽이 굽는다 —
-      # 그 배선(`repository_dispatch`)은 **T6**에서 붙인다. 그때까지 이 저장소는
-      # v1 JSON만 만들고 끝난다(구형 저장소가 아직 galmal.kr을 서빙한다).
+      # 발행·커밋이 끝나면 아래 「프론트에 알림」이 신호를 보내 그쪽이 굽는다.
 
       - name: 데이터·사이트 커밋
         if: always()
@@ -209,7 +205,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
-          API_URL: ${{ vars.API_URL || 'https://galmal.kr' }}
+          API_URL: ${{ vars.API_URL || 'https://api.galmal.kr' }}
         run: |
           want=$(python -c "import json; print(json.load(open('docs/v1/meta.json', encoding='utf-8'))['generated'])")
           url="$API_URL/v1/meta.json"
@@ -238,9 +234,9 @@ jobs:
         env:
           # 🔴 secrets 가 아니라 vars 다. secrets 면 로그에서 ***로 가려져
           # 「주소가 틀렸다」와 「배포가 멈췄다」를 구분할 수 없다.
-          # 변수가 없으면 기본값 — M3 동안은 지금 저장소에 안 만들어도 된다.
-          # M5에서 api.galmal.kr 로 **이 변수 하나만** 바꾼다.
-          API_URL: ${{ vars.API_URL || 'https://galmal.kr' }}
+          # 기본값은 변수가 지워졌을 때의 안전망이다 — **지금 서빙하는 주소와 같아야 한다.**
+          # 예전 기본값은 `https://galmal.kr`(M5 전 주소)였다: 변수가 사라지면 엉뚱한 곳을 점검했을 것이다.
+          API_URL: ${{ vars.API_URL || 'https://api.galmal.kr' }}
           SITE_URL: ${{ vars.SITE_URL || 'https://galmal.kr' }}
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
         run: |
