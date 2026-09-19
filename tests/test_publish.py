@@ -30,6 +30,7 @@ from unittest import mock
 
 import config
 import db
+import dests
 import discover_data
 import publish
 import subscriptions
@@ -157,14 +158,8 @@ def snapshot_errors(v1):
     return errs
 
 
-class SnapshotRuleTest(unittest.TestCase):
-    """🔴 한 번의 발행이 낸 응답의 `generated` 규칙 (BE9 T3, BB35).
-
-    **보존일 케이스가 핵심이다.** 규칙이 처음엔 「전부 같다」였다 — 보존일이 아닌 날
-    39개가 전부 같은 걸 보고 올렸고, 하한선 미달(BB1)이면 `deals.json`이 어제 시각으로
-    남는 분기를 못 봤다. 그대로 잠갔으면 보존일마다 프론트 배포가 멈췄다.
-    **한 날의 관측은 규칙의 근거가 아니다** — 그래서 두 분기를 둘 다 실제로 발행해 본다.
-    """
+class PublishedToTempDir(unittest.TestCase):
+    """인메모리 DB + 임시 `docs/`로 `publish()`를 **실제로** 돌리는 바탕. 테스트는 없다."""
 
     NOW = datetime(2026, 9, 18, 7, 12, 3, tzinfo=timeutil.KST)
 
@@ -194,6 +189,16 @@ class SnapshotRuleTest(unittest.TestCase):
     def _publish(self):
         with mock.patch("builtins.print"):
             return publish.publish(self.conn)
+
+
+class SnapshotRuleTest(PublishedToTempDir):
+    """🔴 한 번의 발행이 낸 응답의 `generated` 규칙 (BE9 T3, BB35).
+
+    **보존일 케이스가 핵심이다.** 규칙이 처음엔 「전부 같다」였다 — 보존일이 아닌 날
+    39개가 전부 같은 걸 보고 올렸고, 하한선 미달(BB1)이면 `deals.json`이 어제 시각으로
+    남는 분기를 못 봤다. 그대로 잠갔으면 보존일마다 프론트 배포가 멈췄다.
+    **한 날의 관측은 규칙의 근거가 아니다** — 그래서 두 분기를 둘 다 실제로 발행해 본다.
+    """
 
     def test_ordinary_day_every_response_shares_one_time(self):
         n_routes, preserved = self._publish()
@@ -249,6 +254,47 @@ class SnapshotRuleTest(unittest.TestCase):
         if not (V1 / "meta.json").exists():
             self.skipTest("v1이 아직 발행되지 않았다")
         self.assertEqual(snapshot_errors(V1), [])
+
+
+class VocabPublishTest(PublishedToTempDir):
+    """`/v1/vocab.json`은 정본 파일을 **그대로** 싣는가 (BE11 T2, CONTRACT §5).
+
+    기대값을 여기 손으로 적지 않는다 — 적으면 그게 또 하나의 사본이 된다(R8).
+    정본 파일을 읽어 `$comment`를 빼는 일도 **발행 코드와 다른 방법으로** 한다.
+    같은 함수로 기대값을 만들면 그 함수가 틀려도 테스트가 따라 틀린다.
+    """
+
+    @staticmethod
+    def contract_without_comments():
+        # json 파서 훅으로 뺀다 — publish._strip_comments 와 독립이다
+        return json.loads(publish.VOCAB_SRC.read_text(encoding="utf-8"),
+                          object_pairs_hook=lambda ps: {k: v for k, v in ps
+                                                        if k != "$comment"})
+
+    def setUp(self):
+        super().setUp()
+        self._publish()
+        self.raw = (self.v1 / "vocab.json").read_text(encoding="utf-8")
+        self.got = json.loads(self.raw)
+
+    def test_body_is_the_contract_file_verbatim(self):
+        body = {k: v for k, v in self.got.items()
+                if k not in ("schema", "generated", "region_name")}
+        self.assertEqual(body, self.contract_without_comments())
+
+    def test_no_comment_leaks_even_nested(self):
+        """`tags.$comment`·`when.$comment`까지 — 최상위만 빼면 설명 문장이 API로 나간다."""
+        self.assertNotIn("$comment", self.raw)
+
+    def test_order_that_means_something_is_kept(self):
+        """`tags.top` = 칩 순서, `when.fixed` = 판정·칩 순서. dict 비교는 순서를 안 본다."""
+        want = self.contract_without_comments()
+        self.assertEqual(self.got["tags"]["top"], want["tags"]["top"])
+        self.assertEqual(self.got["when"]["fixed"], want["when"]["fixed"])
+
+    def test_region_names_come_from_the_destination_dictionary(self):
+        self.assertEqual(self.got["region_name"],
+                         {r: dests.REGION_NAME[r] for r in self.got["region"]})
 
 
 class MetaTest(unittest.TestCase):
