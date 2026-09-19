@@ -39,20 +39,16 @@ class SingleSourceTest(unittest.TestCase):
 
 
 class NaiveTodayDebtTest(unittest.TestCase):
-    """`date.today()`가 남아 있는 모듈을 **명시적으로 세어 둔다** (BE4 T1).
+    """`collector/`에 `date.today()`가 **하나도 없다** (BE4 T1 → BE14 T1에서 부채 0).
 
     `date.today()`는 실행 환경의 로컬 날짜다. 크론(UTC 러너)과 로컬(KST)이 서로
     다른 값을 남기므로, 같은 명령이 환경에 따라 다른 데이터를 만든다. 그래서
     `timeutil.today_utc()` / `today_kst()`로 용도를 갈라 쓴다.
 
-    이 테스트는 **새 위반을 막는 것**이지 기존 부채를 고치라는 게 아니다.
-    아래 목록에 없는 모듈에서 `date.today()`가 나오면 실패한다. 모듈을 옮길
-    때마다 목록에서 지우면 되고, 목록이 비면 이 테스트째로 지워도 된다.
+    예전엔 아직 못 옮긴 모듈을 `KNOWN_DEBT`로 세어 뒀다(`detect_deals`·`send_alerts`, BB25).
+    2026-09-20에 둘 다 옮겨 목록이 비었고 목록째 지웠다. 「목록이 비면 테스트째 지워도 된다」고
+    적어 뒀었지만 **남긴다** — 새 위반을 막는 쪽은 부채와 무관하게 계속 일한다.
     """
-
-    # 아직 timeutil로 옮기지 않은 모듈 (BB25). detect_deals.py는 코드 주석으로
-    # 위험을 이미 인지하고 있다 — "Actions 러너는 UTC라 date.today()와 어긋날 수 있음".
-    KNOWN_DEBT = {"detect_deals.py", "send_alerts.py"}
 
     # timeutil 자신은 docstring에서 `date.today()`를 **쓰지 말라고 설명**한다.
     # 규칙을 적어 둔 곳이 규칙 위반으로 잡히면 안 된다.
@@ -64,22 +60,11 @@ class NaiveTodayDebtTest(unittest.TestCase):
     def test_no_new_naive_today(self):
         offenders = sorted(
             f.name for f in self.COLLECTOR.glob("*.py")
-            if f.name not in self.KNOWN_DEBT and f.name not in self.EXEMPT
+            if f.name not in self.EXEMPT
             and self.PATTERN.search(f.read_text(encoding="utf-8")))
         self.assertEqual(
             offenders, [],
             f"date.today() 대신 timeutil을 쓸 것 — 위반 모듈: {offenders}")
-
-    def test_debt_list_is_still_accurate(self):
-        """부채가 해소됐는데 목록에 남아 있으면 목록이 거짓말이 된다."""
-        stale = sorted(
-            name for name in self.KNOWN_DEBT
-            if not self.PATTERN.search(
-                (self.COLLECTOR / name).read_text(encoding="utf-8")))
-        self.assertEqual(
-            stale, [],
-            f"이미 옮겼으니 KNOWN_DEBT에서 지울 것: {stale}")
-
 
 class DateLabelTest(unittest.TestCase):
     """날짜를 두 종류로 가른다 — 기계용 UTC, 제품용 KST (BB13·BB17).

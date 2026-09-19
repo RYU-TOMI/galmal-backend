@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 import db
+import timeutil
 
 # 왕복 모두 경유 0회면 직항으로 분류
 IS_DIRECT_SQL = "(transfers=0 AND IFNULL(return_transfers,0)=0)"
@@ -21,10 +22,11 @@ IS_DIRECT_SQL = "(transfers=0 AND IFNULL(return_transfers,0)=0)"
 def compute_deals(conn):
     """최신 수집분 중 특가 목록을 dict 리스트로 반환 (할인율 내림차순).
 
-    실행 환경의 시간대와 무관하게 DB의 최신 fetched_date를 기준으로 판정
-    (Actions 러너는 UTC라 date.today()와 어긋날 수 있음)."""
+    실행 환경의 시간대와 무관하게 DB의 최신 fetched_date를 기준으로 판정한다
+    (러너는 UTC, 로컬은 KST라 실행 환경의 '오늘'은 서로 어긋난다).
+    DB가 비었을 때의 대체값도 `fetched_date`와 같은 축인 **UTC 날짜**다(BB25)."""
     latest = conn.execute("SELECT MAX(fetched_date) FROM offers").fetchone()[0]
-    today = latest or date.today().isoformat()
+    today = latest or timeutil.today_utc().isoformat()
     since = (date.fromisoformat(today) - timedelta(days=config.BASELINE_DAYS)).isoformat()
     deals = []
     for origin, dest in config.ROUTES:
@@ -64,7 +66,9 @@ def main():
     conn = db.connect()
     deals = compute_deals(conn)
     conn.close()
-    today = date.today().isoformat()
+    # 리포트 머리의 날짜는 **사람이 읽는 라벨**이라 KST다 — 이 출력이 담기는 커밋의
+    # 라벨(`collect: YYYY-MM-DD`)과 같은 날짜가 된다(BB13의 구분 그대로).
+    today = timeutil.today_kst().isoformat()
     if not deals:
         print(f"[{today}] 특가 없음 (기준: 유형별 시세 중앙값의 {int(config.DEAL_RATIO*100)}% 이하)")
         return
