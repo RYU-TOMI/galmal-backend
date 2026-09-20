@@ -34,6 +34,11 @@ from mail_ingest import IMAP_HOST, decode, html_body, load_env
 SUBSCRIBE_ADDR = "flightpromokr@gmail.com"
 SUBSCRIBE = "구독신청"
 UNSUBSCRIBE = "구독취소"
+# 🔴 **바꾸기 전에 프론트에 먼저 알린다** (2026-09-20 프론트 요청).
+# 프론트 `tests/test_route.py`가 이 정규식의 **사본**을 들고 구독 mailto 본문(`노선: ICN-FUK (인천 → 후쿠오카)`)을
+# 검사한다. 계약 `meta.subscribe`는 주소·제목·`route_token`만 주고 「파서가 무엇을 읽는지」는 안 주기 때문이다.
+# 여기만 바꾸면 프론트 테스트는 초록불인 채 구독이 조용히 `ALL`(전 노선)로 떨어진다 — 실패보다 나쁘다(CONTRACT §subscribe).
+# 이쪽 짝은 `tests/test_subscriptions.py::SubscribeTest::test_route_in_body_is_read`가 같은 본문 모양으로 잠근다.
 ROUTE_RE = re.compile(r"\b([A-Z]{3})\s*[-→~]\s*([A-Z]{3})\b")
 ALL_RE = re.compile(r"전체|ALL", re.I)
 
