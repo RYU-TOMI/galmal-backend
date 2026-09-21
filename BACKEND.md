@@ -293,7 +293,10 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   그건 의도된 것이지만 **실패했다는 사실 자체를 알 방법이 없다** → BB18.
   (원문)  `collect.yml`에 실패 알림이 없다. 4~6단계는
   `continue-on-error`라 조용히 건너뛴 채 성공으로 보인다.
-- **BB3. `data/prices.db`가 34MB이고 매일 커밋된다.** `offers` 56,363행이 무기한 축적.
+- **BB3. `data/prices.db`가 매일 커밋된다 — 보존 정책이 없다.**
+  **2026-09-21 실측: 작업 파일 46MB · `offers` 72,270행 · 저장소 팩 29.6MiB.** 09-08(34MB·56,363행·38.98MiB) 대비
+  파일은 +12MB인데 **팩은 -9MiB**다 — 그 사이 git이 다시 묶은 것으로 보이나 **확인하지 않았다.** 지켜볼 건 파일 크기가 아니라 팩이다.
+  (원문) `offers` 56,363행이 무기한 축적.
   **2026-09-08 재측정**(원문은 23MB·36,581행 — 두 달 전 값이라 갱신한다):
 
   ```
@@ -474,7 +477,10 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - 2026-09-01(화) 기준 영향 0건. **금요일부터 실제로 보이기 시작한다.**
   - 기획이 계약 §when을 고치면 구현한다. 검증기의 `when` 정규식도 함께 고쳐야 한다.
 
-- **BB22. 노선 페이지가 서울 출발뿐이라 커버리지가 20%다.** (진행 중)
+- **BB22. 노선 커버리지** (진행 중 → **대부분 해결**, 남은 건 기획 `SPEC.md` §3 `BE8-1`)
+  **2026-09-21 실측: 노선 43개 · 딜 138건 중 `route`가 있는 것 40건 = 29%**(원문 20%). 부산 9노선(2026-09-01)과
+  BE8 1차 7개(2026-09-20)로 올랐다. 대구도 첫 노선이 생겼다. 「유지 하한」(넣을 때만 재고 그 뒤 안 재는 것)은 기획이 가져갔다.
+  (원문) **노선 페이지가 서울 출발뿐이라 커버리지가 20%다.**
   → `route` 필드는 **해결(2026-09-01)**. 백엔드가 실제 공항으로 판정해 넣고,
   검증기가 허브·목적지 정합성까지 본다. 프론트는 `route`가 있을 때만 링크를 보인다.
   → **부산 9노선 추가 완료(2026-09-01)**. 커버리지 18% → **25%**(32/128).
@@ -512,7 +518,8 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   확인해보니 지금은 이름이 전부 같고 `CITY`가 `dests`의 부분집합이라 폴백만으로 충분했다.
 
 ### 미분류
-- **BB6. `docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
+- ➡️ **BB6 — 프론트 저장소로 넘어갔다**(M3 T3에서 `build_index()`가 사라졌다). 백엔드는 HTML을 만들지 않는다. 프론트 `BACKLOG.md` B13.
+  (원문) **`docs/index.html`이 278KB.** `deals.json`+`world.geojson` 인라인 때문.
   `file://`로도 열리게 한 의도적 선택이지만(`PROJECT.md`) 비용 측정은 안 됐다.
   인라인 주체가 `build_index()`(백엔드)라 여기 적어둔다. 프론트 `BACKLOG.md` B13과 같은 항목.
 
@@ -549,7 +556,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - `tests/test_timeutil.py`의 `NaiveTodayDebtTest.KNOWN_DEBT`에 두 파일이 적혀 있다.
     **새 위반은 테스트가 막고**, 옮기면 목록에서 지우면 된다. 목록이 비면 테스트째 지운다.
 
-- **BB26. 지역 어휘가 두 개다 — `labels.REGION_NAME` vs `dests.REGION_NAME`.** (2026-09-02, BE4 T3에서 발견)
+- ~~**BB26. 지역 어휘가 두 개다 — `labels.REGION_NAME` vs `dests.REGION_NAME`.**~~ → **해결**(BE4 이후 어느 시점,
+  2026-09-21 코드로 확인): `labels.py`에 자체 `REGION` 사전이 없다. `region_of()`가 `dests.DEST`만 보므로 어휘가 하나다.
+  (원문) (2026-09-02, BE4 T3에서 발견)
   `labels`는 대양주를 **"미주·대양주"에 합치고** 괌을 **"국내·괌"에 넣는다.**
   `dests`에는 `island`(휴양·섬)·`oc`(대양주)가 따로 있다. `CONTRACT.md`가 계약으로
   들고 있는 enum은 **`dests` 쪽**이다.
@@ -582,7 +591,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     고칠 자리가 곧 바뀌므로 **계약에 임계를 표현할 자리를 만드는 쪽**이 맞다(§11.7).
   - `tests/test_charts.py`는 차트만 본다. 문장은 아무도 안 본다.
 
-- **BB29. 🔴 노선 페이지 5개가 지금 "이미 지난 달에 떠나라"고 말하고 있다.** (2026-09-08, 계약 v1 판정 중 발견 — **라이브 결함**)
+- ~~**BB29. 🔴 노선 페이지 5개가 지금 "이미 지난 달에 떠나라"고 말하고 있다.**~~ → **해결**(2026-09-21 확인):
+  `route_stats.month_min`에 `AND depart_date>=?`(`today_kst()`) 창이 있다. 「창은 백엔드」 원칙대로 영구히 우리 일이다.
+  (원문) (2026-09-08, 계약 v1 판정 중 발견 — **라이브 결함**)
   `month_min`에 **`depart_date` 창이 아예 없다.** 출발월로 묶기만 하고 지난 달을 안 버린다.
   2026-09-08 배포본 실측:
 
@@ -605,7 +616,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   - `weekdays`는 다르다 — 요일은 순환하므로 지난 데이터도 유효하다. 월만의 문제다.
   - **안 고쳤다** — 열린 챕터가 없다. 한 줄(`AND depart_date >= :today`)이고 사용자 승인 대기.
 
-- **BB30. 🔴 시크릿 없는 환경에서 재빌드하면 제휴 링크가 조용히 빠진다.** (2026-09-08, 프론트 보고 → 실물 확인)
+- ~~**BB30. 🔴 시크릿 없는 환경에서 재빌드하면 제휴 링크가 조용히 빠진다.**~~ → **해결**(2026-09-21 확인):
+  `publish.warn_if_unpaid()`가 빌드 처음과 끝에서 외치고, `tests/test_affiliates.py`가 **커밋된 발행물**을 딜마다 검사한다.
+  (원문) (2026-09-08, 프론트 보고 → 실물 확인)
   `affiliates.py:154`가 `if _env("TP_MARKER"):`로 Aviasales 링크를 건다. 마커가 없으면
   **예외가 아니라 그냥 빠진다** — 딜 전건에서. 프론트가 `index.html` 충돌을 `CLAUDE.md`의
   「재빌드로 해결」 절차대로 풀다가 125건 전부에서 수익 링크를 날릴 뻔했다(커밋 직전 복구).
@@ -638,7 +651,8 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     오인시킨다.** 공용 파일이라 못 고친다 → 기획·프론트·사용자에게 알렸다.
     **손으로 세는 건 선택이고 CI가 진짜 방어선이다.**
 
-- **BB31. `fmt_month`에 연도가 없다 — BB29를 고치자 드러났다.** (2026-09-08, BB29 수정 직후 발견)
+- ➡️ **BB31 — 소멸/이관**: `labels.fmt_month`를 BE13 T3에서 지웠다(호출자 0). 월 표시는 프론트가 만든다.
+  (원문) **`fmt_month`에 연도가 없다 — BB29를 고치자 드러났다.** (2026-09-08, BB29 수정 직후 발견)
   `labels.py:71`이 `'2027-02' → '2월'`로 연도를 버린다. 지난 달을 자르기 전에는
   답이 대개 이번 달이라 안 보였는데, 창을 넣자 **`ICN-LAX`가 `"2월 출발이 가장 저렴합니다"`,
   `ICN-KUL`이 `"6월 출발"`**을 쓰기 시작했다 — 둘 다 실제로는 **2027년**이다.
@@ -691,7 +705,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     M6 정리에서 「이전 흔적」으로 오인해 지우지 말 것(기획 지적).
   - M6 후 별도 챕터. 이전 중에는 동작을 바꾸지 않는다.
 
-- **BB32. 구독 메일 주소가 두 곳에 있다 — 갈리면 아무도 모른다.** (2026-09-08, M3 준비 중 발견)
+- ~~**BB32. 구독 메일 주소가 두 곳에 있다 — 갈리면 아무도 모른다.**~~ → **해결**(M3 T5, 2026-09-21 재확인):
+  `subscriptions.SUBSCRIBE_ADDR`이 정본이고 크론 상태 점검이 매일 `MAIL_ADDRESS`와 대조한다.
+  (원문) (2026-09-08, M3 준비 중 발견)
   ```
   theme.SUBSCRIBE_ADDR = "flightpromokr@gmail.com"   ← 화면·meta.json 이 쓰는 값
   .env MAIL_ADDRESS                                  ← subscriptions.py 가 IMAP으로 로그인하는 메일함
