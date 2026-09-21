@@ -201,6 +201,9 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
      - 🔴 **남은 위험 하나: `gmail.com` 3통은 `Authentication-Results` 헤더가 아예 없다**(spf·dkim·dmarc 전부 「없음」).
        같은 Gmail 계정끼리 주고받으면 외부 SMTP 를 안 거쳐 헤더가 안 붙는 것으로 보인다. 구독 테스트 2통이 여기 해당한다.
        → 인증을 구독에 그대로 걸면 **그 메일들은 구독도 회신도 안 된다.** 기준을 정할 때 이 경우를 어떻게 할지가 핵심이다.
+       백엔드 제안(**열 때 다시 볼 것, 확정 아님**): 「통과면 구독+회신 / 없거나 실패면 구독은 만들되 **회신은 안 보낸다**」.
+       🔴 **이 안에는 구멍이 있다**(기획 지적 2026-09-21): 헤더 없는 **정상** 사용자가 「처리하지 못했습니다」 회신도 못 받는다 —
+       조용한 실패가 그 갈래에만 남는다. 회신을 없애는 것이 곧 안전은 아니다. 열 때 이 구멍부터 메울 것.
      - DNS 조회: naver·daum·hanmail·kakao·nate·gmail·outlook 은 DMARC 레코드 **있음**(전부 `p=none`) · icloud `quarantine` ·
        yahoo.co.kr `reject` · **korea.com 은 레코드 자체가 없다**(그런 도메인은 헤더에 `dmarc=` 가 안 실릴 수 있다).
   4. 같은 챕터에서 볼 것: 구독 스캔이 INBOX 전체를 돈다 · From 위조로 남의 주소를 구독시킬 수 있다(double opt-in 없음) ·
