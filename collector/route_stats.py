@@ -7,7 +7,7 @@
 
 왜 따로 떼었나 (M3 T0, 2026-09-11):
   원래 `build_site.py` 안에 있었고 발행 쪽이 그걸 import했다. **살아남을 쪽이
-  사라질 쪽에 얹혀 있던 것**이다(BACKEND.md §11.11). T3에서 `build_site`를 지울 때
+  사라질 쪽에 얹혀 있던 것**이다(`MIGRATION.md` §11.11). T3에서 `build_site`를 지울 때
   통계까지 딸려 흔들리지 않게 먼저 떼어 뒀다.
 
 🔴 **sqlite 전용 SQL은 이 파일에만 있다** — `strftime` 두 곳(`month_min`·`weekday_min`).
