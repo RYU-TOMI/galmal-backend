@@ -968,7 +968,19 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   형태 결정 전에 프론트·기획이 그 비용을 봐야 한다. 백엔드 추천은 **B**(토큰은 `url`이 아니라 **별도 필드**에만 두어
   「그대로 열면 되는 링크」는 지킨다. 제휴 래퍼·구글 q 의 URL 인코딩 안에 토큰이 묻히지 않게 **`{n}`만 인코딩하지 않고** 만든다).
  `str | None`(3.10+)만 쓰여 지금은 무해.
-  - `LICENSE`가 없다(공개 저장소). 사용자 결정.
+  - ✅(2026-09-22 사용자 결정) **`LICENSE`는 넣지 않는다 — 그게 지금 가장 안전하다.**
+    라이선스가 없으면 GitHub 약관상 남이 할 수 있는 건 **보기와 fork 뿐**이고(자기 서버에 올리거나 고쳐 쓸 권리는 안 준다),
+    포트폴리오로 읽히는 데는 그것으로 충분하다. MIT 를 걸면 **우리가 못 주는 권리까지 주게 된다**:
+    `data/prices.db` 는 Travelpayouts 에서 받은 데이터인데, 약관을 읽어 보니 재배포를 허락하는 조항이 없다.
+    > Affiliate Agreement 2.1.1 「**non-transferable** right … **only for direct functional use**」 ·
+    > Terms 6.2 「no right to use the intellectual property **beyond the intended cooperation and functionality**」 ·
+    > Terms 6.3 「does not imply that Partners get any rights … **except for the rights expressly provided**」
+    데이터 보관·공개를 **직접 금지하는 조항은 못 찾았다**(그래서 지금 상태가 위반이라는 뜻은 아니다). 확실히 하려면
+    약관 7.5 의 문의 경로로 Travelpayouts 에 물으면 된다 — 사용자 계정이라 사용자가 보내야 한다. 급하지 않다.
+    ⚠️ **다음 세션이 「라이선스가 없네, 넣자」로 되돌리지 말 것.** 없는 게 결정이다.
+    🔒 참고(같은 날 확인): private 전환을 막는 건 Actions 가 아니라 **Pages** 다 — Free 플랜은 **public 저장소만** Pages 를 준다
+    (Actions 는 private 도 월 2,000분 무료, 우리는 월 ~100분). private 으로 가려면 Pro(월 $4) 이거나 호스팅을 옮겨야 한다.
+    검토 시점은 사용자 수가 아니라 **수익이 실제로 나거나 · `prices.db` 가 부담이 되거나(BB3) · 벤더가 선을 그을 때**다.
   - ✅(BE14 T3, 없으면 실패) `CommittedArtifactTest` 둘(`test_contract.py:460`·`test_publish.py:267`)은 `docs/v1`이 없으면 **skip**이다.
     v1이 항상 커밋돼 있는 지금은 fail이 맞다 — 통째로 지워져도 CI가 초록이다.
   - 기계가 읽는 계약 정본은 `deals[]` 원소뿐이다. `meta`·`routes/*`의 모양은 `test_publish.py`와
