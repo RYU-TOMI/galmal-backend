@@ -5,7 +5,6 @@
 토큰: 환경변수 TP_TOKEN 또는 프로젝트 루트 .env 파일의 TP_TOKEN=...
 """
 import json
-import os
 import sys
 import time
 import urllib.parse
@@ -15,21 +14,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 import db
+import env
 import timeutil
 
 API = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
 
 
 def load_token():
-    token = os.environ.get("TP_TOKEN")
-    if token:
-        return token
-    env_file = Path(__file__).resolve().parent.parent / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("TP_TOKEN="):
-                return line.split("=", 1)[1].strip()
-    raise SystemExit("TP_TOKEN이 없습니다. .env 파일 또는 환경변수로 설정하세요.")
+    return env.require("TP_TOKEN")
 
 
 def fetch_route(token, origin, dest):

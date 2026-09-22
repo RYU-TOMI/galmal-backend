@@ -17,6 +17,7 @@ from pathlib import Path
 from unittest import mock
 
 import affiliates
+import env as env_mod
 from affiliates import (_ddmm, _yymmdd, _yyyymmdd, aviasales_link,
                         compare_links, google_flights_link, naver_link,
                         skyscanner_link, trip_link)
@@ -30,9 +31,17 @@ TRIP_ENV = {"TP_MARKER": "12345", "TP_TRIP_TRS": "777",
 
 @contextlib.contextmanager
 def isolated(env=None):
-    """`.env` 파일을 무시하고 주어진 환경변수만 보이게 하는 컨텍스트."""
-    with mock.patch.object(affiliates, "_ENV_FILE", NO_ENV_FILE),             mock.patch.dict("os.environ", env or {}, clear=True):
-        yield
+    """`.env` 파일을 무시하고 주어진 환경변수만 보이게 하는 컨텍스트.
+
+    `.env` 를 읽는 곳이 `collector/env.py` 한 곳으로 모였으므로(BE18) 거기를 가린다.
+    예전엔 `affiliates._ENV_FILE` 을 가렸는데, 그때는 모듈마다 자기 경로를 들고 있었다.
+    """
+    with mock.patch.object(env_mod, "ENV_FILE", NO_ENV_FILE), mock.patch.dict("os.environ", env or {}, clear=True):
+        env_mod._cache.clear()          # 경로가 바뀌었으니 파일 캐시를 버린다
+        try:
+            yield
+        finally:
+            env_mod._cache.clear()
 
 
 class DateFormatTest(unittest.TestCase):

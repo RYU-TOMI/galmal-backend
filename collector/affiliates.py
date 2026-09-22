@@ -12,12 +12,10 @@ Trip.com 프로그램 가입 후 아래 4개 값을 .env / GitHub Secrets에 넣
 
 값이 없으면 Aviasales 원본 딥링크로 폴백한다 (사이트가 깨지지 않도록).
 """
-import os
 import urllib.parse
 from datetime import date
-from pathlib import Path
 
-_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+import env
 
 
 def _ddmm(iso):
@@ -39,14 +37,8 @@ _KR_AIRPORTS = {"ICN", "GMP", "PUS", "TAE", "CJU"}
 
 
 def _env(name):
-    val = os.environ.get(name)
-    if val:
-        return val.strip()
-    if _ENV_FILE.exists():
-        for line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith(f"{name}="):
-                return line.split("=", 1)[1].strip()
-    return None
+    """`env.get()`의 얇은 별칭. 이 모듈이 `.env`를 직접 읽던 흔적이다(BE18에서 한 곳으로 모았다)."""
+    return env.get(name)
 
 
 # 🔴 **운영에 반드시 있어야 하는** 시크릿. 없으면 링크가 조용히 빠진다.
