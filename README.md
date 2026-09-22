@@ -113,7 +113,9 @@ collector/                수집·판정·발행 — 진입점 publish.py
   timeutil.py             시각 처리 단일 출처 — 소스의 found_at 이 UTC 라는 사실을 여기서만 앎
   env.py                  `.env`·환경변수 읽기 단일 출처 — 환경변수가 이기고, 빈 값은 없는 것과 같음
   subscriptions.py        구독자 계산(받은편지함 = 구독자 DB, 명단은 저장하지 않음)
-  send_alerts.py          구독 알림 발송(SMTP) · mail_ingest.py / parse_mail.py  프로모션 메일 수집·LLM 파싱
+  send_alerts.py          구독 알림 발송(SMTP)
+  mail_ingest.py          프로모션 메일 수집 — 메일함은 **읽기만** 하고 처리 여부는 DB(`emails.parsed`)가 안다
+  parse_mail.py           메일 본문을 LLM 으로 파싱 — 성공해야 처리 완료로 표시한다(실패하면 다음 실행이 다시 받는다)
   mail_guard.py           메일 방어선 — 발신 도메인 허용 목록 · Gmail 인증(DMARC) 확인 · 실행당 상한
   config.py · db.py · labels.py
 contract/v1/              계약 정본 — deal.schema.json(필드·타입·nullable·의미) · vocab.json(통제 어휘)

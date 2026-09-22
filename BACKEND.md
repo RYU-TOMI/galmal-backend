@@ -732,7 +732,16 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
     **실제 위반 사례(프론트 제보)**: 구형 `05d0de9`의 `docs/v1` — `meta` 15:28:42 · `deals` 15:28:00 ·
     `preserved=false`. deals만 42초 이르다(M1 때 분 단위 `updated`에서 만들던 흔적). 반례 입력으로 쓴다.
 
-- **BB33. `mail_ingest`가 메일함을 소비한다 — `subscriptions`와 다르게 읽는다.** (2026-09-16, M4 T6c 중 기획 발견)
+- ~~**BB33. `mail_ingest`가 메일함을 소비한다 — `subscriptions`와 다르게 읽는다.**~~ → **해결(2026-09-22, BE19)**:
+  **메일함을 아무것도 바꾸지 않는다.** `select(readonly=True)` + 본문까지 `BODY.PEEK[]` — 이제 `subscriptions`와 방식이 같다.
+  「처리했나」는 **공개 DB의 `emails.parsed`**가 안다(매일 커밋되니 러너가 꺼져도 남는다). 대상 선정도 `UNSEEN` 대신 그 표시로 한다.
+  🔴 **그래서 파싱이 실패한 메일이 다음 실행에 다시 온다** — `parse_mail`이 성공했을 때만 `parsed=1`을 찍고, 실패하면 0으로 남는다.
+  본문 DB는 러너와 함께 사라지므로 **다시 받는 것 말고는 재파싱할 방법이 없다**(그게 이 곁가지의 핵심 피해였다).
+  헤더만으로 키를 만들 수 있어 **본문을 받기 전에** 건너뛴다. 스키마는 `ALTER TABLE`로 기존 행을 살린 채 더했다.
+  `tests/test_mail_ingest.py` 11건 — 가짜 IMAP으로 `main()`을 실제로 돌려 **무엇을 어떻게 읽었는지**를 본다.
+  탐침 3종: 쓰기로 열기 → 1건 실패 · `RFC822`로 받기 → 2건 실패 · `parsed`를 무시 → 2건 실패.
+  ⚠️ 남은 것: 인증 실패 메일은 이제 **읽음 처리도 안 되므로**, 사람이 메일함에서 지우거나 옮기기 전까지 매일 경보가 뜬다(의도).
+  (원문) (2026-09-16, M4 T6c 중 기획 발견)
   ```
   mail_ingest.py:67   select("INBOX")            readonly 아님
              :73   fetch(mid, "(RFC822)")        PEEK 아님 → \Seen 이 붙는다
@@ -920,6 +929,14 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   `collect.yml:66-69,119-124,234-235`(이전 중 주석) · `collect.yml:205,236-237` `API_URL` 기본값이
   `https://galmal.kr`(지금 API는 `api.galmal.kr` — 변수가 지워지면 **엉뚱한 곳을 점검하고 404로 실패**한다. 조용하진 않다).
   → **BE13 T3.** 지울 때 `tests/test_publish.py:423`의 P7 방어(「`fmt_month`를 부르면 걸린다」)가 같이 의미를 잃는지 본다.
+
+- **BB43. `From` 헤더에 인코딩 안 된 한글이 오면 수집 스텝이 죽는다.** (2026-09-22, BE19 테스트가 찾음 — **안 고쳤다**)
+  `head.get("From")`이 8-bit 바이트를 만나면 `str`이 아니라 `email.header.Header`를 돌려주고,
+  `mail_guard.sender_domain()`의 `parseaddr()`가 `TypeError: object of type 'Header' has no len()`으로 터진다.
+  - **지금 안 터지는 이유**: 실제 항공사 메일은 표시 이름을 RFC 2047(`=?UTF-8?B?…?=`)로 인코딩해 보낸다.
+    2026-09-20 실측 42통 전부 정상이었다. 내가 테스트용 메일을 **인코딩 없이** 만들어서 드러났다.
+  - 오면 그 스텝이 죽는다(`continue-on-error`라 파이프라인은 살고 상태 점검이 빨간불). 조용하지는 않다.
+  - 고치면 한 줄(`str(...)`로 감싸기)이지만 **BB33 스코프 밖이라 안 고쳤다.** 메일 쪽을 다음에 열 때 같이 본다.
 
 - **BB41. 소소한 것 — 한 줄씩.** (2026-09-20 BE14에서 넷 해결 — ✅ 표시. 나머지는 열려 있다)
   - ✅(BE18, 2026-09-22) `.env` 파서가 5벌이다(`fetch_prices`·`fetch_breadth`·`parse_mail`의 `load_*`, `mail_ingest.load_env`,

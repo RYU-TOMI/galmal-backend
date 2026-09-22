@@ -23,11 +23,16 @@ CREATE TABLE IF NOT EXISTS offers (
 CREATE INDEX IF NOT EXISTS idx_offers_route ON offers(origin, destination, fetched_date);
 
 -- 공개 저장소에 커밋되는 DB이므로 메일 메타데이터만 저장 (본문은 emails_raw.db)
+-- 🔴 `parsed` 가 **「이 메일을 처리했나」의 유일한 영속 기록**이다 (BB33, 2026-09-22).
+--    예전엔 메일함의 `\Seen` 이 그 역할을 했는데, 그러면 파싱이 실패한 메일도 읽음이 되어
+--    **다시는 안 온다** — 본문 DB(`emails_raw.db`)는 러너와 함께 사라지므로 재파싱도 불가능했다.
+--    이 표시는 매일 커밋되는 공개 DB 에 있으므로 러너가 꺼져도 남는다.
 CREATE TABLE IF NOT EXISTS emails (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     received_at TEXT,
     sender TEXT,
     subject TEXT,
+    parsed INTEGER DEFAULT 0,        -- 0: 아직(다음 실행이 다시 가져온다) · 1: 파싱까지 끝남
     UNIQUE(received_at, sender, subject)
 );
 
@@ -94,10 +99,14 @@ def connect():
     if "body_html" in cols:
         conn.execute("DROP TABLE emails")
     conn.executescript(SCHEMA)
-    try:
-        conn.execute("ALTER TABLE offers ADD COLUMN return_transfers INTEGER")
-    except sqlite3.OperationalError:
-        pass  # 이미 존재
+    for stmt in ("ALTER TABLE offers ADD COLUMN return_transfers INTEGER",
+                 # BB33 — 기존 행은 `parsed=0` 으로 시작한다. 옛 메일을 한 번 다시 훑지만
+                 # 메일함에 남아 있는 것만 대상이고 `INSERT OR IGNORE` 라 중복이 생기지 않는다.
+                 "ALTER TABLE emails ADD COLUMN parsed INTEGER DEFAULT 0"):
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # 이미 존재
     return conn
 
 

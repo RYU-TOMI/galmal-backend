@@ -117,6 +117,13 @@ def main():
                 print(f"  특가 {len(result.deals)}건: {subject[:50]}")
             else:
                 print(f"  특가 아님: {subject[:50]}")
+        # 🔴 **여기까지 왔다는 건 이 메일을 더 볼 일이 없다는 뜻이다** (BB33).
+        #    실패하면 위에서 raise 되어 이 줄에 닿지 않으므로 `parsed`가 0으로 남고,
+        #    **다음 실행의 `mail_ingest`가 그 메일을 다시 받아 온다.** 본문 DB는 러너와 함께
+        #    사라지므로 다시 받는 것 말고는 재파싱할 방법이 없다.
+        #    특가 신호가 없어 건너뛴 메일도 1이다 — 다시 봐도 결과가 같다.
+        conn.execute("UPDATE emails SET parsed=1 WHERE received_at=? AND sender=? AND subject=?",
+                     (received, sender, subject))
         raw.execute("UPDATE emails_raw SET processed=1 WHERE id=?", (row_id,))
         raw.commit()
         conn.commit()
