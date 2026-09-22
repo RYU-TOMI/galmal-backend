@@ -10,7 +10,6 @@
 사용: python collector/parse_mail.py
 의존성: pip install anthropic
 """
-import os
 import re
 import sys
 from pathlib import Path
@@ -20,6 +19,7 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
+import env
 import mail_guard
 
 MODEL = "claude-haiku-4-5"
@@ -47,15 +47,7 @@ class MailParseResult(BaseModel):
 
 
 def load_api_key():
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if key:
-        return key
-    env_file = Path(__file__).resolve().parent.parent / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("ANTHROPIC_API_KEY="):
-                return line.split("=", 1)[1].strip()
-    raise SystemExit("ANTHROPIC_API_KEY가 없습니다. .env 또는 환경변수로 설정하세요.")
+    return env.require("ANTHROPIC_API_KEY")
 
 
 def html_to_text(html: str, limit: int = 12000) -> str:

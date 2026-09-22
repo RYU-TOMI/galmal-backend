@@ -15,7 +15,6 @@ v2/prices/latest는 origin 하나로 수백 목적지를 한 번에 준다. 5개
 사용: python collector/fetch_breadth.py
 """
 import json
-import os
 import sys
 import time
 import urllib.parse
@@ -24,6 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
+import env
 import timeutil
 from dests import ORIGINS, canonical, is_destination
 
@@ -37,15 +37,7 @@ MAX_AGE_HOURS = 96
 
 
 def load_token():
-    token = os.environ.get("TP_TOKEN")
-    if token:
-        return token
-    env = Path(__file__).resolve().parent.parent / ".env"
-    if env.exists():
-        for line in env.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("TP_TOKEN="):
-                return line.split("=", 1)[1].strip()
-    raise SystemExit("TP_TOKEN이 없습니다.")
+    return env.require("TP_TOKEN")
 
 
 def fetch_origin(token, origin):

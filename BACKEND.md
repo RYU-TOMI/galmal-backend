@@ -922,8 +922,12 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   → **BE13 T3.** 지울 때 `tests/test_publish.py:423`의 P7 방어(「`fmt_month`를 부르면 걸린다」)가 같이 의미를 잃는지 본다.
 
 - **BB41. 소소한 것 — 한 줄씩.** (2026-09-20 BE14에서 넷 해결 — ✅ 표시. 나머지는 열려 있다)
-  - `.env` 파서가 5벌이다(`fetch_prices`·`fetch_breadth`·`parse_mail`의 `load_*`, `mail_ingest.load_env`, `affiliates._env`).
-    `affiliates._env`는 **호출마다 파일을 다시 읽는다**(딜 137건 × 링크당 여러 번). 느리진 않다, 갈릴 자리가 많을 뿐.
+  - ✅(BE18, 2026-09-22) `.env` 파서가 5벌이다(`fetch_prices`·`fetch_breadth`·`parse_mail`의 `load_*`, `mail_ingest.load_env`,
+    `affiliates._env`). `affiliates._env`는 **호출마다 파일을 다시 읽었다**. → `collector/env.py` 한 곳으로.
+    합치며 드러난 미묘한 차이 셋을 **기존 동작 쪽으로** 고정했다: 중복 키는 **첫 줄이 이긴다**(옛 `startswith` 가 첫 매치를 가져갔다) ·
+    빈 값은 **없는 것과 같다**(다섯 다 `if val:` 이었다) · 환경변수가 이긴다. 캐시 키에 mtime·크기를 넣어 파일이 바뀌면 저절로 무효다.
+    전후 대조: 로더 4개 반환값·`compare_links` 5링크가 **11/11 동일**(실제 `.env` 환경). 탐침 2종(환경변수 우선 끄기·중복 키 뒤집기) 실패 확인.
+    `tests/test_env.py` 13건 — 그중 하나는 **여집합**이다(`collector/` 에서 `.env` 를 직접 읽는 모듈이 더 생기면 실패).
   - 중앙값 구현이 3벌이다 — `discover_data._median`(짝수면 평균) · `detect_deals`(`statistics.median`) ·
     `route_stats.route_summary`(`prices[n//2]` = **상위 중앙값**). 통일하면 `routes/*.summary.median` 값이
     움직일 수 있어 **계약 의미 영향**을 먼저 본다.

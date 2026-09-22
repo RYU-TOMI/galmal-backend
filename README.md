@@ -111,6 +111,7 @@ collector/                수집·판정·발행 — 진입점 publish.py
   dests.py                목적지 사전 — 한글명·지역·거리·태그 배정(DEST) · 좌표 · 도시↔공항 매핑. **계약 정본의 일부**
   affiliates.py           예약처 비교 링크 · 제휴 마커 · `ad` 판정
   timeutil.py             시각 처리 단일 출처 — 소스의 found_at 이 UTC 라는 사실을 여기서만 앎
+  env.py                  `.env`·환경변수 읽기 단일 출처 — 환경변수가 이기고, 빈 값은 없는 것과 같음
   subscriptions.py        구독자 계산(받은편지함 = 구독자 DB, 명단은 저장하지 않음)
   send_alerts.py          구독 알림 발송(SMTP) · mail_ingest.py / parse_mail.py  프로모션 메일 수집·LLM 파싱
   mail_guard.py           메일 방어선 — 발신 도메인 허용 목록 · Gmail 인증(DMARC) 확인 · 실행당 상한

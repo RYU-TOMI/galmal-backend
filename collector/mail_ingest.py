@@ -11,26 +11,24 @@
 import email
 import email.header
 import imaplib
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
+import env
 import mail_guard
 
 IMAP_HOST = "imap.gmail.com"
 
 
 def load_env():
-    env_file = Path(__file__).resolve().parent.parent / ".env"
-    values = dict(os.environ)
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            if "=" in line and not line.strip().startswith("#"):
-                k, v = line.split("=", 1)
-                values.setdefault(k.strip(), v.strip())
-    addr, pw = values.get("MAIL_ADDRESS"), values.get("MAIL_APP_PASSWORD")
+    """`(주소, 앱 비밀번호)`. 둘 중 하나라도 없으면 멈춘다.
+
+    **둘을 한 메시지로 알린다** — 하나씩 `require()`하면 먼저 걸린 것만 말하고,
+    고친 뒤 다시 돌려야 나머지를 안다.
+    """
+    addr, pw = env.get("MAIL_ADDRESS"), env.get("MAIL_APP_PASSWORD")
     if not addr or not pw:
         raise SystemExit("MAIL_ADDRESS / MAIL_APP_PASSWORD를 .env에 설정하세요.")
     return addr, pw
