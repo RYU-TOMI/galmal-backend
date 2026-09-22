@@ -930,6 +930,15 @@ python -c "import sqlite3;c=sqlite3.connect('data/prices.db');print(c.execute('S
   `https://galmal.kr`(지금 API는 `api.galmal.kr` — 변수가 지워지면 **엉뚱한 곳을 점검하고 404로 실패**한다. 조용하진 않다).
   → **BE13 T3.** 지울 때 `tests/test_publish.py:423`의 P7 방어(「`fmt_month`를 부르면 걸린다」)가 같이 의미를 잃는지 본다.
 
+- **BB44. 테스트가 실 `data/prices.db`를 연다 — 여는 것만으로 스키마가 바뀐다.** (2026-09-22, BE19에서 드러남 — **안 고쳤다**)
+  `tests/__init__.py`는 「테스트는 실 DB와 네트워크를 건드리지 않는다」고 적었는데, `test_publish.py:485·513`이
+  커밋된 발행물과 대조하려고 `db.connect()`를 부른다. 그 함수는 **마이그레이션(`ALTER TABLE`)을 실행**한다.
+  - 그래서 BE19에서 컬럼 하나를 더했더니 **테스트를 돌린 것만으로 실 DB가 수정**됐다(`git status`에 떴다).
+    예전엔 마이그레이션이 이미 적용돼 있어 no-op 이라 안 보였다 — **조용히 통과하던 자리**다.
+  - 지금은 무해하다(스키마 변경은 어차피 필요하고 다음 크론이 같은 일을 한다). 하지만 **테스트가 되돌릴 수 없는
+    실데이터를 여는 것 자체**가 위험하다 — 언젠가 `DROP`·`DELETE`가 섞인 마이그레이션을 쓰는 날 사고가 된다.
+  - 고칠 방향: 대조 테스트가 **읽기 전용(`mode=ro`)으로 열거나**, 커밋된 산출물만 보고 DB를 안 열게 한다.
+
 - **BB43. `From` 헤더에 인코딩 안 된 한글이 오면 수집 스텝이 죽는다.** (2026-09-22, BE19 테스트가 찾음 — **안 고쳤다**)
   `head.get("From")`이 8-bit 바이트를 만나면 `str`이 아니라 `email.header.Header`를 돌려주고,
   `mail_guard.sender_domain()`의 `parseaddr()`가 `TypeError: object of type 'Header' has no len()`으로 터진다.
