@@ -99,14 +99,18 @@ def connect():
     if "body_html" in cols:
         conn.execute("DROP TABLE emails")
     conn.executescript(SCHEMA)
-    for stmt in ("ALTER TABLE offers ADD COLUMN return_transfers INTEGER",
-                 # BB33 — 기존 행은 `parsed=0` 으로 시작한다. 옛 메일을 한 번 다시 훑지만
-                 # 메일함에 남아 있는 것만 대상이고 `INSERT OR IGNORE` 라 중복이 생기지 않는다.
-                 "ALTER TABLE emails ADD COLUMN parsed INTEGER DEFAULT 0"):
-        try:
-            conn.execute(stmt)
-        except sqlite3.OperationalError:
-            pass  # 이미 존재
+    try:
+        conn.execute("ALTER TABLE offers ADD COLUMN return_transfers INTEGER")
+    except sqlite3.OperationalError:
+        pass  # 이미 존재
+    try:
+        conn.execute("ALTER TABLE emails ADD COLUMN parsed INTEGER DEFAULT 0")
+        # 🔴 **컬럼을 방금 만들었다 = 기존 행은 옛 경로로 이미 처리된 메일들이다** (BB33).
+        #    그대로 0으로 두면 다음 수집이 그 전부를 다시 받아 **LLM 을 또 호출한다**(상한 때문에
+        #    며칠에 걸쳐, 그 동안 「상한 초과」 헛경보까지 뜬다). 한 번만 도는 자리라 여기서 정리한다.
+        conn.execute("UPDATE emails SET parsed=1")
+    except sqlite3.OperationalError:
+        pass  # 이미 존재 — 그때는 건드리지 않는다(새 메일의 0 을 1 로 만들면 안 된다)
     return conn
 
 
