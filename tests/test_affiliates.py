@@ -10,6 +10,7 @@
    `_ENV_FILE`을 없는 경로로 갈아끼우고 `os.environ`만 통제한다.
 """
 import contextlib
+import os
 import unittest
 import urllib.parse
 from pathlib import Path
@@ -61,7 +62,9 @@ class LinkFormatTest(unittest.TestCase):
         self.assertEqual(
             skyscanner_link("ICN", "FUK", DEP, RET),
             "https://www.skyscanner.co.kr/transport/flights/icn/fuk/260916/260917/"
-            "?adults=1&currency=KRW&market=KR&locale=ko-KR")
+            # 🔴 `adultsv2` 다. `adults` 는 스카이스캐너가 **읽지 않는다**(BB42, 2026-09-22 브라우저 실측:
+            # `?adults=2` → 화면 「성인 1명」). 기본값이 1인이라 예전엔 결과가 우연히 맞았다.
+            "?adultsv2=1&currency=KRW&market=KR&locale=ko-KR")
 
     def test_skyscanner_one_way_omits_return_segment(self):
         url = skyscanner_link("ICN", "FUK", DEP, None)
@@ -93,7 +96,9 @@ class LinkFormatTest(unittest.TestCase):
         self.assertTrue(url.startswith(
             "https://www.google.com/travel/flights?hl=ko&curr=KRW&q="))
         q = urllib.parse.unquote(url.split("q=", 1)[1])
-        self.assertEqual(q, "ICN to FUK on 2026-09-16 through 2026-09-17")
+        # `for 1 adults` 는 비문이지만 구글이 「성인 1명」으로 읽는다(2026-09-22 실측).
+        # 1인에도 넣는 이유: `pax_url` 의 `{n}`→`1` 이 `url` 과 바이트가 같아야 한다(계약 §links[]).
+        self.assertEqual(q, "ICN to FUK on 2026-09-16 through 2026-09-17 for 1 adults")
 
     def test_trip_link_is_korean_locale(self):
         """제휴 미설정이어도 사용자는 한국어 Trip.com으로 보낸다(UX 우선)."""
@@ -143,12 +148,17 @@ class CompareLinksTest(unittest.TestCase):
             return compare_links("ICN", "FUK", DEP, RET)
 
     def test_shape_matches_the_contract(self):
-        """각 원소는 name·tag·ad·url 네 키를 갖는다(`ad`는 2026-09-02 추가)."""
+        """각 원소의 키(`ad` 2026-09-02 · `pax_url` 2026-09-22 추가).
+
+        **계약의 `required` 와 같은 집합**이어야 한다 — 키를 늘리면서 계약을 안 고치면
+        소비자는 없는 줄 알고, 계약만 고치고 생산을 안 하면 검증기가 그날부터 실패한다.
+        """
         for link in self.links():
-            self.assertEqual(set(link), {"name", "tag", "ad", "url"})
+            self.assertEqual(set(link), {"name", "tag", "ad", "url", "pax_url"})
             self.assertTrue(link["name"] and link["tag"])
             self.assertIsInstance(link["ad"], bool)
             self.assertTrue(link["url"].startswith("https://"))
+            self.assertTrue(link["pax_url"] is None or link["pax_url"].startswith("https://"))
 
     def test_korean_shops_only_without_a_marker(self):
         """마커가 없으면 수수료가 0이므로 영어 예약처(Aviasales)는 숨긴다."""
@@ -274,3 +284,78 @@ class CommittedArtifactTest(unittest.TestCase):
             for l in d.get("links", []):
                 with self.subTest(deal=i, name=l.get("name")):
                     self.assertEqual(l.get("ad", False), AdFlagTest.earns(l["url"]))
+
+
+class PaxUrlTest(unittest.TestCase):
+    """인원 `{n}` 링크 — 계약 §links[] `pax_url` (DECISIONS 2026-09-22 (4)).
+
+    이 파일이 막는 것: **화면에선 2명을 골랐는데 예약처는 1명으로 열리는 것.** 예외도 안 나고
+    링크도 열리고 사람만 모른다 — 실제로 스카이스캐너가 그 상태였다(BB42, `adults` 를 안 읽는다).
+
+    예약처마다 인원을 받는 자리가 다르다(2026-09-22 브라우저 실측):
+        스카이스캐너 `adultsv2=` · 네이버 `adult=` · Trip.com `quantity=` ·
+        구글 `q` 자연어 `for N adults` · Aviasales **경로 끝 숫자**
+    그래서 소비자에게 「무엇을 바꾸라」가 아니라 **완성된 URL 한 벌**을 준다.
+    """
+
+    ARGS = ("ICN", "TYO", "2026-12-01", "2026-12-08")
+
+    def links(self, **env):
+        with mock.patch.dict(os.environ, {"TP_MARKER": "12345", **env}, clear=False):
+            return affiliates.compare_links(*self.ARGS)
+
+    def test_one_passenger_is_byte_identical_to_url(self):
+        """🔴 계약의 보장 ① — 두 필드가 갈릴 자리를 없앤다.
+
+        갈리면 아무도 모른다: `url` 로 연 사람과 `pax_url` 로 연 사람이 **다른 화면**을 본다.
+        """
+        for l in self.links():
+            with self.subTest(name=l["name"]):
+                self.assertEqual(l["pax_url"].replace("{n}", "1"), l["url"])
+
+    def test_every_booker_carries_the_token_exactly_once(self):
+        for l in self.links():
+            with self.subTest(name=l["name"]):
+                self.assertIsNotNone(l["pax_url"])
+                self.assertEqual(l["pax_url"].count("{n}"), 1)
+
+    def test_token_is_outside_url_encoding(self):
+        """🔴 계약의 보장 ② — 인코딩 안에 묻히면 소비자가 `{n}` 을 찾지 못한다.
+
+        구글은 `q` 를 인코딩하고 Trip.com 제휴 래퍼는 target 전체를 인코딩해 감싼다.
+        **제휴가 켜진 상태**로도 본다 — 지금 `TP_TRIP_*` 가 없어 래퍼가 안 씌워지므로,
+        승인되는 날 조용히 깨지는 것을 막으려면 여기서 미리 켜 봐야 한다.
+        """
+        for env in ({}, {"TP_TRIP_TRS": "t", "TP_TRIP_P": "p", "TP_TRIP_CAMPAIGN": "c"}):
+            for l in self.links(**env):
+                with self.subTest(name=l["name"], wrapped=bool(env)):
+                    self.assertNotIn("%7B", l["pax_url"].upper())
+                    self.assertNotIn(affiliates._PAX_TOKEN, l["pax_url"])
+                    self.assertNotIn(affiliates._PAX_TOKEN, l["url"])
+
+    def test_each_booker_actually_carries_the_count(self):
+        """인원을 바꾸면 **그 예약처가 읽는 자리**가 바뀐다 (2026-09-22 실측 형태 그대로)."""
+        want = {
+            "스카이스캐너": "adultsv2=3",      # 🔴 adults= 가 아니다 (BB42)
+            "네이버 항공권": "adult=3",         # 단수형
+            "Trip.com": "quantity=3",
+            "구글 항공권": "for%203%20adults",  # 자연어 — 인코딩된 채로 들어간다
+            "Aviasales": "TYO08123",           # 경로 끝 숫자
+        }
+        got = {l["name"]: l["pax_url"].replace("{n}", "3") for l in self.links()}
+        self.assertEqual(set(got), set(want))
+        for name, needle in want.items():
+            with self.subTest(name=name):
+                self.assertIn(needle, got[name])
+
+    def test_skyscanner_never_uses_the_ignored_name(self):
+        """BB42 회귀 방지 — `adults=` 는 스카이스캐너가 **읽지 않는다.**
+
+        기본값이 1인이라 예전엔 결과가 우연히 맞았다. 되돌아가면 인원이 조용히 무시된다.
+        """
+        sky = next(l for l in self.links() if l["name"] == "스카이스캐너")
+        for url in (sky["url"], sky["pax_url"]):
+            self.assertNotIn("adults=", url)
+            self.assertIn("adultsv2=", url)
+
+
