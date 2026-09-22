@@ -215,7 +215,8 @@
           "name",
           "tag",
           "ad",
-          "url"
+          "url",
+          "pax_url"
         ],
         "properties": {
           "name": {
@@ -232,7 +233,17 @@
           },
           "url": {
             "type": "string",
-            "description": "노선·날짜가 프리필된 딥링크. `ad`가 `true`면 제휴 링크 URL이다 — **이 값을 쓰는 쪽은 링크의 `rel`에 `sponsored`를 넣어야 한다**"
+            "description": "노선·날짜가 프리필된 딥링크. **성인 1명 기준**이다. `ad`가 `true`면 제휴 링크 URL이다 — **이 값을 쓰는 쪽은 링크의 `rel`에 `sponsored`를 넣어야 한다**"
+          },
+          "pax_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "🔴 **인원 `{n}`명으로 여는 같은 예약처 URL** (2026-09-22). `{n}`을 1~4로 바꿔 열면 그 예약처가 그 인원으로 조회한다. **보장: `{n}`을 `1`로 바꾸면 `url`과 바이트가 같다**(생산자 테스트가 잠근다). `{n}`은 URL 인코딩 **바깥**에 있어 그대로 치환하면 된다 — 제휴 래퍼나 자연어 질의 안이라도 그렇다. 인원을 못 받는 예약처는 `null`. **이 값을 쓰는 쪽은 `{n}` 하나만 치환하고 그 밖의 URL 조작을 하지 않는다** — 인원을 어디서 받는지(파라미터·경로·자연어)는 예약처마다 다르고 만드는 쪽만 안다",
+            "examples": [
+              "https://kr.trip.com/flights/showfarefirst?dcity=icn&acity=tyo&ddate=2026-12-01&class=y&quantity={n}&locale=ko-KR&curr=KRW&rdate=2026-12-08&triptype=rt"
+            ]
           }
         }
       },

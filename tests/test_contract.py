@@ -337,7 +337,7 @@ class ContractParsingTest(unittest.TestCase):
         self.assertEqual(empty, [], f"설명이 없는 필드: {empty}")
 
     def test_link_fields_come_from_the_schema(self):
-        self.assertEqual(link_fields(), {"name", "tag", "ad", "url"})
+        self.assertEqual(link_fields(), {"name", "tag", "ad", "url", "pax_url"})
 
     def test_when_vocabulary_covers_the_contract_table(self):
         """`when` 어휘 검사가 계약 §when의 7단계를 전부 받아들이는가.
