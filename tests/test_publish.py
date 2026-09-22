@@ -333,8 +333,10 @@ class VocabPublishTest(PublishedToTempDir):
         self.got = json.loads(self.raw)
 
     def test_body_is_the_contract_file_verbatim(self):
+        # 봉투(`schema`·`generated`)와 **백엔드가 더하는 표시명**을 뺀 나머지가 정본과 같아야 한다.
+        # 표시명은 정본 파일에 없는 파생값이다 — `region_name`(BE11) · `airport_name`(2026-09-22 §oa).
         body = {k: v for k, v in self.got.items()
-                if k not in ("schema", "generated", "region_name")}
+                if k not in ("schema", "generated", "region_name", "airport_name")}
         self.assertEqual(body, self.contract_without_comments())
 
     def test_no_comment_leaks_even_nested(self):
@@ -350,6 +352,26 @@ class VocabPublishTest(PublishedToTempDir):
     def test_region_names_come_from_the_destination_dictionary(self):
         self.assertEqual(self.got["region_name"],
                          {r: dests.REGION_NAME[r] for r in self.got["region"]})
+
+
+class AirportNameTest(PublishedToTempDir):
+    """`/v1/vocab.json`의 `airport_name` — 딜의 `oa`를 사람이 읽는 이름으로 (계약 §oa).
+
+    없으면 소비자가 손 사본을 만들고, 공항이 늘어나는 날 조용히 **코드가 화면에 뜬다**
+    (`region_name`을 계약에 실은 이유와 같다).
+    """
+
+    def test_it_is_the_dictionary_itself(self):
+        """기대값을 손으로 적지 않는다 — 적으면 그게 또 하나의 사본이다(R8)."""
+        self._publish()
+        self.assertEqual(load_from(self.v1, "vocab.json")["airport_name"], dict(dests.ORIGINS))
+
+    def test_every_departure_airport_has_a_name(self):
+        """🔴 여집합 — 딜이 내보내는 `oa` 중 이름 없는 것이 하나도 없어야 한다."""
+        self._publish()
+        names = load_from(self.v1, "vocab.json")["airport_name"]
+        used = {d["oa"] for d in load_from(self.v1, "deals.json")["deals"]}
+        self.assertEqual(used - set(names), set(), "이름 없는 출발 공항이 있다")
 
 
 class MetaTest(unittest.TestCase):

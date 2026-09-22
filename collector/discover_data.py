@@ -241,6 +241,10 @@ def build_deals_json(conn, routes=None):
             # ⚠️ 내부 판정은 계속 공항 코드(`dd["d"]`)로 한다 — 좌표·tier·노선 페이지
             #    매칭은 전부 공항 단위이고, 도시 코드로는 사전을 못 찾는다.
             "o": dd["o"], "d": dests.link_code(dd["d"]),
+            # 실제 출발 공항. 허브 `o`는 인천·김포를 `SEL`로 합치므로 **소비자는 어느 공항인지 알 수 없다**
+            # — 우리는 그 공항을 지정해 물었으니 안다(2026-09-22 계약 §oa). `route`로 때우면
+            # 노선 페이지가 있는 딜에만 붙어 3분의 1만 채워지고, 빈 쪽을 인천으로 읽게 된다.
+            "oa": dd["_oi"],
             "ko": dd["ko"], "country": dd["country"],
             "region": dd["region"], "haul": dd["haul"], "tier": dd["tier"],
             "tags": dd["tags"], "lat": lat, "lon": lon,

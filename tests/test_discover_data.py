@@ -20,6 +20,7 @@ from pathlib import Path
 from unittest import mock
 
 import db
+import dests
 import discover_data
 from discover_data import (MIN_DEALS, MIN_RATIO, SEEN_MAX_DAYS, _median,
                            _seen_kst, _when_label)
@@ -461,3 +462,71 @@ class PriorHistoryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DepartureAirportTest(unittest.TestCase):
+    """딜마다 **실제 출발 공항** `oa` (계약 §oa, 2026-09-22).
+
+    허브 `o`는 인천·김포를 `SEL` 하나로 합친다 — 그 값만으로는 어느 공항인지 알 수 없다.
+    `route`로 때우면 **노선 페이지가 있는 딜에만** 붙어서, 빈 쪽을 인천으로 읽게 된다.
+    수집이 공항을 지정해 물었으므로 **아는 쪽이 넣는다.**
+    """
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.executescript(db.SCHEMA)
+        self.addCleanup(self.conn.close)
+        self.today = date.today()
+
+    def add(self, origin, dest, price):
+        self.conn.execute(
+            """INSERT INTO broad_offers (fetched_date, origin, destination, price,
+                                         transfers, depart_date, return_date, found_at)
+               VALUES (?,?,?,?,0,?,?,?)""",
+            (self.today.isoformat(), origin, dest, price,
+             (self.today + timedelta(days=30)).isoformat(),
+             (self.today + timedelta(days=33)).isoformat(),
+             datetime.now(timezone.utc).replace(tzinfo=None).isoformat()))
+
+    def build(self, routes=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(discover_data, "DOCS", Path(tmp)):
+                return discover_data.build_deals_json(self.conn, routes or set())
+
+    def test_every_deal_carries_its_real_airport(self):
+        self.add("GMP", "FUK", 90000)
+        self.add("ICN", "OKA", 95000)
+        self.add("PUS", "NRT", 120000)
+        got = {d["oa"] for d in self.build()["deals"]}
+        self.assertEqual(got, {"GMP", "ICN", "PUS"})
+        for oa in got:
+            with self.subTest(oa=oa):
+                self.assertIn(oa, dests.ORIGINS, "`oa`는 우리가 수집한 공항이어야 한다")
+
+    def test_hub_hides_the_airport_but_oa_does_not(self):
+        """🔴 이 필드가 왜 필요한지 — 인천과 김포가 `o`에서는 구분되지 않는다."""
+        self.add("ICN", "FUK", 90000)
+        self.add("GMP", "OKA", 50000)
+        deals = self.build()["deals"]
+        self.assertEqual({d["o"] for d in deals}, {"SEL"})          # 허브는 하나로 합쳐지고
+        self.assertEqual({d["oa"] for d in deals}, {"ICN", "GMP"})  # 실제 공항은 갈린다
+
+    def test_route_and_oa_never_disagree(self):
+        """계약이 보장하는 것 — `route`가 있으면 `oa`는 그 앞 절반과 같다.
+
+        둘은 같은 값(`_oi`)에서 나오므로 **구조적으로** 그렇다. 갈리면 화면이
+        「인천 출발」이라 말하면서 김포 노선 통계를 보여주게 된다.
+        """
+        self.add("ICN", "FUK", 90000)
+        self.add("PUS", "NRT", 120000)
+        for d in self.build(routes={"ICN-FUK", "PUS-NRT"})["deals"]:
+            with self.subTest(route=d["route"]):
+                self.assertIsNotNone(d["route"])
+                self.assertEqual(d["route"].split("-")[0], d["oa"])
+
+    def test_oa_is_present_even_without_a_route_page(self):
+        """노선 페이지가 없어도 출발 공항은 안다 — 그게 `route`로 때울 수 없는 이유다."""
+        self.add("GMP", "FUK", 90000)
+        d = self.build(routes=set())["deals"][0]
+        self.assertIsNone(d["route"])
+        self.assertEqual(d["oa"], "GMP")

@@ -43,7 +43,7 @@ import timeutil
 from discover_data import DOCS
 from route_stats import (WINDOW_DAYS, airline_min, daily_min, month_min,
                          route_summary, weekday_min)
-from dests import REGION_NAME
+from dests import ORIGINS, REGION_NAME
 from labels import airline_name, city, region_of
 
 SCHEMA = "v1"
@@ -154,7 +154,10 @@ def vocab_payload(generated):
     """
     src = _strip_comments(json.loads(VOCAB_SRC.read_text(encoding="utf-8")))
     return {**_envelope(generated), **src,
-            "region_name": {r: REGION_NAME[r] for r in src["region"]}}
+            "region_name": {r: REGION_NAME[r] for r in src["region"]},
+            # 딜의 `oa`(실제 출발 공항)를 사람이 읽는 이름으로. 정본은 `dests.ORIGINS`다 —
+            # 소비자가 손 사본을 만들면 공항이 늘어나는 날 조용히 코드가 화면에 뜬다(`region_name`과 같은 이유).
+            "airport_name": dict(ORIGINS)}
 
 
 # ------------------------------------------------------- 3)·4) routes/*.json
