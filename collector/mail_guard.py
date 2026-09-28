@@ -45,7 +45,8 @@ def sender_domain(from_header):
     🔴 헤더 문자열에서 도메인을 **찾지 않는다.** 표시 이름은 보내는 사람이 마음대로 적는다 —
     `"koreanair.com" <x@spam.biz>`를 부분 문자열로 찾으면 통과한다(옛 `SKIP_SENDERS`가 그 방식이었다).
     """
-    addr = email.utils.parseaddr(from_header or "")[1]
+    # 인코딩 안 된 8-bit 헤더는 `str`이 아니라 `email.header.Header`로 온다 — `parseaddr`가 못 먹는다(BB43).
+    addr = email.utils.parseaddr(str(from_header) if from_header else "")[1]
     return addr.rpartition("@")[2].strip().lower() if "@" in addr else ""
 
 

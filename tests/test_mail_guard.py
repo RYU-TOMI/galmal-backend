@@ -44,6 +44,13 @@ class SenderDomainTest(unittest.TestCase):
         self.assertEqual(sender_domain("대한항공 <News@KoreanAir.com>"), "koreanair.com")
         self.assertEqual(sender_domain("news@jejuair.net"), "jejuair.net")
 
+    def test_raw_8bit_header_object(self):
+        """BB43 — 인코딩 안 된 한글 `From`은 `str`이 아니라 `email.header.Header`로 온다."""
+        import email
+        msg = email.message_from_bytes("From: 대한항공 <news@koreanair.com>\r\n\r\nx".encode())
+        self.assertNotIsInstance(msg.get("From"), str)          # 전제 — 이게 깨지면 테스트가 헛것이다
+        self.assertEqual(sender_domain(msg.get("From")), "koreanair.com")
+
     def test_unusable_headers(self):
         for raw in (None, "", "항공사", "<>"):
             with self.subTest(raw=raw):
