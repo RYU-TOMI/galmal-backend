@@ -105,6 +105,17 @@ jobs:
           TP_TOKEN: ${{ secrets.TP_TOKEN }}
         run: python collector/fetch_breadth.py
 
+      # 아직 안 넣은 노선 후보를 하루 한 번 잰다(BE8 2차, 기획 결정 2026-09-28 (2)).
+      # `offers`에는 쓰지 않고 건수만 `data/route_probe.json`에 쌓는다 — 넣을지는 7일 연속 중앙값으로 사람이 정한다.
+      # 하루 빠지면 연속이 끊기므로 실패는 아래 상태 점검이 빨간불로 알린다.
+      - name: 노선 후보 측정
+        id: probe
+        if: steps.guard.outputs.skip != 'true'
+        continue-on-error: true
+        env:
+          TP_TOKEN: ${{ secrets.TP_TOKEN }}
+        run: python collector/probe_routes.py
+
       - name: 특가 판정
         id: detect
         if: steps.guard.outputs.skip != 'true'
@@ -289,7 +300,7 @@ jobs:
           note "## 수집 결과 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') KST)"
           # 수집·판정·빌드까지 전부 continue-on-error가 됐으므로, 여기서 안 보면
           # 무엇이 죽어도 잡이 초록불로 끝난다 — BB18을 되돌리는 셈이다.
-          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "v1 발행:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"                    "프론트 알림:${{ steps.dispatch.outcome }}"; do
+          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "후보 측정:${{ steps.probe.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "v1 발행:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"                    "프론트 알림:${{ steps.dispatch.outcome }}"; do
             name="${s%%:*}"; outcome="${s##*:}"
             if [ "$outcome" = "failure" ]; then
               note "- ❌ $name 실패"; fail=1
