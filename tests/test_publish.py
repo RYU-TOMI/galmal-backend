@@ -43,6 +43,16 @@ V1 = Path(__file__).resolve().parent.parent / "docs" / "v1"
 DISPLAY_LEAK = re.compile(r"\d+월|월요일|[월화수목금토일]요일|원$")
 
 
+def committed_db():
+    """커밋된 `data/prices.db`를 **읽기 전용으로** 연다 (BB44).
+
+    `db.connect()`를 쓰면 안 된다 — 그 함수는 여는 김에 마이그레이션(`ALTER TABLE`·`UPDATE`)을
+    돌려서, 테스트를 실행한 것만으로 크론이 커밋하는 실데이터가 바뀐다(BE19에서 `git status`에 떴다).
+    대조 테스트는 읽기만 하므로 `mode=ro`면 충분하고, 쓰려 하면 `OperationalError`로 바로 드러난다.
+    """
+    return sqlite3.connect(f"file:{db.DB_PATH.as_posix()}?mode=ro", uri=True)
+
+
 def load(rel):
     return load_from(V1, rel)
 
@@ -69,6 +79,25 @@ def published_clock():
         timeutil,
         now_kst=lambda: at.astimezone(timeutil.KST),
         today_utc=lambda: at.astimezone(timezone.utc).date())
+
+
+class CommittedDbIsReadOnlyTest(unittest.TestCase):
+    """BB44 — 테스트는 크론이 커밋하는 실 DB를 **바꾸지 않는다**(`tests/__init__.py`의 원칙)."""
+
+    def test_committed_db_refuses_writes(self):
+        if not db.DB_PATH.exists():
+            raise unittest.SkipTest("prices.db 가 없다")
+        with closing(committed_db()) as conn:
+            with self.assertRaises(sqlite3.OperationalError):
+                conn.execute("CREATE TABLE bb44_probe (x)")
+
+    def test_no_test_opens_the_real_db_with_migrations(self):
+        """`db.connect()`는 마이그레이션을 돌린다. 테스트에선 **갈아끼운 것**(mock)만 허용한다."""
+        tests = Path(__file__).resolve().parent
+        bare = [f"{f.name}:{i}" for f in sorted(tests.glob("test_*.py"))
+                for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1)
+                if re.search(r"\bdb\.connect\(\)", line) and "`" not in line]
+        self.assertEqual(bare, [], "실 DB를 마이그레이션과 함께 연다 — committed_db()를 쓸 것")
 
 
 class EnvelopeTest(unittest.TestCase):
@@ -503,8 +532,7 @@ class RoutePayloadTest(unittest.TestCase):
         발행값이 필터를 끈 것과 같아야 한다. 화면이 3건 미만을 버리는 건
         `route_page()`의 기본값이지 사실이 아니다.
         """
-        import db
-        with published_clock(), closing(db.connect()) as conn:
+        with published_clock(), closing(committed_db()) as conn:
             for code, r in self.routes.items():
                 o, d = code.split("-")
                 with self.subTest(route=code):
@@ -531,8 +559,7 @@ class ReproducesTheCurrentScreenTest(unittest.TestCase):
     def setUpClass(cls):
         if not (V1 / "routes").exists():
             raise unittest.SkipTest("v1이 아직 발행되지 않았다")
-        import db
-        cls.conn = db.connect()
+        cls.conn = committed_db()
         # 클래스 전체가 커밋된 산출물과의 대조라 시계도 클래스 단위로 고정한다
         cls.clock = published_clock()
         cls.clock.start()
