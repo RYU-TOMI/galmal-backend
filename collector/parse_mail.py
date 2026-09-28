@@ -81,8 +81,24 @@ def parse_one(client, sender, subject, body_html):
     return response.parsed_output
 
 
+def check_key(client):
+    """키가 살아 있는지 **메일이 없는 날에도** 본다. `models.list`는 토큰 과금이 없다.
+
+    메일 0통인 날은 API를 한 번도 안 불러서, 키가 죽어도 초록불이었다. 2026-09 에 키가
+    **분리 직후부터 열흘 가까이** 무효였는데 메일이 온 날에만 드러났다(BACKEND.md 09-24·25 기록).
+    401 만 잡는다 — 연결 오류·장애는 아래 메일별 처리와 재시도가 맡는다.
+    """
+    try:
+        client.models.list(limit=1)
+    except anthropic.AuthenticationError:
+        raise SystemExit(
+            "메일 파싱 경보: API 키가 무효다(401). 메일이 없는 날에도 같은 경보가 난다. "
+            "Console 에서 새 키 → production 환경 시크릿 ANTHROPIC_API_KEY 교체.")
+
+
 def main():
     client = anthropic.Anthropic(api_key=load_api_key())
+    check_key(client)
     raw = db.connect_raw()
     conn = db.connect()
     rows = raw.execute(
