@@ -8,6 +8,7 @@
 사용: python collector/mail_ingest.py
 파싱(노선/가격 추출)은 이후 단계에서 LLM으로 처리 — 여기서는 원문 저장까지만.
 """
+import codecs
 import email
 import email.header
 import imaplib
@@ -38,8 +39,20 @@ def decode(value):
     if not value:
         return ""
     parts = email.header.decode_header(value)
-    return "".join(p.decode(enc or "utf-8", "replace") if isinstance(p, bytes) else p
+    return "".join(p.decode(_codec(enc), "replace") if isinstance(p, bytes) else p
                    for p, enc in parts)
+
+
+def _codec(enc):
+    """헤더 조각의 인코딩 이름 → 파이썬이 아는 코덱.
+
+    인코딩 안 된 8-bit 헤더(RFC 2047 없이 한글을 그대로)는 `email`이 `unknown-8bit`로 표시한다(BB43).
+    그런 코덱은 없어서 `LookupError`로 수집이 죽었다. 원래 바이트는 보존돼 있으니 UTF-8로 읽는다.
+    """
+    try:
+        return codecs.lookup(enc).name if enc else "utf-8"
+    except LookupError:
+        return "utf-8"
 
 
 def html_body(msg):

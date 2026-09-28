@@ -27,9 +27,11 @@ def b64(text):
 
 
 def raw_mail(subject, sender="news@koreanair.com", date="Mon, 22 Sep 2026 09:00:00 +0900",
-             dmarc="pass", body="<p>특가</p>"):
+             dmarc="pass", body="<p>특가</p>", raw_8bit=False):
+    """`raw_8bit` — 표시 이름을 RFC 2047 없이 **한글 그대로** 보낸다(BB43). 규격 위반이지만 오는 메일은 온다."""
     dom = sender.rpartition("@")[2]
-    return (f"From: =?UTF-8?B?{b64('대한항공')}?= <{sender}>\r\n"
+    name = "대한항공" if raw_8bit else f"=?UTF-8?B?{b64('대한항공')}?="
+    return (f"From: {name} <{sender}>\r\n"
             f"Subject: =?UTF-8?B?{b64(subject)}?=\r\n"
             f"Date: {date}\r\n"
             f"Authentication-Results: mx.google.com;\r\n"
@@ -153,6 +155,16 @@ class IngestTest(unittest.TestCase):
         self.assertEqual(list(self.emails().values()), [0])   # 중복 행이 생기지 않는다
 
     # ── 거르는 규칙은 그대로인가 ──────────────────────────────────────
+    def test_raw_8bit_from_does_not_kill_the_run(self):
+        """BB43 — 인코딩 안 된 한글 `From`은 `Header` 객체로 오고 코덱 이름이 `unknown-8bit`다.
+        예전엔 `parseaddr`(TypeError)와 `decode`(LookupError)가 둘 다 터져 **그날 수집이 통째로** 죽었다."""
+        self.run_ingest([raw_mail("8비트 특가", raw_8bit=True), raw_mail("정상 특가")])
+        self.assertIsNone(self.alert)
+        with closing(sqlite3.connect(self.pub)) as c:
+            rows = dict(c.execute("SELECT subject, sender FROM emails"))
+        self.assertEqual(sorted(rows), ["8비트 특가", "정상 특가"])
+        self.assertEqual(rows["8비트 특가"], "대한항공 <news@koreanair.com>")   # 글자도 안 깨진다
+
     def test_unauthenticated_mail_is_neither_saved_nor_read(self):
         fake = self.run_ingest([raw_mail("(광고) 사칭", dmarc="fail")])
         self.assertEqual(self.emails(), {})
