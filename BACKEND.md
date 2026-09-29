@@ -16,8 +16,8 @@
 **노선 43 · v1 응답 47 · 딜 약 140 · 테스트 260건.** 계약 정본은 `contract/v1/` + `collector/dests.py`.
 
 - 확인은 초록불이 아니라 **API `meta.generated` == 사이트 `build.json.api_generated`, 둘 다 당일.**
-- 손으로 크론을 돌릴 땐 **검증이면** `skip_side_effects=true`. 메일 파싱까지 봐야 하면 `false`도 된다 —
-  메일 수집은 읽기 전용이 됐고(BB33) 구독자는 없다. **구독자가 생기면 다시 `true`가 기본이다**(알림이 실제로 나간다).
+- 손으로 크론을 돌릴 땐 **`skip_side_effects=true`가 기본이다.** `false`면 **구독 알림이 실제 구독자에게 나간다.**
+  메일 수집은 읽기 전용이 됐지만(BB33) 알림 발송은 아니다. 파싱만 확인하려면 로컬에서 `parse_mail.check_key`·테스트로 본다.
 - `.env`는 **이 폴더에만** 있다. 없이 재발행하면 제휴 링크가 조용히 빠진다(BB30).
 - `continue-on-error` 스텝의 결론(`success`)을 믿지 않는다 — **로그를 본다.** 09-21에 파싱 401을 그렇게 놓쳤다.
 - **dispatch를 보냈는데 사이트가 안 바뀌면 프론트 `deploy.yml`부터 본다.** 프론트는 2026-09-28(B48)부터 `test → build → deploy`라
