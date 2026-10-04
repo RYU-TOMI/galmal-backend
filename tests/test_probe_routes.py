@@ -84,8 +84,12 @@ class MainTest(unittest.TestCase):
         with closing(sqlite3.connect(self.pub)) as c:
             c.executescript(db.SCHEMA)
 
-    def run_main(self, fetch):
+    # 실제 `CANDIDATES` 는 판정이 끝나면 비워진다 — 테스트는 고정한 목록으로 돈다(비면 아래 검사가 전부 헛돈다).
+    CANDS = [("ICN", "CNX"), ("ICN", "HIJ")]
+
+    def run_main(self, fetch, candidates=CANDS):
         with mock.patch.object(probe_routes, "PATH", self.path), \
+             mock.patch.object(probe_routes, "CANDIDATES", list(candidates)), \
              mock.patch.object(probe_routes.fetch_prices, "load_token", lambda: "t"), \
              mock.patch.object(probe_routes.fetch_prices, "fetch_route", fetch), \
              mock.patch.object(probe_routes.timeutil, "today_utc", lambda: D), \
@@ -96,9 +100,23 @@ class MainTest(unittest.TestCase):
     def test_every_candidate_is_recorded(self):
         self.run_main(lambda tok, o, d: rows(9, direct=6))
         data = json.loads(self.path.read_text(encoding="utf-8"))
-        self.assertEqual(sorted(data), sorted(f"{o}-{d}" for o, d in probe_routes.CANDIDATES))
+        self.assertEqual(sorted(data), ["ICN-CNX", "ICN-HIJ"])
         for route in data:
             self.assertEqual(data[route], {D.isoformat(): {"n": 9, "direct": 6}})
+
+    def test_no_candidates_is_a_quiet_no_op(self):
+        """판정이 끝나 목록이 비면 — 아무것도 재지 않고, **쌓인 기록은 그대로 둔다.**"""
+        history = {"ICN-CNX": {"2026-10-04": {"n": 16, "direct": 9}}}
+        self.path.write_text(json.dumps(history), encoding="utf-8")
+        fetch = mock.Mock()
+        self.run_main(fetch, candidates=[])
+        fetch.assert_not_called()
+        self.assertEqual(json.loads(self.path.read_text(encoding="utf-8")), history)
+
+    def test_a_candidate_is_never_a_live_route(self):
+        """넣은 노선을 후보에 남겨 두면 같은 노선을 하루 두 번 부르고, 판정이 끝난 것을 계속 잰다."""
+        import config
+        self.assertEqual(set(probe_routes.CANDIDATES) & set(config.ROUTES), set())
 
     def test_history_is_kept(self):
         self.path.write_text(json.dumps({"ICN-CNX": {"2026-10-04": {"n": 23, "direct": 12}}}), encoding="utf-8")

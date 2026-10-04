@@ -26,7 +26,9 @@ import fetch_prices
 import timeutil
 
 # (출발, 도착). 판정이 끝나면(넣었든 뺐든) 여기서 지운다 — 기록은 파일에 남는다.
-CANDIDATES = [("ICN", "CNX"), ("ICN", "HIJ")]
+# 비어 있으면 크론 스텝은 아무것도 재지 않고 끝난다. 다음 후보가 생기면 여기에 적기만 하면 된다.
+#   2026-10-04 판정 끝: ICN-CNX 중앙 16 → `config.ROUTES` 에 넣음 · ICN-HIJ 중앙 2 → 넣지 않음.
+CANDIDATES = []
 WINDOW = 7        # 연속 일수
 THRESHOLD = 10    # 중앙값 기준(건/일) — 노선을 넣을 때의 기준과 같은 수
 
