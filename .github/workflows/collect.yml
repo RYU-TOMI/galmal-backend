@@ -30,7 +30,7 @@ on:
   workflow_dispatch:      # 손으로 돌리기 — 검증은 skip_side_effects=true 로
     inputs:
       skip_side_effects:
-        description: "메일함·발송을 건드리지 않는다 (수동 검증용)"
+        description: "항공사 메일 수집·파싱과 구독자 알림을 건너뛴다 (수동 검증용). 운영자 일일 보고는 나간다"
         type: boolean
         default: false
 
@@ -52,6 +52,10 @@ jobs:
     # 에러가 아니라 **빈 값**이 들어가고, 수집 스텝이 `continue-on-error`라
     # **초록불로 끝난다.** 한 줄이 하루치 수집을 날린다.
     environment: production
+    env:
+      # 예비 실행을 깨우는 cron — 위 `on.schedule` 의 둘째 줄과 **같은 문자열**이어야 한다.
+      # 가드(「오늘 발행 확인」)와 「일일 보고 메일」이 같이 쓴다. 스텝마다 따로 적으면 하루는 하나가 틀린다.
+      BACKUP_CRON: "10 18 * * *"
     steps:
       - uses: actions/checkout@v4
 
@@ -71,9 +75,9 @@ jobs:
       # 수동 실행(`workflow_dispatch`)은 `event.schedule` 이 비어 있어 **언제나 돈다.**
       - name: 오늘 발행 확인 (예비 실행만)
         id: guard
-        env:
-          BACKUP_CRON: "10 18 * * *"
         run: |
+          # 실제 시작 시각 — 「일일 보고 메일」이 예약 시각과 견줘 지연을 적는다. 잡의 첫 스텝이라 여기서 남긴다.
+          echo "started=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
           gen=$(python -c "import json,datetime as dt; g=json.load(open('docs/v1/meta.json',encoding='utf-8'))['generated']; print(dt.datetime.fromisoformat(g).astimezone(dt.timezone.utc).date().isoformat())" 2>/dev/null || echo "")
           today=$(date -u '+%Y-%m-%d')
           if [ "${{ github.event.schedule }}" = "$BACKUP_CRON" ] && [ "$gen" = "$today" ]; then
@@ -182,6 +186,7 @@ jobs:
       # 발행·커밋이 끝나면 아래 「프론트에 알림」이 신호를 보내 그쪽이 굽는다.
 
       - name: 데이터·사이트 커밋
+        id: commit
         if: always() && steps.guard.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -285,6 +290,7 @@ jobs:
       # continue-on-error 스텝은 실패해도 잡이 초록불이라 몇 주째 죽어 있어도
       # 아무도 몰랐다(BB18). 잡을 실패로 만들면 GitHub가 저장소 소유자에게 메일을 보낸다.
       - name: 상태 점검
+        id: health
         if: always() && steps.guard.outputs.skip != 'true'
         env:
           # 🔴 secrets 가 아니라 vars 다. secrets 면 로그에서 ***로 가려져
@@ -296,11 +302,15 @@ jobs:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
         run: |
           fail=0
-          note() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          # 점검 줄을 파일에도 남긴다 — 「일일 보고 메일」이 **같은 줄을 그대로** 싣는다. 요약과 메일이 갈리지 않게
+          # 적는 곳은 `note` 하나다. 경로는 맨 먼저 내보낸다(아래에서 죽어도 그때까지 적은 줄은 보고에 실린다).
+          notes="$RUNNER_TEMP/health.md"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
+          note() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; echo "$1" >> "$notes"; }
           note "## 수집 결과 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') KST)"
           # 수집·판정·빌드까지 전부 continue-on-error가 됐으므로, 여기서 안 보면
           # 무엇이 죽어도 잡이 초록불로 끝난다 — BB18을 되돌리는 셈이다.
-          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "후보 측정:${{ steps.probe.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "v1 발행:${{ steps.build.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"                    "프론트 알림:${{ steps.dispatch.outcome }}"; do
+          for s in "노선 수집:${{ steps.prices.outcome }}"                    "광역 수집:${{ steps.breadth.outcome }}"                    "후보 측정:${{ steps.probe.outcome }}"                    "특가 판정:${{ steps.detect.outcome }}"                    "v1 발행:${{ steps.build.outcome }}"                    "데이터 커밋:${{ steps.commit.outcome }}"                    "메일 수집:${{ steps.mail.outcome }}"                    "메일 파싱:${{ steps.parse.outcome }}"                    "알림 발송:${{ steps.alerts.outcome }}"                    "프론트 알림:${{ steps.dispatch.outcome }}"; do
             name="${s%%:*}"; outcome="${s##*:}"
             if [ "$outcome" = "failure" ]; then
               note "- ❌ $name 실패"; fail=1
@@ -405,3 +415,24 @@ jobs:
             echo "::error::수집은 끝났고 데이터도 커밋됐지만 위 항목이 실패했다. 요약을 볼 것."
             exit 1
           }
+
+      # 운영자에게 하루 한 통 (BE22). **잘 돈 날에도 온다** — 그래야 안 온 날이 「아예 안 돌았다」의 신호가 된다.
+      #
+      # · 맨 끝에 둔다. `job.status` 가 위 상태 점검·커밋의 실패까지 담은 **잡 전체 결과**여야 한다.
+      # · 예비 실행이 바로 끝나는 날(guard skip)은 보내지 않는다 — 그날 보고는 주 실행이 이미 보냈다.
+      # · 수동 실행에서도 나간다. 받는 사람이 운영자뿐이라 `skip_side_effects` 가 막으려는 부작용이 아니다.
+      # 🔴 `continue-on-error` 를 달지 않는다. 조용히 안 오는 보고는 보고가 아니다 — 발송이 실패하면
+      #    잡이 빨간불이 되어 GitHub 가 대신 알린다.
+      # 🔴 본문을 로그에 찍지 않는다(스크립트가 지킨다). 공개 저장소는 Actions 로그도 공개다.
+      # 받는 주소는 `production` 환경 시크릿 `REPORT_TO`.
+      - name: 일일 보고 메일
+        if: always() && steps.guard.outputs.skip != 'true'
+        env:
+          MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          REPORT_TO: ${{ secrets.REPORT_TO }}
+          JOB_STATUS: ${{ job.status }}
+          SCHEDULE: ${{ github.event.schedule }}
+          STARTED: ${{ steps.guard.outputs.started }}
+          HEALTH_NOTES: ${{ steps.health.outputs.notes }}
+        run: python collector/daily_report.py
