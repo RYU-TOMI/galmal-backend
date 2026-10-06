@@ -267,7 +267,7 @@ class SnapshotRuleTest(PublishedToTempDir):
         self.assertEqual(snapshot_errors(self.v1), [])
 
     def test_the_rule_catches_what_actually_went_wrong(self):
-        """반례 — 구형 `05d0de9`의 `docs/v1`: deals만 42초 이르고 `preserved=false`.
+        """반례 — 구형 `d75921d`의 `docs/v1`: deals만 42초 이르고 `preserved=false`.
 
         M1 때 deals의 `generated`를 분 단위 `updated`에서 만들던 흔적이다(프론트 제보).
         검사기가 이걸 통과시키면 위의 두 테스트도 헛것이다.
@@ -276,7 +276,7 @@ class SnapshotRuleTest(PublishedToTempDir):
         meta = load_from(self.v1, "meta.json")
         meta["generated"] = "2026-09-08T15:28:42+09:00"
         (self.v1 / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
-        # 05d0de9 때는 vocab.json 이 없었다 — 반례를 옮기려고 meta 와 같은 시각에 맞춘다
+        # d75921d 때는 vocab.json 이 없었다 — 반례를 옮기려고 meta 와 같은 시각에 맞춘다
         for rel in ["routes/index.json", "vocab.json"] + [
                 f"routes/{r['code']}.json"
                 for r in load_from(self.v1, "routes/index.json")["routes"]]:
