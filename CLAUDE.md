@@ -24,7 +24,7 @@
 - **한 발행의 모든 응답은 같은 `generated`**, 단 딜 보존일(`meta.preserved=true`)엔 `deals`만 더 이르다(`galmal-plan/CONTRACT.md` §공통 규칙, 테스트가 잠근다).
 
 ## 크론 (`.github/workflows/collect.yml`)
-- **하루 두 번 예약**: `14:10 UTC`(23:10 KST) 주 실행 · `18:10 UTC`(03:10 KST) 예비. 끝나면 프론트에 `repository_dispatch`(`client_payload.generated`).
+- **하루 두 번 예약**: `10:10 UTC`(19:10 KST) 주 실행 · `14:10 UTC`(23:10 KST) 예비(2026-10-06 에 4시간 당김 — 지연이 7시간까지 커졌다). 끝나면 프론트에 `repository_dispatch`(`client_payload.generated`).
   - **예비는 오늘 발행이 이미 있으면 즉시 끝난다**(「오늘 발행 확인」 스텝이 `meta.generated`를 본다). 주 실행이 큐에서 버려졌거나 발행까지 못 간 날에만 일한다.
   - **UTC 자정에서 멀어야 한다** — `fetched_date`가 UTC 날짜라 자정에 걸치면 수집일에 구멍이 난다(BB36). 지연은 우리가 못 줄인다(GitHub 큐) — **여유로 견딘다.**
   - 손으로 돌리면(`workflow_dispatch`) **가드와 무관하게 언제나 돈다.**

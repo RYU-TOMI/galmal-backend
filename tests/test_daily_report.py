@@ -122,6 +122,21 @@ class ScheduleTest(unittest.TestCase):
             with self.subTest(raw=raw):
                 self.assertIsNone(parse_started(raw))
 
+    def test_the_workflow_crons_and_backup_marker_agree(self):
+        """`collect.yml` 의 예약 둘째 줄과 `BACKUP_CRON` 은 **같은 문자열**이어야 한다.
+
+        갈리면 예비 실행이 자기가 예비인 줄 모른다 — 가드가 안 걸려 매일 두 번 전부 돌고, 보고는 「(주)」라고 적는다.
+        예외도 경고도 없다. 예약 시각을 옮길 때 한쪽만 고치기 쉬운 자리다(2026-10-06 에 옮겼다).
+        """
+        import re
+        text = (Path(__file__).resolve().parent.parent / ".github" / "workflows" / "collect.yml").read_text(encoding="utf-8")
+        crons = re.findall(r'^\s*- cron: "([^"]+)"', text, re.M)
+        backup = re.findall(r'^\s*BACKUP_CRON: "([^"]+)"', text, re.M)
+        self.assertEqual(len(crons), 2, crons)
+        self.assertEqual(backup, [crons[1]])
+        for cron in crons:                                   # 보고가 지연을 계산할 수 있는 모양인가
+            self.assertIsNotNone(scheduled_for(parse_started(STARTED), cron), cron)
+
 
 class HeadlineTest(Fixture):
     def test_clean_run(self):
