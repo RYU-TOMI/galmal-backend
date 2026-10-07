@@ -1,4 +1,4 @@
-[2026-10-07] 특가 18건 발견
+[2026-10-08] 특가 18건 발견
   PUS→CJU 2026-10-13~2026-10-15 54,724원 (BX, 직항) — 동일 유형 시세 131,987원 대비 59% 저렴
     https://www.aviasales.com/search/PUS1310CJU15101?t=BX17919153001791919200000065PUSCJU17920554001792059600000070CJUPUS_f376d05e492fa484b0e02d7ac9a9d4c3_3514&search_date=06102026&expected_price_uuid=01a110c2-dc38-8030-6d08-82927b81fe57&static_fare_key=TY%7CP1%7CH1%7CL1_1_15%7CCH1%7CR1%7CTBC1&itinerary_key=hyc8srLbAL9YnRk_qKivCA&expected_price_source=share&expected_price_currency=krw&expected_price=54724
   PUS→CJU 2026-10-07~2026-10-08 61,790원 (7C, 직항) — 동일 유형 시세 131,987원 대비 53% 저렴
@@ -25,7 +25,7 @@
     https://www.aviasales.com/search/PUS2110KIX21101?t=ZE17925657001792571400000095PUSKIX17925798001792585800000100KIXPUS_7eb7a5211cc31f87c8805dd847878d0b_12529&search_date=02102026&expected_price_uuid=01a0fc34-fce9-8030-27f2-00dcd1d42519&static_fare_key=TY%7CP1%7CH0%7CL1_1_15%7CCH0%7CR0%7CTBC1&itinerary_key=sVL6RUPAVbNtkgIVvmVVDg&origin_airports=1&destination_airports=0&expected_price_source=share&expected_price_currency=krw&expected_price=201500
   TAE→CJU 2026-12-07~2026-12-08 65,527원 (TW, 직항) — 동일 유형 시세 109,565원 대비 40% 저렴
     https://www.aviasales.com/search/TAE0712CJU08121?t=TW17966739001796677800000065TAECJU17967186001796722500000065CJUTAE_78af06f75eb313cc60af905d3ed0fe9b_4199&search_date=06102026&expected_price_uuid=01a110fd-20c1-8030-2a8a-679313f68c4e&static_fare_key=TY%7CP1_JW%7CH1%7CL1_1_15%7CCH0%7CR0%7CTBC1&itinerary_key=YukY7LJ-ifLSbAEmbdUr6g&expected_price_source=share&expected_price_currency=krw&expected_price=65527
-  GMP→CJU 2026-10-10~2026-10-15 53,418원 (ZE, 직항) — 동일 유형 시세 85,834원 대비 38% 저렴
+  GMP→CJU 2026-10-10~2026-10-15 53,418원 (ZE, 직항) — 동일 유형 시세 86,099원 대비 38% 저렴
     https://www.aviasales.com/search/GMP1010CJU15101?t=ZE17916432001791647700000075GMPCJU17920509001792055400000075CJUGMP_97b47752923a25f1b6fe6620161008e3_3418&search_date=06102026&expected_price_uuid=01a1105b-3038-8050-a799-5edb317da6e7&static_fare_key=TY%7CP1%7CH0%7CL1_1_15%7CCH1%7CR1%7CTBC1&itinerary_key=vbgSidIoHMi7dkuygulQsA&origin_airports=0&destination_airports=1&expected_price_source=share&expected_price_currency=krw&expected_price=53418
   PUS→PQC 2026-11-15~2026-11-30 289,665원 (VJ, 직항) — 동일 유형 시세 465,628원 대비 38% 저렴
     https://www.aviasales.com/search/PUS1511PQC30111?t=VJ17947281001794740700000330PUSPQC17959986001796025000000320PQCPUS_ac755b24443eff14aa8da92ba2319b9a_17964&search_date=04102026&expected_price_uuid=01a106f8-1fb5-8030-6bbe-f2e28beef928&static_fare_key=TY%7CP1%7CH1%7CL1_1_15%7CCH0%7CR0%7CTBC1&itinerary_key=DRTAT0MsBndarbK_vg5Txg&expected_price_source=share&expected_price_currency=krw&expected_price=289665
