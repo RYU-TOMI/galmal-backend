@@ -128,7 +128,11 @@ jobs:
         id: detect
         if: steps.guard.outputs.skip != 'true'
         continue-on-error: true   # 파생 산출물이라 실패가 수집분을 버릴 이유가 없다
-        run: python collector/detect_deals.py | tee data/deals_latest.txt
+        # 🔴 `pipefail` 을 떼지 않는다 (BB46). `shell` 을 안 적은 스텝은 `bash -e` 로만 돌아 파이프의 종료 코드가
+        #    **`tee` 의 것**이다 — 판정이 죽어도 스텝은 성공이고 상태 점검의 「✅ 특가 판정」이 아무것도 보증하지 않았다.
+        run: |
+          set -o pipefail
+          python collector/detect_deals.py | tee data/deals_latest.txt
 
       - name: 프로모션 메일 수집
         id: mail
