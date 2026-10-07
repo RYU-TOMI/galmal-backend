@@ -349,6 +349,23 @@ class VisitsTest(Fixture):
         self.assertIn("주의 1건", subject)
         self.assertIn("[발행]", body)
 
+    def http_error(self, code):
+        import urllib.error
+        return urllib.error.HTTPError("https://site.goatcounter.com/api/v0/stats/hits", code, "x", {}, None)
+
+    def test_no_data_yet_is_404_and_not_a_warning(self):
+        """방문이 0건이면 API 가 404 다. 매일 ⚠️ 로 올리면 진짜 경고가 묻힌다 — 본문에 코드만 남긴다."""
+        subject, body = self.build_with(mock.Mock(side_effect=self.http_error(404)))
+        self.assertIn("[방문 (GoatCounter)]\n- 아직 집계된 방문이 없다 (404)", body)
+        self.assertIn("✅", subject)
+
+    def test_other_http_errors_still_warn(self):
+        for code in (401, 403, 500):
+            with self.subTest(code=code):
+                subject, body = self.build_with(mock.Mock(side_effect=self.http_error(code)))
+                self.assertIn("⚠️ 방문 통계를 읽지 못했다", body)
+                self.assertIn("⚠️", subject)
+
     def run_main(self, goat):
         env_ = dict(self.environ(), MAIL_ADDRESS="svc@example.com", MAIL_APP_PASSWORD="pw", REPORT_TO=SECRET_TO, **self.GOAT)
         with mock.patch.dict(os.environ, env_, clear=True), \
