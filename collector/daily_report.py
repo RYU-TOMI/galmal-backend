@@ -21,6 +21,8 @@ import os
 import smtplib
 import sqlite3
 import sys
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from email.header import Header
 from email.mime.text import MIMEText
@@ -169,6 +171,33 @@ def probe_lines(today):
     return lines
 
 
+def _goat(site, token, path, **query):
+    """GoatCounter REST API 한 번(`https://<site>.goatcounter.com/api/v0`, Bearer 토큰, 초당 4회 제한)."""
+    req = urllib.request.Request(f"https://{site}.goatcounter.com/api/v0{path}?{urllib.parse.urlencode(query)}",
+                                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode())
+
+
+def visit_lines(now):
+    """방문 집계(GoatCounter, 기획 결정 2026-10-05 (2)) — **어제 하루(KST)** 와 최근 7일.
+
+    🔴 여기 숫자는 「우리에게 사람이 얼마나 오는가」다. 메일 본문에만 싣는다 — 로그·저장소·커밋 메시지 금지.
+    시크릿이 없으면 「연결 안 됨」으로 적고 넘어간다. 있는데 못 받으면 예외를 올려 `_section` 이 적게 한다.
+    """
+    site, token = env.get("GOATCOUNTER_SITE"), env.get("GOATCOUNTER_TOKEN")
+    if not (site and token):
+        return ["- 아직 연결 안 됨 (변수 GOATCOUNTER_SITE · 시크릿 GOATCOUNTER_TOKEN)"]
+    today0 = now.astimezone(timeutil.KST).replace(hour=0, minute=0, second=0, microsecond=0)
+    z = lambda dt: dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    end = z(today0 - timedelta(seconds=1))                          # 어제 23:59:59 KST
+    day = _goat(site, token, "/stats/hits", start=z(today0 - timedelta(days=1)), end=end, limit=5)
+    week = _goat(site, token, "/stats/total", start=z(today0 - timedelta(days=7)), end=end)
+    lines = [f"- 어제({today0 - timedelta(days=1):%m-%d} KST) 방문 {day['total']} · 최근 7일 {week['total']}"]
+    lines += [f"  · {h['count']:>4}  {h['path']}" for h in day.get("hits", []) if h.get("count")]
+    return lines
+
+
 def _section(title, fn, *args):
     """한 구역이 죽어도 **보고는 나간다.** 못 읽은 것은 못 읽었다고 적는다."""
     try:
@@ -227,6 +256,10 @@ def build(environ, now):
         finally:
             conn.close()
     body += _section("노선 후보 — 7일 연속 중앙값 10건 이상이면 넣는다", probe_lines, today)
+    visits = _section("방문 (GoatCounter)", visit_lines, now)
+    if any("읽지 못했다" in line for line in visits):
+        warns.append("방문 통계를 읽지 못했다 — 토큰 권한·사이트 코드를 볼 것")
+    body += visits
 
     day = f"{now.astimezone(timeutil.KST):%m-%d}"
     if status == "success" and not warns:
@@ -269,6 +302,11 @@ def main():
         return
     n = send(subject, body)
     print(f"보고 메일 발송: 받는 주소 {n}곳 · 본문 {body.count(chr(10))}줄 (내용은 로그에 찍지 않는다)")
+    # 못 읽은 구역은 **이름과 오류 종류만** 찍는다 — 본문을 못 보는 로그에서 「방문 통계가 붙었나」를 알 길이 이것뿐이다.
+    lines = body.splitlines()
+    for title, nxt in zip(lines, lines[1:]):
+        if title.startswith("[") and nxt.startswith("- ⚠️ 읽지 못했다:"):
+            print(f"  못 읽은 구역 — {title.strip('[]')}: {nxt.split(':')[1].strip()}")
 
 
 if __name__ == "__main__":

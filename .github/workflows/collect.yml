@@ -435,6 +435,9 @@ jobs:
           MAIL_ADDRESS: ${{ secrets.MAIL_ADDRESS }}
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           REPORT_TO: ${{ secrets.REPORT_TO }}
+          # 방문 집계(GoatCounter). 사이트 코드는 페이지의 count 요청에 이미 드러나는 값이라 vars 다 — 로그에 보여야 오타를 가린다.
+          GOATCOUNTER_SITE: ${{ vars.GOATCOUNTER_SITE }}
+          GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
           JOB_STATUS: ${{ job.status }}
           SCHEDULE: ${{ github.event.schedule }}
           STARTED: ${{ steps.guard.outputs.started }}

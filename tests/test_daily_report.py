@@ -307,6 +307,70 @@ class MailAndProbeTest(Fixture):
             self.assertNotIn("노선 후보", self.build()[1])
 
 
+class VisitsTest(Fixture):
+    """방문 집계(GoatCounter) — 숫자는 메일 본문에만. 네트워크는 `_goat` 를 갈아끼운다."""
+    GOAT = {"GOATCOUNTER_SITE": "site", "GOATCOUNTER_TOKEN": "tok"}
+
+    def fake(self, calls):
+        def _goat(site, token, path, **q):
+            calls.append((site, token, path, q))
+            return ({"total": 4321, "hits": [{"path": "/routes/ICN-NRT.html", "count": 987}, {"path": "/x", "count": 0}]}
+                    if path == "/stats/hits" else {"total": 87654})
+        return _goat
+
+    def build_with(self, goat, environ=None):
+        with mock.patch.dict(os.environ, self.GOAT if environ is None else environ, clear=True), \
+             mock.patch.object(daily_report, "_goat", goat):
+            return self.build()
+
+    def test_not_connected_is_said_and_is_not_a_warning(self):
+        goat = mock.Mock()
+        subject, body = self.build_with(goat, environ={"GOATCOUNTER_SITE": "site"})      # 토큰 없음
+        goat.assert_not_called()
+        self.assertIn("[방문 (GoatCounter)]\n- 아직 연결 안 됨", body)
+        self.assertIn("✅", subject)
+
+    def test_yesterday_in_kst_and_the_week(self):
+        calls = []
+        _, body = self.build_with(self.fake(calls))
+        self.assertIn("- 어제(10-03 KST) 방문 4321 · 최근 7일 87654", body)      # NOW = 10-04 03:05 KST
+        self.assertIn(" 987  /routes/ICN-NRT.html", body)
+        self.assertNotIn("/x", body)                                              # 0건 경로는 안 싣는다
+        (s1, t1, p1, q1), (_, _, p2, q2) = calls
+        self.assertEqual((s1, t1, p1, p2), ("site", "tok", "/stats/hits", "/stats/total"))
+        # 어제 = KST 10-03 00:00 ~ 23:59:59 → UTC 로는 10-02 15:00 ~ 10-03 14:59:59. UTC 날짜로 자르면 9시간 어긋난다.
+        self.assertEqual((q1["start"], q1["end"]), ("2026-10-02T15:00:00Z", "2026-10-03T14:59:59Z"))
+        self.assertEqual((q2["start"], q2["end"]), ("2026-09-26T15:00:00Z", "2026-10-03T14:59:59Z"))
+
+    def test_api_failure_is_a_warning_and_the_report_still_goes(self):
+        subject, body = self.build_with(mock.Mock(side_effect=OSError("HTTP Error 403: Forbidden")))
+        self.assertIn("[방문 (GoatCounter)]\n- ⚠️ 읽지 못했다: OSError", body)
+        self.assertIn("⚠️ 방문 통계를 읽지 못했다", body)
+        self.assertIn("주의 1건", subject)
+        self.assertIn("[발행]", body)
+
+    def run_main(self, goat):
+        env_ = dict(self.environ(), MAIL_ADDRESS="svc@example.com", MAIL_APP_PASSWORD="pw", REPORT_TO=SECRET_TO, **self.GOAT)
+        with mock.patch.dict(os.environ, env_, clear=True), \
+             mock.patch.object(daily_report, "_goat", goat), \
+             mock.patch.object(daily_report.smtplib, "SMTP_SSL", mock.MagicMock()), \
+             mock.patch.object(daily_report.sys, "argv", ["daily_report.py"]), \
+             mock.patch("builtins.print") as out:
+            daily_report.main()
+        return "\n".join(" ".join(map(str, c.args)) for c in out.call_args_list)
+
+    def test_visit_numbers_never_reach_the_log(self):
+        """🔴 방문 수는 유입 수치다 — 공개 Actions 로그에 한 글자도 안 나간다."""
+        printed = self.run_main(self.fake([]))
+        for secret in ("4321", "87654", "987", "/routes/ICN-NRT.html", "tok"):
+            self.assertNotIn(secret, printed)
+
+    def test_a_failed_section_is_named_in_the_log_without_content(self):
+        printed = self.run_main(mock.Mock(side_effect=OSError("HTTP Error 403: Forbidden")))
+        self.assertIn("못 읽은 구역 — 방문 (GoatCounter): OSError", printed)
+        self.assertNotIn("403", printed)
+
+
 class SendTest(Fixture):
     ENV = {"MAIL_ADDRESS": "svc@example.com", "MAIL_APP_PASSWORD": "pw", "REPORT_TO": SECRET_TO}
 
