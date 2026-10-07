@@ -21,6 +21,7 @@ import os
 import smtplib
 import sqlite3
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -191,8 +192,15 @@ def visit_lines(now):
     today0 = now.astimezone(timeutil.KST).replace(hour=0, minute=0, second=0, microsecond=0)
     z = lambda dt: dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     end = z(today0 - timedelta(seconds=1))                          # 어제 23:59:59 KST
-    day = _goat(site, token, "/stats/hits", start=z(today0 - timedelta(days=1)), end=end, limit=5)
-    week = _goat(site, token, "/stats/total", start=z(today0 - timedelta(days=7)), end=end)
+    try:
+        day = _goat(site, token, "/stats/hits", start=z(today0 - timedelta(days=1)), end=end, limit=5)
+        week = _goat(site, token, "/stats/total", start=z(today0 - timedelta(days=7)), end=end)
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            raise
+        # 집계된 방문이 한 건도 없으면 통계 조회가 404 다(2026-10-07 실측: 사이트·토큰은 맞고 대시보드는 「No data received」).
+        # 매일 뜨는 경고는 안 읽게 된다 — 경고로 올리지 않되 **코드는 적는다.** 스크립트가 나간 뒤에도 이 줄이면 그때는 고장이다.
+        return ["- 아직 집계된 방문이 없다 (404) — 프론트가 집계 스크립트를 배포하기 전이면 정상"]
     lines = [f"- 어제({today0 - timedelta(days=1):%m-%d} KST) 방문 {day['total']} · 최근 7일 {week['total']}"]
     lines += [f"  · {h['count']:>4}  {h['path']}" for h in day.get("hits", []) if h.get("count")]
     return lines
