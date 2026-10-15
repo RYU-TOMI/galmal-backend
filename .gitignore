@@ -2,5 +2,7 @@
 # 단 메일 본문(개인화 링크 포함)은 공개 금지 — 로컬 전용
 .env
 data/emails_raw.db
+# 파싱 평가(BE28) — 메일 본문이 들어 있다
+data/eval/
 __pycache__/
 .idea/
