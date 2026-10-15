@@ -63,6 +63,15 @@ def html_to_text(html: str, limit: int = 12000) -> str:
 
 
 def parse_one(client, sender, subject, body_html):
+    return request(client, sender, subject, body_html).parsed_output
+
+
+def request(client, sender, subject, body_html, model=MODEL, **opts):
+    """메일 한 통의 요청 — **응답 전체**를 돌려준다.
+
+    운영은 `parse_one` 을 거쳐 기본값 그대로 쓴다. `model`·`opts` 는 평가(`eval_parse.py`, BE28)가
+    **같은 프롬프트**를 다른 모델에 태우고 사용량·`stop_reason` 을 보려고 연다 — 프롬프트를 베끼면 평가가 운영을 재지 않는다.
+    """
     prompt = (
         "다음은 항공사에서 온 마케팅 메일입니다. 항공권 특가/프로모션 정보를 추출하세요.\n"
         "- 단순 회원가입 안내, 본인 인증, 보안 알림 등 특가와 무관하면 is_deal=false\n"
@@ -72,13 +81,12 @@ def parse_one(client, sender, subject, body_html):
         "붙은 링크는 파라미터를 제거하거나 제외할 것\n\n"
         f"보낸사람: {sender}\n제목: {subject}\n본문:\n{html_to_text(body_html)}"
     )
-    response = client.messages.parse(
-        model=MODEL,
-        max_tokens=2048,
+    return client.messages.parse(
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         output_format=MailParseResult,
+        **{"max_tokens": 2048, **opts},
     )
-    return response.parsed_output
 
 
 def check_key(client):
