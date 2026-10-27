@@ -40,6 +40,7 @@ on:
 
 permissions:
   contents: write
+  pages: write      # Pages 빌드 재요청(「프론트에 알림」, BE29)
 
 # 한 번에 하나만 돈다 (BE14 T4). 수동 검증 실행이 예약 실행과 겹치면 둘이 같은 `prices.db` 를
 # 각자 고쳐 push 하고, 늦은 쪽이 rebase 충돌에서 **자기 DB 를 통째로 취한다**(아래 커밋 스텝) —
@@ -82,6 +83,8 @@ jobs:
         run: |
           # 실제 시작 시각 — 「일일 보고 메일」이 예약 시각과 견줘 지연을 적는다. 잡의 첫 스텝이라 여기서 남긴다.
           echo "started=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+          # 직전 발행값 — 발행 전이라 체크아웃한 meta.json 이 곧 직전 것이다. 「상태 점검」이 허용 기준으로 쓴다(BE29).
+          echo "prev=$(python -c "import json; print(json.load(open('docs/v1/meta.json',encoding='utf-8'))['generated'])" 2>/dev/null)" >> "$GITHUB_OUTPUT"
           gen=$(python -c "import json,datetime as dt; g=json.load(open('docs/v1/meta.json',encoding='utf-8'))['generated']; print(dt.datetime.fromisoformat(g).astimezone(dt.timezone.utc).date().isoformat())" 2>/dev/null || echo "")
           today=$(date -u '+%Y-%m-%d')
           if [ "${{ github.event.schedule }}" = "$BACKUP_CRON" ] && [ "$gen" = "$today" ]; then
@@ -272,6 +275,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+          PAGES_TOKEN: ${{ github.token }}   # 이 저장소의 Pages 재빌드용 — 위 permissions 의 `pages: write`
           API_URL: ${{ vars.API_URL || 'https://api.galmal.kr' }}
         run: |
           want=$(python -c "import json; print(json.load(open('docs/v1/meta.json', encoding='utf-8'))['generated'])")
@@ -281,6 +285,14 @@ jobs:
             got=$(curl -fsS --max-time 15 "$url" 2>/dev/null \
                   | python -c "import sys,json; print(json.load(sys.stdin)['generated'])" 2>/dev/null)
             [ "$got" = "$want" ] && break
+            # 3분이 지나도 새 값이 안 보이면 Pages 빌드를 **한 번** 다시 요청한다 (BE29).
+            # 2026-10-21 에 push 는 됐는데 `pages-build-deployment` 가 아예 안 돌아 12분을 다 기다리고 실패했다 —
+            # 그날 사이트·API 가 하루 늦었다. 실패해도 넘어간다(그러면 아래가 전처럼 12분 뒤 실패로 알린다).
+            if [ "$i" = 18 ]; then
+              echo "3분째 옛 값(${got:-없음}) — Pages 빌드를 다시 요청한다"
+              GH_TOKEN="$PAGES_TOKEN" gh api -X POST "repos/$GITHUB_REPOSITORY/pages/builds" --jq .status \
+                || echo "::warning::Pages 빌드 재요청 실패 — 계속 기다린다"
+            fi
             sleep 10
           done
           if [ "$got" != "$want" ]; then
@@ -343,10 +355,15 @@ jobs:
           # 무엇을 잡나: **배포가 멈춘 것**과 **주소가 틀린 것**.
           # 수집은 초록불인데 배포만 죽으면 아무도 모른다 — BB18이 그랬다.
           #
-          # ⚠️ 「오늘 것인가」로 짜면 매일 헛실패한다. 이 스텝은 push 직후에 도는데
-          #    Pages 배포가 ~25초 더 걸린다(실측) — 그 순간 라이브는 대개 **어제 것**이다.
-          #    그래서 **어제까지는 통과**시키고 **그보다 오래되면 실패**한다.
-          #    배포가 진짜 멈추면 다음 날 걸린다. 몇 주를 모르던 것보다 훨씬 낫다.
+          # ⚠️ 「이번 발행값인가」로만 짜면 매일 헛실패한다. 이 스텝은 push 직후에 도는데
+          #    Pages 배포가 ~25초 더 걸린다(실측) — 그 순간 라이브는 대개 **직전 발행값**이다.
+          #    그래서 **이번 값 또는 직전 값이면 통과**, 그 밖이면 실패한다.
+          #    배포가 진짜 멈추면 다음 날엔 직전 값과도 달라져 걸린다. 몇 주를 모르던 것보다 훨씬 낫다.
+          # 🔴 날짜(KST 오늘/어제)로 재지 않는다 (BE29). 지연으로 실행이 KST 자정을 넘긴 날은 직전 발행이
+          #    「그저께」 날짜라 멀쩡한데도 실패했다(10-20 · 10-27). 같은 데이터 안의 두 값을 비교한다.
+          prev="${{ steps.guard.outputs.prev }}"
+          new=$(python -c "import json; print(json.load(open('docs/v1/meta.json',encoding='utf-8'))['generated'])" 2>/dev/null)
+          fresh() { [ -n "$1" ] && { [ "$1" = "$new" ] || [ "$1" = "$prev" ]; }; }
           url="$API_URL/v1/meta.json"
           meta=""
           for wait in 0 30 45; do
@@ -360,17 +377,15 @@ jobs:
             echo "::error::$url 을 받지 못했다. 주소가 틀렸거나 배포가 죽었다."
             fail=1
           else
-            served=$(printf '%s' "$meta" | python -c "import sys,json; print(json.load(sys.stdin)['generated'][:10])")
+            served=$(printf '%s' "$meta" | python -c "import sys,json; print(json.load(sys.stdin)['generated'])")
             addr=$(printf '%s' "$meta" | python -c "import sys,json; print(json.load(sys.stdin)['subscribe']['address'])")
-            today=$(TZ=Asia/Seoul date '+%Y-%m-%d')
-            yday=$(TZ=Asia/Seoul date -d 'yesterday' '+%Y-%m-%d')
-            if [ "$served" = "$today" ]; then
-              note "- ✅ API 점검: 오늘 것이 서빙 중 ($served)"
-            elif [ "$served" = "$yday" ]; then
-              note "- ✅ API 점검: 어제 것 ($served) — 배포 반영 대기로 본다"
+            if [ "$served" = "$new" ]; then
+              note "- ✅ API 점검: 이번 발행이 서빙 중 ($served)"
+            elif fresh "$served"; then
+              note "- ✅ API 점검: 직전 발행 ($served) — 배포 반영 대기로 본다"
             else
               note "- ❌ API 점검: **$served** 로 멈춰 있다 — $url"
-              echo "::error::배포가 멈췄다. $url 이 $served 를 서빙한다(오늘 $today)."
+              echo "::error::배포가 멈췄다. $url 이 $served 를 서빙한다(이번 $new · 직전 $prev)."
               fail=1
             fi
             # 구독 메일함 대조 (BB32) — 시크릿이 있는 유일한 자리라 여기서만 볼 수 있다.
@@ -390,7 +405,7 @@ jobs:
             # 두 값의 일치를 본다 — 절대값을 기대하지 않는다. 프론트가 `build.json` 에
             # `meta.generated` 를 **가공 없이 그대로** 복사한다(프론트 확인).
             #
-            # ⚠️ 관용은 API 점검과 같다(오늘/어제). dispatch 직후엔 프론트가 아직 굽는
+            # ⚠️ 관용은 API 점검과 같다(이번/직전 발행값). dispatch 직후엔 프론트가 아직 굽는
             # 중이라 **그 순간 사이트는 항상 한 주기 뒤처져 있다.** 정확히 같기를
             # 기대하면 매일 헛실패하고, 매일 실패하는 점검은 무시당한다.
             site_url="$SITE_URL/build.json"
@@ -407,8 +422,8 @@ jobs:
               echo "::error::$site_url 을 받지 못했다. 주소가 틀렸거나 프론트 배포가 죽었다."
               fail=1
             else
-              site_api=$(printf '%s' "$site" | python -c "import sys,json; print(json.load(sys.stdin)['api_generated'][:10])")
-              if [ "$site_api" = "$today" ] || [ "$site_api" = "$yday" ]; then
+              site_api=$(printf '%s' "$site" | python -c "import sys,json; print(json.load(sys.stdin)['api_generated'])")
+              if fresh "$site_api"; then
                 note "- ✅ 사이트 점검: API 를 따라오고 있다 (site $site_api / api $served)"
               else
                 note "- ❌ 사이트 점검: 사이트가 **$site_api** 에 멈춰 있다 (api $served) — $site_url"
